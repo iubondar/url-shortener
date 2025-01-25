@@ -4,7 +4,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/iubondar/url-shortener/internal/app/strings"
 )
+
+const shortURLLength int = 8
+
+var urls map[string]string
 
 func shortenHandler(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
@@ -18,14 +24,23 @@ func shortenHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	res.Write([]byte(fmt.Sprintf("Body: %s", body)))
+	short, ok := urls[string(body)]
+	if !ok {
+		short = strings.RandString(shortURLLength)
+		urls[string(body)] = short
+		res.WriteHeader(http.StatusCreated)
+	}
+
+	res.Write([]byte(fmt.Sprintf("http://%s/%s", req.Host, short)))
 }
 
 func main() {
+	urls = make(map[string]string)
+
 	mux := http.NewServeMux()
 	mux.HandleFunc(`/`, shortenHandler)
 
-	err := http.ListenAndServe(`:8080`, mux)
+	err := http.ListenAndServe(`localhost:8080`, mux)
 	if err != nil {
 		panic(err)
 	}
