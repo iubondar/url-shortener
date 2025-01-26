@@ -3,7 +3,7 @@ package storage
 import "errors"
 
 // специальные типы ошибок
-var ErrorURLNotFound = errors.New("URL not found")
+var ErrorNotFound = errors.New("not found")
 
 type Repository interface {
 	SaveURL(url string) (id string, exists bool, err error)

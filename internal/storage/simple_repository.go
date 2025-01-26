@@ -34,8 +34,17 @@ func (rep SimpleRepository) SaveURL(url string) (id string, exists bool, err err
 func (rep SimpleRepository) RetrieveURL(id string) (url string, err error) {
 	url, ok := rep.idsToURLs[id]
 	if !ok {
-		return "", ErrorURLNotFound
+		return "", ErrorNotFound
 	}
 
 	return url, nil
+}
+
+func (rep SimpleRepository) RetrieveId(url string) (id string, err error) {
+	id, ok := rep.urlsToIds[url]
+	if !ok {
+		return "", ErrorNotFound
+	}
+
+	return id, nil
 }

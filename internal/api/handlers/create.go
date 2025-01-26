@@ -38,6 +38,7 @@ func (handler CreateIdHandler) CreateId(res http.ResponseWriter, req *http.Reque
 		return
 	}
 
+	res.Header().Add("Content-Type", "text/plain")
 	if !exists {
 		res.WriteHeader(http.StatusCreated)
 	}
