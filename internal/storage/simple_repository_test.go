@@ -50,8 +50,8 @@ func TestSimpleRepository_SaveURL(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rep := SimpleRepository{
-				urlsToIds: tt.fields.urlsToIds,
-				idsToURLs: tt.fields.idsToURLs,
+				UrlsToIds: tt.fields.urlsToIds,
+				IdsToURLs: tt.fields.idsToURLs,
 			}
 			gotId, gotExists, err := rep.SaveURL(tt.args.url)
 			if (err != nil) != tt.wantErr {
@@ -114,8 +114,8 @@ func TestSimpleRepository_RetrieveURL(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rep := SimpleRepository{
-				urlsToIds: tt.fields.urlsToIds,
-				idsToURLs: tt.fields.idsToURLs,
+				UrlsToIds: tt.fields.urlsToIds,
+				IdsToURLs: tt.fields.idsToURLs,
 			}
 			gotUrl, err := rep.RetrieveURL(tt.args.id)
 			if (err != nil) != tt.wantErr {

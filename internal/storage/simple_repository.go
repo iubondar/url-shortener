@@ -5,19 +5,19 @@ import "github.com/iubondar/url-shortener/internal/strings"
 const idLength int = 8
 
 type SimpleRepository struct {
-	urlsToIds map[string]string
-	idsToURLs map[string]string
+	UrlsToIds map[string]string
+	IdsToURLs map[string]string
 }
 
 func NewSimpleRepository() SimpleRepository {
 	return SimpleRepository{
-		urlsToIds: make(map[string]string),
-		idsToURLs: make(map[string]string),
+		UrlsToIds: make(map[string]string),
+		IdsToURLs: make(map[string]string),
 	}
 }
 
 func (rep SimpleRepository) SaveURL(url string) (id string, exists bool, err error) {
-	id, ok := rep.urlsToIds[url]
+	id, ok := rep.UrlsToIds[url]
 	if ok {
 		// URL уже был сохранён - возвращаем имеющееся значение
 		return id, true, nil
@@ -25,14 +25,14 @@ func (rep SimpleRepository) SaveURL(url string) (id string, exists bool, err err
 
 	// создаём идентификатор и сохраняем URL
 	id = strings.RandString(idLength)
-	rep.urlsToIds[url] = id
-	rep.idsToURLs[id] = url
+	rep.UrlsToIds[url] = id
+	rep.IdsToURLs[id] = url
 
 	return id, false, nil
 }
 
 func (rep SimpleRepository) RetrieveURL(id string) (url string, err error) {
-	url, ok := rep.idsToURLs[id]
+	url, ok := rep.IdsToURLs[id]
 	if !ok {
 		return "", ErrorNotFound
 	}
@@ -41,7 +41,7 @@ func (rep SimpleRepository) RetrieveURL(id string) (url string, err error) {
 }
 
 func (rep SimpleRepository) RetrieveId(url string) (id string, err error) {
-	id, ok := rep.urlsToIds[url]
+	id, ok := rep.UrlsToIds[url]
 	if !ok {
 		return "", ErrorNotFound
 	}
