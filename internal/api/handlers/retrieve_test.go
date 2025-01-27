@@ -112,12 +112,3 @@ func TestRetrieveURLHandler_WithNoURL(t *testing.T) {
 	res := w.Result()
 	require.Equal(t, http.StatusBadRequest, res.StatusCode)
 }
-
-// {
-// 	name:   "URL not found test",
-// 	method: http.MethodGet,
-// 	want: want{
-// 		code:     http.StatusTemporaryRedirect,
-// 		location: ``,
-// 	},
-// },
