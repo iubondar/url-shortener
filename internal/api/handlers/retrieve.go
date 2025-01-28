@@ -3,7 +3,7 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/iubondar/url-shortener/internal/storage"
+	"github.com/iubondar/url-shortener/internal/app/storage"
 )
 
 type RetrieveURLHandler struct {

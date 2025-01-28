@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/iubondar/url-shortener/internal/api/router"
+	"github.com/iubondar/url-shortener/internal/app/router"
 )
 
 func main() {

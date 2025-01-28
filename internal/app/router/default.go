@@ -3,7 +3,7 @@ package router
 import (
 	"github.com/go-chi/chi"
 	"github.com/iubondar/url-shortener/internal/api/handlers"
-	"github.com/iubondar/url-shortener/internal/storage"
+	"github.com/iubondar/url-shortener/internal/app/storage"
 )
 
 func DefaultRouter() chi.Router {

@@ -1,6 +1,6 @@
 package storage
 
-import "github.com/iubondar/url-shortener/internal/strings"
+import "github.com/iubondar/url-shortener/internal/app/strings"
 
 const idLength int = 8
 
