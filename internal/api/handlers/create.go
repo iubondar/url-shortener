@@ -4,17 +4,20 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/iubondar/url-shortener/internal/app/storage"
 )
 
 type CreateIdHandler struct {
-	repo storage.Repository
+	repo    storage.Repository
+	baseURL string
 }
 
-func NewCreateIdHandler(repo storage.Repository) CreateIdHandler {
+func NewCreateIdHandler(repo storage.Repository, baseURL string) CreateIdHandler {
 	return CreateIdHandler{
-		repo: repo,
+		repo:    repo,
+		baseURL: baseURL,
 	}
 }
 
@@ -43,7 +46,8 @@ func (handler CreateIdHandler) CreateId(res http.ResponseWriter, req *http.Reque
 		res.WriteHeader(http.StatusCreated)
 	}
 
-	result := fmt.Sprintf("http://%s/%s", req.Host, id)
+	baseUrl := strings.TrimSuffix(strings.TrimPrefix(handler.baseURL, "http://"), "/")
+	result := fmt.Sprintf("http://%s/%s", baseUrl, id)
 
 	res.Write([]byte(result))
 }

@@ -6,11 +6,11 @@ import (
 	"github.com/iubondar/url-shortener/internal/app/storage"
 )
 
-func DefaultRouter() chi.Router {
+func Default(baseUrl string) chi.Router {
 
 	repo := storage.NewSimpleRepository()
 
-	createIdHandler := handlers.NewCreateIdHandler(repo)
+	createIdHandler := handlers.NewCreateIdHandler(repo, baseUrl)
 	retrieveURLHandler := handlers.NewRetrieveURLHandler(repo)
 
 	r := chi.NewRouter()

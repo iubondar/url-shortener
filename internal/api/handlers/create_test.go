@@ -67,7 +67,7 @@ func TestCreateIdHandler_CreateId(t *testing.T) {
 			// создаём новый Recorder
 			w := httptest.NewRecorder()
 			repo := storage.NewSimpleRepository()
-			handler := NewCreateIdHandler(repo)
+			handler := NewCreateIdHandler(repo, "127.0.0.1")
 			handler.CreateId(w, request)
 
 			res := w.Result()
