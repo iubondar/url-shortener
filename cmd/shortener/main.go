@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"net/http"
 
@@ -10,7 +9,7 @@ import (
 )
 
 func main() {
-	flag.Parse()
+	config.Default.Load()
 
 	log.Fatal(
 		http.ListenAndServe(
