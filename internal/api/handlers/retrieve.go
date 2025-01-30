@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/go-chi/chi"
 	"github.com/iubondar/url-shortener/internal/app/storage"
 )
 
@@ -22,7 +23,7 @@ func (handler RetrieveURLHandler) RetrieveURL(res http.ResponseWriter, req *http
 		return
 	}
 
-	id := req.PathValue("id")
+	id := chi.URLParam(req, "id")
 	if len(id) == 0 {
 		http.Error(res, "Can't find id parameter in query path", http.StatusBadRequest)
 		return
