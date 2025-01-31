@@ -16,7 +16,7 @@ func TestSimpleRepository_SaveURL(t *testing.T) {
 		name       string
 		fields     fields
 		args       args
-		wantId     bool
+		wantID     bool
 		wantExists bool
 		wantErr    bool
 	}{
@@ -29,7 +29,7 @@ func TestSimpleRepository_SaveURL(t *testing.T) {
 			args: args{
 				url: "http://example.com",
 			},
-			wantId:     true,
+			wantID:     true,
 			wantExists: false,
 			wantErr:    false,
 		},
@@ -42,7 +42,7 @@ func TestSimpleRepository_SaveURL(t *testing.T) {
 			args: args{
 				url: "http://example.com",
 			},
-			wantId:     true,
+			wantID:     true,
 			wantExists: true,
 			wantErr:    false,
 		},
@@ -53,16 +53,16 @@ func TestSimpleRepository_SaveURL(t *testing.T) {
 				UrlsToIds: tt.fields.urlsToIds,
 				IdsToURLs: tt.fields.idsToURLs,
 			}
-			gotId, gotExists, err := rep.SaveURL(tt.args.url)
+			gotID, gotExists, err := rep.SaveURL(tt.args.url)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SimpleRepository.SaveURL() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if tt.wantId && len(gotId) == 0 {
-				t.Error("SimpleRepository.SaveURL() received empty id", gotId, tt.wantId)
+			if tt.wantID && len(gotID) == 0 {
+				t.Error("SimpleRepository.SaveURL() received empty id", gotID, tt.wantID)
 			}
-			if !tt.wantId && len(gotId) != 0 {
-				t.Error("SimpleRepository.SaveURL() received unexpected id", gotId, tt.wantId)
+			if !tt.wantID && len(gotID) != 0 {
+				t.Error("SimpleRepository.SaveURL() received unexpected id", gotID, tt.wantID)
 			}
 			if gotExists != tt.wantExists {
 				t.Errorf("SimpleRepository.SaveURL() gotExists = %v, want %v", gotExists, tt.wantExists)
@@ -83,7 +83,7 @@ func TestSimpleRepository_RetrieveURL(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantUrl string
+		wantURL string
 		wantErr bool
 	}{
 		{
@@ -95,7 +95,7 @@ func TestSimpleRepository_RetrieveURL(t *testing.T) {
 			args: args{
 				id: "123",
 			},
-			wantUrl: "",
+			wantURL: "",
 			wantErr: true,
 		},
 		{
@@ -107,7 +107,7 @@ func TestSimpleRepository_RetrieveURL(t *testing.T) {
 			args: args{
 				id: "123",
 			},
-			wantUrl: "http://example.com",
+			wantURL: "http://example.com",
 			wantErr: false,
 		},
 	}
@@ -117,13 +117,13 @@ func TestSimpleRepository_RetrieveURL(t *testing.T) {
 				UrlsToIds: tt.fields.urlsToIds,
 				IdsToURLs: tt.fields.idsToURLs,
 			}
-			gotUrl, err := rep.RetrieveURL(tt.args.id)
+			gotURL, err := rep.RetrieveURL(tt.args.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SimpleRepository.RetrieveURL() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if gotUrl != tt.wantUrl {
-				t.Errorf("SimpleRepository.RetrieveURL() = %v, want %v", gotUrl, tt.wantUrl)
+			if gotURL != tt.wantURL {
+				t.Errorf("SimpleRepository.RetrieveURL() = %v, want %v", gotURL, tt.wantURL)
 			}
 		})
 	}
@@ -131,15 +131,15 @@ func TestSimpleRepository_RetrieveURL(t *testing.T) {
 
 func TestSimpleRepository_SaveAndRetrieve(t *testing.T) {
 	rep := NewSimpleRepository()
-	testUrl := "http://example.com"
-	id, _, _ := rep.SaveURL(testUrl)
+	testURL := "http://example.com"
+	id, _, _ := rep.SaveURL(testURL)
 	url, err := rep.RetrieveURL(id)
 	if err != nil {
 		t.Errorf("Got unexpected error %s", err.Error())
 		return
 	}
-	if url != testUrl {
-		t.Errorf("Expected: %s, got: %s", testUrl, url)
+	if url != testURL {
+		t.Errorf("Expected: %s, got: %s", testURL, url)
 		return
 	}
 }

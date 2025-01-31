@@ -14,9 +14,9 @@ import (
 
 // https://haykot.dev/blog/til-testing-parametrized-urls-with-chi-router/
 //
-// WithUrlParam returns a pointer to a request object with the given URL params
+// withURLParam returns a pointer to a request object with the given URL params
 // added to a new chi.Context object.
-func withUrlParam(r *http.Request, key, value string) *http.Request {
+func withURLParam(r *http.Request, key, value string) *http.Request {
 	chiCtx := chi.NewRouteContext()
 	req := r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, chiCtx))
 	chiCtx.URLParams.Add(key, value)
@@ -84,7 +84,7 @@ func TestRetrieveURLHandler_RetrieveURL(t *testing.T) {
 			// создаём новый Recorder
 			w := httptest.NewRecorder()
 
-			handler.RetrieveURL(w, withUrlParam(request, "id", test.id))
+			handler.RetrieveURL(w, withURLParam(request, "id", test.id))
 
 			res := w.Result()
 			// проверяем код ответа, выходим если он ошибочный

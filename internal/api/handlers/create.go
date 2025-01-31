@@ -9,19 +9,19 @@ import (
 	"github.com/iubondar/url-shortener/internal/app/storage"
 )
 
-type CreateIdHandler struct {
+type CreateIDHandler struct {
 	repo    storage.Repository
 	baseURL string
 }
 
-func NewCreateIdHandler(repo storage.Repository, baseURL string) CreateIdHandler {
-	return CreateIdHandler{
+func NewCreateIDHandler(repo storage.Repository, baseURL string) CreateIDHandler {
+	return CreateIDHandler{
 		repo:    repo,
 		baseURL: baseURL,
 	}
 }
 
-func (handler CreateIdHandler) CreateId(res http.ResponseWriter, req *http.Request) {
+func (handler CreateIDHandler) CreateID(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		http.Error(res, "Only POST requests are allowed!", http.StatusMethodNotAllowed)
 		return
@@ -46,8 +46,8 @@ func (handler CreateIdHandler) CreateId(res http.ResponseWriter, req *http.Reque
 		res.WriteHeader(http.StatusCreated)
 	}
 
-	baseUrl := strings.TrimSuffix(strings.TrimPrefix(handler.baseURL, "http://"), "/")
-	result := fmt.Sprintf("http://%s/%s", baseUrl, id)
+	baseURL := strings.TrimSuffix(strings.TrimPrefix(handler.baseURL, "http://"), "/")
+	result := fmt.Sprintf("http://%s/%s", baseURL, id)
 
 	res.Write([]byte(result))
 }

@@ -40,7 +40,7 @@ func (rep SimpleRepository) RetrieveURL(id string) (url string, err error) {
 	return url, nil
 }
 
-func (rep SimpleRepository) RetrieveId(url string) (id string, err error) {
+func (rep SimpleRepository) RetrieveID(url string) (id string, err error) {
 	id, ok := rep.UrlsToIds[url]
 	if !ok {
 		return "", ErrorNotFound

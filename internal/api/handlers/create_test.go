@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCreateIdHandler_CreateId(t *testing.T) {
+func TestCreateIDHandler_CreateID(t *testing.T) {
 	type want struct {
 		code        int
 		response    string
@@ -67,8 +67,8 @@ func TestCreateIdHandler_CreateId(t *testing.T) {
 			// создаём новый Recorder
 			w := httptest.NewRecorder()
 			repo := storage.NewSimpleRepository()
-			handler := NewCreateIdHandler(repo, "127.0.0.1")
-			handler.CreateId(w, request)
+			handler := NewCreateIDHandler(repo, "127.0.0.1")
+			handler.CreateID(w, request)
 
 			res := w.Result()
 			// проверяем код ответа, выходим если он ошибочный
@@ -84,7 +84,7 @@ func TestCreateIdHandler_CreateId(t *testing.T) {
 
 			assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
 
-			id, err := repo.RetrieveId(url)
+			id, err := repo.RetrieveID(url)
 			require.NoError(t, err)
 			assert.Equal(t, test.want.response+"/"+id, string(resBody))
 		})
