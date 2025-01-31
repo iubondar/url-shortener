@@ -87,6 +87,8 @@ func TestRetrieveURLHandler_RetrieveURL(t *testing.T) {
 			handler.RetrieveURL(w, withURLParam(request, "id", test.id))
 
 			res := w.Result()
+			defer res.Body.Close()
+
 			// проверяем код ответа, выходим если он ошибочный
 			require.Equal(t, test.want.code, res.StatusCode)
 			if res.StatusCode != http.StatusCreated && res.StatusCode != http.StatusOK {
@@ -113,6 +115,8 @@ func TestRetrieveURLHandler_WithNoIdParameter(t *testing.T) {
 	handler.RetrieveURL(w, request)
 
 	res := w.Result()
+	defer res.Body.Close()
+
 	require.Equal(t, http.StatusBadRequest, res.StatusCode)
 }
 
@@ -127,5 +131,7 @@ func TestRetrieveURLHandler_WithNoURL(t *testing.T) {
 	handler.RetrieveURL(w, request)
 
 	res := w.Result()
+	defer res.Body.Close()
+
 	require.Equal(t, http.StatusBadRequest, res.StatusCode)
 }
