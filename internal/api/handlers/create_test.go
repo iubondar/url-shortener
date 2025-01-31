@@ -28,7 +28,7 @@ func TestCreateIdHandler_CreateId(t *testing.T) {
 			method: http.MethodPost,
 			want: want{
 				code:        http.StatusCreated,
-				response:    `http://example.com/`,
+				response:    `http://127.0.0.1`,
 				contentType: "text/plain",
 			},
 		},
@@ -37,7 +37,7 @@ func TestCreateIdHandler_CreateId(t *testing.T) {
 			method: http.MethodGet,
 			want: want{
 				code:        http.StatusMethodNotAllowed,
-				response:    `http://example.com/`,
+				response:    `http://127.0.0.1`,
 				contentType: "",
 			},
 		},
@@ -46,7 +46,7 @@ func TestCreateIdHandler_CreateId(t *testing.T) {
 			method: http.MethodPut,
 			want: want{
 				code:        http.StatusMethodNotAllowed,
-				response:    `http://example.com/`,
+				response:    `http://127.0.0.1`,
 				contentType: "",
 			},
 		},
@@ -55,7 +55,7 @@ func TestCreateIdHandler_CreateId(t *testing.T) {
 			method: http.MethodDelete,
 			want: want{
 				code:        http.StatusMethodNotAllowed,
-				response:    `http://example.com/`,
+				response:    `http://127.0.0.1`,
 				contentType: "",
 			},
 		},
@@ -86,7 +86,7 @@ func TestCreateIdHandler_CreateId(t *testing.T) {
 
 			id, err := repo.RetrieveId(url)
 			require.NoError(t, err)
-			assert.Equal(t, test.want.response+id, string(resBody))
+			assert.Equal(t, test.want.response+"/"+id, string(resBody))
 		})
 	}
 }
