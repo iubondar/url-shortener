@@ -10,11 +10,13 @@ type Config struct {
 	BaseURLAddress string
 }
 
+const defaultAddress = "localhost:8080"
+
 var Default Config
 
 func init() {
-	flag.StringVar(&Default.ServerAddress, "a", "localhost:8080", "address to run server")
-	flag.StringVar(&Default.BaseURLAddress, "b", "localhost:8080", "base address to construct short URL")
+	flag.StringVar(&Default.ServerAddress, "a", defaultAddress, "address to run server")
+	flag.StringVar(&Default.BaseURLAddress, "b", defaultAddress, "base address to construct short URL")
 }
 
 func (c *Config) Load() {
