@@ -3,6 +3,7 @@ module github.com/iubondar/url-shortener
 go 1.22.11
 
 require (
+	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/go-chi/chi v1.5.5
 	github.com/stretchr/testify v1.10.0
 )

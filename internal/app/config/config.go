@@ -2,32 +2,39 @@ package config
 
 import (
 	"flag"
-	"os"
+	"log"
+
+	"github.com/caarlos0/env"
 )
 
 type Config struct {
-	ServerAddress  string
-	BaseURLAddress string
+	ServerAddress  string `env:"SERVER_ADDRESS"`
+	BaseURLAddress string `env:"BASE_URL"`
 }
 
 const defaultAddress = "localhost:8080"
 
 var Default Config
 
-func init() {
-	flag.StringVar(&Default.ServerAddress, "a", defaultAddress, "address to run server")
-	flag.StringVar(&Default.BaseURLAddress, "b", defaultAddress, "base address to construct short URL")
-}
+func (c *Config) Load(progname string, args []string) (err error) {
+	// https://eli.thegreenplace.net/2020/testing-flag-parsing-in-go-programs/
+	// Загружаем значения из переданных аргументов командной строки
+	flags := flag.NewFlagSet(progname, flag.ContinueOnError)
 
-func (c *Config) Load() {
-	flag.Parse()
+	flags.StringVar(&c.ServerAddress, "a", defaultAddress, "address to run server")
+	flags.StringVar(&c.BaseURLAddress, "b", defaultAddress, "base address to construct short URL")
 
-	// переопределяем конфигурацию из переменных окружения, если они заданы
-	if envRunAddr := os.Getenv("SERVER_ADDRESS"); envRunAddr != "" {
-		Default.ServerAddress = envRunAddr
+	err = flags.Parse(args)
+	if err != nil {
+		log.Fatal(err)
+		return err
 	}
 
-	if envRunAddr := os.Getenv("BASE_URL"); envRunAddr != "" {
-		Default.BaseURLAddress = envRunAddr
+	// Переписываем значения из переменных окружения
+	err = env.Parse(c)
+	if err != nil {
+		log.Fatal(err)
 	}
+
+	return err
 }
