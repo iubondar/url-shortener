@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/iubondar/url-shortener/internal/app/storage"
@@ -33,9 +34,13 @@ func (handler CreateIDHandler) CreateID(res http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	url := string(body)
+	url, err := url.ParseRequestURI(string(body))
+	if err != nil {
+		http.Error(res, "URL is not valid", http.StatusBadRequest)
+		return
+	}
 
-	id, exists, err := handler.repo.SaveURL(url)
+	id, exists, err := handler.repo.SaveURL(url.String())
 	if err != nil {
 		http.Error(res, "Can't save URL", http.StatusBadRequest)
 		return

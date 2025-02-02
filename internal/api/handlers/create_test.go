@@ -21,11 +21,13 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 	tests := []struct {
 		name   string
 		method string
+		url    string
 		want   want
 	}{
 		{
 			name:   "Positive test",
 			method: http.MethodPost,
+			url:    "https://practicum.yandex.ru/",
 			want: want{
 				code:        http.StatusCreated,
 				response:    `http://127.0.0.1`,
@@ -33,8 +35,19 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			},
 		},
 		{
+			name:   "Test invalid URL",
+			method: http.MethodPost,
+			url:    "https/practicum.yandex.ru/",
+			want: want{
+				code:        http.StatusBadRequest,
+				response:    `http://127.0.0.1`,
+				contentType: "text/plain",
+			},
+		},
+		{
 			name:   "Test GET method not allowed",
 			method: http.MethodGet,
+			url:    "https://practicum.yandex.ru/",
 			want: want{
 				code:        http.StatusMethodNotAllowed,
 				response:    `http://127.0.0.1`,
@@ -44,6 +57,7 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 		{
 			name:   "Test PUT method not allowed",
 			method: http.MethodPut,
+			url:    "https://practicum.yandex.ru/",
 			want: want{
 				code:        http.StatusMethodNotAllowed,
 				response:    `http://127.0.0.1`,
@@ -53,6 +67,7 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 		{
 			name:   "Test DELETE method not allowed",
 			method: http.MethodDelete,
+			url:    "https://practicum.yandex.ru/",
 			want: want{
 				code:        http.StatusMethodNotAllowed,
 				response:    `http://127.0.0.1`,
@@ -62,8 +77,7 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			url := "https://practicum.yandex.ru/"
-			request := httptest.NewRequest(test.method, "/", bytes.NewReader([]byte(url)))
+			request := httptest.NewRequest(test.method, "/", bytes.NewReader([]byte(test.url)))
 			// создаём новый Recorder
 			w := httptest.NewRecorder()
 			repo := storage.NewSimpleRepository()
@@ -84,7 +98,7 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 
 			assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
 
-			id, err := repo.RetrieveID(url)
+			id, err := repo.RetrieveID(test.url)
 			require.NoError(t, err)
 			assert.Equal(t, test.want.response+"/"+id, string(resBody))
 		})
