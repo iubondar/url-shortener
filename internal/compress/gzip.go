@@ -15,6 +15,16 @@ const (
 	contentType     = "Content-Type"
 )
 
+func shouldCompress(ct string) bool {
+	// return true
+	for _, contentType := range compressingContentTypes {
+		if strings.Contains(ct, contentType) {
+			return true
+		}
+	}
+	return false
+}
+
 // gzipWriter реализует интерфейс http.ResponseWriter и позволяет прозрачно для сервера
 // сжимать передаваемые данные и выставлять правильные HTTP-заголовки
 type gzipWriter struct {
@@ -29,25 +39,23 @@ func newGzipWriter(w http.ResponseWriter) *gzipWriter {
 	}
 }
 
+// http.ResponseWriter implementation
 func (c *gzipWriter) Header() http.Header {
 	return c.w.Header()
 }
 
 func (c *gzipWriter) Write(p []byte) (int, error) {
 	ct := c.w.Header().Get(contentType)
-
-	for _, contentType := range compressingContentTypes {
-		if strings.Contains(ct, contentType) {
-			// Сжимаем только если контент нужного типа
-			return c.zw.Write(p)
-		}
+	if shouldCompress(ct) {
+		// Сжимаем только если контент нужного типа
+		return c.zw.Write(p)
 	}
-
 	return c.w.Write(p)
 }
 
 func (c *gzipWriter) WriteHeader(statusCode int) {
-	if statusCode < 300 {
+	ct := c.w.Header().Get(contentType)
+	if shouldCompress(ct) && statusCode < 300 {
 		c.w.Header().Set(contentEncoding, "gzip")
 	}
 	c.w.WriteHeader(statusCode)
@@ -55,7 +63,11 @@ func (c *gzipWriter) WriteHeader(statusCode int) {
 
 // Close закрывает gzip.Writer и досылает все данные из буфера.
 func (c *gzipWriter) Close() error {
-	return c.zw.Close()
+	ct := c.w.Header().Get(contentType)
+	if shouldCompress(ct) {
+		return c.zw.Close()
+	}
+	return nil
 }
 
 // gzipReader реализует интерфейс io.ReadCloser и позволяет прозрачно для сервера
@@ -77,6 +89,7 @@ func newGzipReader(r io.ReadCloser) (*gzipReader, error) {
 	}, nil
 }
 
+// io.ReadCloser implementation
 func (c gzipReader) Read(p []byte) (n int, err error) {
 	return c.zr.Read(p)
 }
@@ -88,6 +101,7 @@ func (c *gzipReader) Close() error {
 	return c.zr.Close()
 }
 
+// Middleware для поддержки gzip
 func WithGzipCompression(h http.Handler) http.Handler {
 	compressFn := func(w http.ResponseWriter, r *http.Request) {
 		// по умолчанию устанавливаем оригинальный http.ResponseWriter как тот,

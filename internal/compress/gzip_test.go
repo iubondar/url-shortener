@@ -21,11 +21,11 @@ func TestGzipCompression(t *testing.T) {
 		"result": "https://127.0.0.1/abcdef11"
 	}`
 
-	echo := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	withoutGzip := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(contentType, "application/json")
 		io.WriteString(w, successBody)
 	})
-	handler := WithGzipCompression(echo)
+	handler := WithGzipCompression(withoutGzip)
 
 	srv := httptest.NewServer(handler)
 	defer srv.Close()
