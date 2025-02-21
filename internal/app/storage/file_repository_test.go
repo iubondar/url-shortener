@@ -157,7 +157,11 @@ func TestFileRepository_SaveAndRetrieve(t *testing.T) {
 	require.NoError(t, err)
 	testURL := "http://example.com"
 	id, _, _ := frepo.SaveURL(testURL)
-	url, err := frepo.RetrieveURL(id)
+
+	frepo2, err := NewFileRepository(fpath)
+	require.NoError(t, err)
+
+	url, err := frepo2.RetrieveURL(id)
 	if err != nil {
 		t.Errorf("Got unexpected error %s", err.Error())
 		return
