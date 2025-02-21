@@ -15,7 +15,7 @@ func TestFileRepository_ReadFromFile(t *testing.T) {
 		frepo, err := NewFileRepository(fpath)
 		require.NoError(t, err)
 
-		var want []URLRecord = []URLRecord{
+		var want = []URLRecord{
 			{UUID: "1", ShortURL: "4rSPg8ap", OriginalURL: "http://yandex.ru"},
 			{UUID: "2", ShortURL: "edVPg3ks", OriginalURL: "http://ya.ru"},
 			{UUID: "3", ShortURL: "dG56Hqxm", OriginalURL: "http://practicum.yandex.ru"},

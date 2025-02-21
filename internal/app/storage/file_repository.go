@@ -35,7 +35,7 @@ func NewFileRepository(fPath string) (*FileRepository, error) {
 	}
 	defer file.Close()
 
-	var records []URLRecord = []URLRecord{}
+	var records = []URLRecord{}
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		var record URLRecord
