@@ -15,7 +15,7 @@ func main() {
 	log.Fatal(
 		http.ListenAndServe(
 			config.Default.ServerAddress,
-			router.Default(config.Default.BaseURLAddress),
+			router.Default(config.Default),
 		),
 	)
 }

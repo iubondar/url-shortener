@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/iubondar/url-shortener/internal/app/strings"
@@ -22,6 +23,12 @@ type FileRepository struct {
 }
 
 func NewFileRepository(fPath string) (*FileRepository, error) {
+	// Создаём папки по указанному пути, если их ещё нет
+	folderPath, _ := filepath.Split(fPath)
+	if _, err := os.Stat(folderPath); os.IsNotExist(err) {
+		os.MkdirAll(folderPath, os.ModePerm)
+	}
+	// Создаём файл, если его нет, или открываем на чтение
 	file, err := os.OpenFile(fPath, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
 		return nil, err
