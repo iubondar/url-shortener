@@ -2,6 +2,7 @@ package storage
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,6 +26,16 @@ func TestFileRepository_ReadFromFile(t *testing.T) {
 
 	t.Run("Empty file", func(t *testing.T) {
 		fpath := os.TempDir() + "frepo_empty_file"
+		frepo, err := NewFileRepository(fpath)
+		require.NoError(t, err)
+
+		assert.Equal(t, len(frepo.records), 0)
+
+		os.Remove(fpath)
+	})
+
+	t.Run("Empty file with nested path", func(t *testing.T) {
+		fpath := filepath.Join(os.TempDir(), "a", "b", "frepo_empty_file.txt")
 		frepo, err := NewFileRepository(fpath)
 		require.NoError(t, err)
 
