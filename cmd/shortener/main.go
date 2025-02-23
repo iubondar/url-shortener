@@ -10,12 +10,15 @@ import (
 )
 
 func main() {
-	config.Default.Load(os.Args[0], os.Args[1:])
+	config, err := config.NewConfig(os.Args[0], os.Args[1:])
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	log.Fatal(
 		http.ListenAndServe(
-			config.Default.ServerAddress,
-			router.Default(config.Default),
+			config.ServerAddress,
+			router.Default(*config),
 		),
 	)
 }

@@ -39,10 +39,10 @@ func TestConfig_Load(t *testing.T) {
 			t.Setenv("BASE_URL", tt.envVars.BaseURLAddress)
 			t.Setenv("FILE_STORAGE_PATH", tt.envVars.FileStoragePath)
 
-			var c Config
-			c.Load("Test", tt.args)
+			c, err := NewConfig("Test", tt.args)
 
-			assert.Equal(t, tt.want, c)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, *c)
 		})
 	}
 }

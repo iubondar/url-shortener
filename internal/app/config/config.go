@@ -2,7 +2,6 @@ package config
 
 import (
 	"flag"
-	"log"
 
 	"github.com/caarlos0/env"
 )
@@ -18,9 +17,9 @@ const (
 	defaultStoragePath = "./storage/storage.txt"
 )
 
-var Default Config
+func NewConfig(progname string, args []string) (*Config, error) {
+	var c Config
 
-func (c *Config) Load(progname string, args []string) (err error) {
 	// https://eli.thegreenplace.net/2020/testing-flag-parsing-in-go-programs/
 	// Загружаем значения из переданных аргументов командной строки
 	flags := flag.NewFlagSet(progname, flag.ContinueOnError)
@@ -29,17 +28,16 @@ func (c *Config) Load(progname string, args []string) (err error) {
 	flags.StringVar(&c.BaseURLAddress, "b", defaultAddress, "base address to construct short URL")
 	flags.StringVar(&c.FileStoragePath, "f", defaultStoragePath, "path to storage file")
 
-	err = flags.Parse(args)
+	err := flags.Parse(args)
 	if err != nil {
-		log.Fatal(err)
-		return err
+		return nil, err
 	}
 
 	// Переписываем значения из переменных окружения
-	err = env.Parse(c)
+	err = env.Parse(&c)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	return err
+	return &c, nil
 }
