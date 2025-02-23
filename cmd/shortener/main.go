@@ -15,10 +15,12 @@ func main() {
 		log.Fatal(err)
 	}
 
+	router, err := router.NewRouter(*config)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	log.Fatal(
-		http.ListenAndServe(
-			config.ServerAddress,
-			router.Default(*config),
-		),
+		http.ListenAndServe(config.ServerAddress, router),
 	)
 }

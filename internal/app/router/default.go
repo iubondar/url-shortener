@@ -1,8 +1,6 @@
 package router
 
 import (
-	"log"
-
 	"github.com/go-chi/chi"
 	"github.com/iubondar/url-shortener/internal/api/handlers"
 	"github.com/iubondar/url-shortener/internal/app/config"
@@ -11,11 +9,11 @@ import (
 	"github.com/iubondar/url-shortener/internal/logging"
 )
 
-func Default(config config.Config) chi.Router {
+func NewRouter(config config.Config) (chi.Router, error) {
 
 	repo, err := storage.NewFileRepository(config.FileStoragePath)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	createIDHandler := handlers.NewCreateIDHandler(repo, config.BaseURLAddress)
@@ -29,5 +27,5 @@ func Default(config config.Config) chi.Router {
 	r.Post("/api/shorten", shortenHandler.Shorten)
 	r.Get("/{id}", retrieveURLHandler.RetrieveURL)
 
-	return r
+	return r, nil
 }
