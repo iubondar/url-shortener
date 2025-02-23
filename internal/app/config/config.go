@@ -8,11 +8,15 @@ import (
 )
 
 type Config struct {
-	ServerAddress  string `env:"SERVER_ADDRESS"`
-	BaseURLAddress string `env:"BASE_URL"`
+	ServerAddress   string `env:"SERVER_ADDRESS"`
+	BaseURLAddress  string `env:"BASE_URL"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 }
 
-const defaultAddress = "localhost:8080"
+const (
+	defaultAddress     = "localhost:8080"
+	defaultStoragePath = "./storage/storage.txt"
+)
 
 var Default Config
 
@@ -23,6 +27,7 @@ func (c *Config) Load(progname string, args []string) (err error) {
 
 	flags.StringVar(&c.ServerAddress, "a", defaultAddress, "address to run server")
 	flags.StringVar(&c.BaseURLAddress, "b", defaultAddress, "base address to construct short URL")
+	flags.StringVar(&c.FileStoragePath, "f", defaultStoragePath, "path to storage file")
 
 	err = flags.Parse(args)
 	if err != nil {
