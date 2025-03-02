@@ -10,11 +10,13 @@ type Config struct {
 	ServerAddress   string `env:"SERVER_ADDRESS"`
 	BaseURLAddress  string `env:"BASE_URL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	DatabaseDSN     string `env:"DATABASE_DSN"`
 }
 
 const (
 	defaultAddress     = "localhost:8080"
 	defaultStoragePath = "./storage/storage.txt"
+	defaultDatabaseDSN = "host=localhost user=newuser password=password dbname=url_shortener sslmode=disable" // для локальной разработки
 )
 
 func NewConfig(progname string, args []string) (*Config, error) {
@@ -27,6 +29,7 @@ func NewConfig(progname string, args []string) (*Config, error) {
 	flags.StringVar(&c.ServerAddress, "a", defaultAddress, "address to run server")
 	flags.StringVar(&c.BaseURLAddress, "b", defaultAddress, "base address to construct short URL")
 	flags.StringVar(&c.FileStoragePath, "f", defaultStoragePath, "path to storage file")
+	flags.StringVar(&c.DatabaseDSN, "d", defaultDatabaseDSN, "database DSN")
 
 	err := flags.Parse(args)
 	if err != nil {
