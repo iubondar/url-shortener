@@ -8,7 +8,7 @@ import (
 	"github.com/iubondar/url-shortener/internal/logging"
 )
 
-func NewRouter(BaseURL string, repo storage.Repository) (chi.Router, error) {
+func NewRouter(BaseURL string, repo storage.Repository, checker storage.StatusChecker) (chi.Router, error) {
 	createIDHandler := handlers.NewCreateIDHandler(repo, BaseURL)
 	shortenHandler := handlers.NewShortenHandler(repo, BaseURL)
 	retrieveURLHandler := handlers.NewRetrieveURLHandler(repo)
