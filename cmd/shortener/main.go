@@ -7,6 +7,7 @@ import (
 
 	"github.com/iubondar/url-shortener/internal/app/config"
 	"github.com/iubondar/url-shortener/internal/app/router"
+	"github.com/iubondar/url-shortener/internal/app/storage"
 )
 
 func main() {
@@ -15,7 +16,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	router, err := router.NewRouter(*config)
+	repo, err := storage.NewFileRepository(config.FileStoragePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	router, err := router.NewRouter(config.BaseURLAddress, repo)
 	if err != nil {
 		log.Fatal(err)
 	}
