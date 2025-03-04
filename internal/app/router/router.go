@@ -12,6 +12,7 @@ func NewRouter(BaseURL string, repo storage.Repository, checker storage.StatusCh
 	createIDHandler := handlers.NewCreateIDHandler(repo, BaseURL)
 	shortenHandler := handlers.NewShortenHandler(repo, BaseURL)
 	retrieveURLHandler := handlers.NewRetrieveURLHandler(repo)
+	pingHandler := handlers.NewPingHandler(checker)
 
 	r := chi.NewRouter()
 
@@ -19,6 +20,7 @@ func NewRouter(BaseURL string, repo storage.Repository, checker storage.StatusCh
 	r.Post("/", createIDHandler.CreateID)
 	r.Post("/api/shorten", shortenHandler.Shorten)
 	r.Get("/{id}", retrieveURLHandler.RetrieveURL)
+	r.Get("/ping", pingHandler.Ping)
 
 	return r, nil
 }
