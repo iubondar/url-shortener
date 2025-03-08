@@ -58,7 +58,7 @@ func (handler ShortenHandler) Shorten(res http.ResponseWriter, req *http.Request
 		return
 	}
 
-	id, exists, err := handler.repo.SaveURL(url.String())
+	id, exists, err := handler.repo.SaveURL(req.Context(), url.String())
 	if err != nil {
 		http.Error(res, "Can't save URL", http.StatusBadRequest)
 		return

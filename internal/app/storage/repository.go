@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"errors"
 )
 
@@ -8,6 +9,7 @@ import (
 var ErrorNotFound = errors.New("not found")
 
 type Repository interface {
-	SaveURL(url string) (id string, exists bool, err error)
-	RetrieveURL(id string) (url string, err error)
+	SaveURL(ctx context.Context, url string) (id string, exists bool, err error)
+	RetrieveURL(ctx context.Context, id string) (url string, err error)
+	StatusChecker
 }

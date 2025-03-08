@@ -29,7 +29,7 @@ func (handler RetrieveURLHandler) RetrieveURL(res http.ResponseWriter, req *http
 		return
 	}
 
-	url, err := handler.repo.RetrieveURL(id)
+	url, err := handler.repo.RetrieveURL(req.Context(), id)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return

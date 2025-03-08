@@ -2,6 +2,7 @@ package storage
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"log"
 	"os"
@@ -56,7 +57,7 @@ func NewFileRepository(fPath string) (*FileRepository, error) {
 	}, nil
 }
 
-func (frepo *FileRepository) SaveURL(url string) (id string, exists bool, err error) {
+func (frepo *FileRepository) SaveURL(ctx context.Context, url string) (id string, exists bool, err error) {
 	// Если URL уже был сохранён - возвращаем имеющееся значение
 	for _, rec := range frepo.records {
 		if rec.OriginalURL == url {
@@ -80,7 +81,7 @@ func (frepo *FileRepository) SaveURL(url string) (id string, exists bool, err er
 	return id, false, nil
 }
 
-func (frepo FileRepository) RetrieveURL(id string) (url string, err error) {
+func (frepo FileRepository) RetrieveURL(ctx context.Context, id string) (url string, err error) {
 	for _, rec := range frepo.records {
 		if rec.ShortURL == id {
 			return rec.OriginalURL, nil
@@ -88,6 +89,16 @@ func (frepo FileRepository) RetrieveURL(id string) (url string, err error) {
 	}
 
 	return "", ErrorNotFound
+}
+
+func (rep FileRepository) CheckStatus(ctx context.Context) error {
+	file, err := os.OpenFile(rep.fPath, os.O_RDONLY|os.O_CREATE, 0666)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	return nil
 }
 
 func (frepo FileRepository) nextID() int {

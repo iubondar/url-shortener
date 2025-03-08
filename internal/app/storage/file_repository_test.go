@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -89,7 +90,7 @@ func TestFileRepository_SaveURL(t *testing.T) {
 				fPath:   fpath,
 				records: tt.records,
 			}
-			gotID, gotExists, err := frepo.SaveURL(tt.args.url)
+			gotID, gotExists, err := frepo.SaveURL(context.Background(), tt.args.url)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("FileRepository.SaveURL() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -149,7 +150,7 @@ func TestFileRepository_RetrieveURL(t *testing.T) {
 				fPath:   fpath,
 				records: tt.records,
 			}
-			gotURL, err := frepo.RetrieveURL(tt.args.id)
+			gotURL, err := frepo.RetrieveURL(context.Background(), tt.args.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("FileRepository.RetrieveURL() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -167,12 +168,12 @@ func TestFileRepository_SaveAndRetrieve(t *testing.T) {
 	frepo, err := NewFileRepository(fpath)
 	require.NoError(t, err)
 	testURL := "http://example.com"
-	id, _, _ := frepo.SaveURL(testURL)
+	id, _, _ := frepo.SaveURL(context.Background(), testURL)
 
 	frepo2, err := NewFileRepository(fpath)
 	require.NoError(t, err)
 
-	url, err := frepo2.RetrieveURL(id)
+	url, err := frepo2.RetrieveURL(context.Background(), id)
 	if err != nil {
 		t.Errorf("Got unexpected error %s", err.Error())
 		return

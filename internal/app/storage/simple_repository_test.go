@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"testing"
 )
 
@@ -53,7 +54,7 @@ func TestSimpleRepository_SaveURL(t *testing.T) {
 				UrlsToIds: tt.fields.urlsToIds,
 				IdsToURLs: tt.fields.idsToURLs,
 			}
-			gotID, gotExists, err := rep.SaveURL(tt.args.url)
+			gotID, gotExists, err := rep.SaveURL(context.Background(), tt.args.url)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SimpleRepository.SaveURL() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -117,7 +118,7 @@ func TestSimpleRepository_RetrieveURL(t *testing.T) {
 				UrlsToIds: tt.fields.urlsToIds,
 				IdsToURLs: tt.fields.idsToURLs,
 			}
-			gotURL, err := rep.RetrieveURL(tt.args.id)
+			gotURL, err := rep.RetrieveURL(context.Background(), tt.args.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SimpleRepository.RetrieveURL() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -132,8 +133,9 @@ func TestSimpleRepository_RetrieveURL(t *testing.T) {
 func TestSimpleRepository_SaveAndRetrieve(t *testing.T) {
 	rep := NewSimpleRepository()
 	testURL := "http://example.com"
-	id, _, _ := rep.SaveURL(testURL)
-	url, err := rep.RetrieveURL(id)
+	ctx := context.Background()
+	id, _, _ := rep.SaveURL(ctx, testURL)
+	url, err := rep.RetrieveURL(ctx, id)
 	if err != nil {
 		t.Errorf("Got unexpected error %s", err.Error())
 		return

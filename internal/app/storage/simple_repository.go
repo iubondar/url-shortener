@@ -1,6 +1,10 @@
 package storage
 
-import "github.com/iubondar/url-shortener/internal/app/strings"
+import (
+	"context"
+
+	"github.com/iubondar/url-shortener/internal/app/strings"
+)
 
 const idLength int = 8
 
@@ -16,7 +20,7 @@ func NewSimpleRepository() SimpleRepository {
 	}
 }
 
-func (rep SimpleRepository) SaveURL(url string) (id string, exists bool, err error) {
+func (rep SimpleRepository) SaveURL(ctx context.Context, url string) (id string, exists bool, err error) {
 	id, ok := rep.UrlsToIds[url]
 	if ok {
 		// URL уже был сохранён - возвращаем имеющееся значение
@@ -31,13 +35,18 @@ func (rep SimpleRepository) SaveURL(url string) (id string, exists bool, err err
 	return id, false, nil
 }
 
-func (rep SimpleRepository) RetrieveURL(id string) (url string, err error) {
+func (rep SimpleRepository) RetrieveURL(ctx context.Context, id string) (url string, err error) {
 	url, ok := rep.IdsToURLs[id]
 	if !ok {
 		return "", ErrorNotFound
 	}
 
 	return url, nil
+}
+
+func (rep SimpleRepository) CheckStatus(ctx context.Context) error {
+	// Статус всегда ок
+	return nil
 }
 
 func (rep SimpleRepository) RetrieveID(url string) (id string, err error) {
