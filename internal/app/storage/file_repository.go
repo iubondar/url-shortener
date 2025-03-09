@@ -59,14 +59,33 @@ func NewFileRepository(fPath string) (*FileRepository, error) {
 
 func (frepo *FileRepository) SaveURL(ctx context.Context, url string) (id string, exists bool, err error) {
 	// Если URL уже был сохранён - возвращаем имеющееся значение
+	record := frepo.getRecordByOriginalURL(url)
+	if record != nil {
+		return record.ShortURL, true, nil
+	}
+
+	// сохраняем изменения на диск
+	record = frepo.addRecordForURL(url)
+
+	frepo.appendToFile([]URLRecord{*record})
+
+	return record.ShortURL, false, nil
+}
+
+// Вернём nil, если запись не найдена
+func (frepo *FileRepository) getRecordByOriginalURL(originalURL string) *URLRecord {
 	for _, rec := range frepo.records {
-		if rec.OriginalURL == url {
-			return rec.ShortURL, true, nil
+		if rec.OriginalURL == originalURL {
+			return &rec
 		}
 	}
 
+	return nil
+}
+
+func (frepo *FileRepository) addRecordForURL(url string) *URLRecord {
 	// создаём идентификатор и добавляем запись
-	id = strings.RandString(idLength)
+	id := strings.RandString(idLength)
 	uuid := strconv.Itoa(frepo.nextID())
 	record := URLRecord{
 		UUID:        uuid,
@@ -75,10 +94,7 @@ func (frepo *FileRepository) SaveURL(ctx context.Context, url string) (id string
 	}
 	frepo.records = append(frepo.records, record)
 
-	// сохраняем изменения на диск
-	frepo.saveToFile(&record)
-
-	return id, false, nil
+	return &record
 }
 
 func (frepo FileRepository) RetrieveURL(ctx context.Context, id string) (url string, err error) {
@@ -91,14 +107,35 @@ func (frepo FileRepository) RetrieveURL(ctx context.Context, id string) (url str
 	return "", ErrorNotFound
 }
 
-func (rep FileRepository) CheckStatus(ctx context.Context) error {
-	file, err := os.OpenFile(rep.fPath, os.O_RDONLY|os.O_CREATE, 0666)
+func (frepo FileRepository) CheckStatus(ctx context.Context) error {
+	file, err := os.OpenFile(frepo.fPath, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
 	return nil
+}
+
+func (frepo FileRepository) SaveURLs(ctx context.Context, urls []string) (ids []string, err error) {
+	ids = make([]string, 0)
+	newRecords := make([]URLRecord, 0)
+	for _, url := range urls {
+		record := frepo.getRecordByOriginalURL(url)
+		if record != nil {
+			ids = append(ids, record.ShortURL)
+			continue
+		}
+
+		record = frepo.addRecordForURL(url)
+		newRecords = append(newRecords, *record)
+		ids = append(ids, record.ShortURL)
+	}
+
+	// сохраняем изменения на диск
+	frepo.appendToFile(newRecords)
+
+	return ids, nil
 }
 
 func (frepo FileRepository) nextID() int {
@@ -112,11 +149,19 @@ func (frepo FileRepository) nextID() int {
 	return 1
 }
 
-func (frepo FileRepository) saveToFile(record *URLRecord) error {
+func (frepo FileRepository) appendToFile(records []URLRecord) error {
 	file, err := os.OpenFile(frepo.fPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return err
 	}
 
-	return json.NewEncoder(file).Encode(&record)
+	encoder := json.NewEncoder(file)
+	for _, record := range records {
+		err = encoder.Encode(record)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

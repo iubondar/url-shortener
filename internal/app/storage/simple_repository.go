@@ -49,6 +49,18 @@ func (rep SimpleRepository) CheckStatus(ctx context.Context) error {
 	return nil
 }
 
+func (repo SimpleRepository) SaveURLs(ctx context.Context, urls []string) (ids []string, err error) {
+	ids = make([]string, 0)
+	for _, url := range urls {
+		id, _, err := repo.SaveURL(ctx, url)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
+}
+
 func (rep SimpleRepository) RetrieveID(url string) (id string, err error) {
 	id, ok := rep.UrlsToIds[url]
 	if !ok {
