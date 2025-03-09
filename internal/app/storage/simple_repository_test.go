@@ -3,6 +3,8 @@ package storage
 import (
 	"context"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSimpleRepository_SaveURL(t *testing.T) {
@@ -143,5 +145,131 @@ func TestSimpleRepository_SaveAndRetrieve(t *testing.T) {
 	if url != testURL {
 		t.Errorf("Expected: %s, got: %s", testURL, url)
 		return
+	}
+}
+
+func TestSimpleRepository_RetrieveID(t *testing.T) {
+	type fields struct {
+		UrlsToIds map[string]string
+		IdsToURLs map[string]string
+	}
+	type args struct {
+		url string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantId  string
+		wantErr bool
+	}{
+		{
+			name: "Non-existent",
+			fields: fields{
+				UrlsToIds: map[string]string{},
+				IdsToURLs: map[string]string{},
+			},
+			args: args{
+				url: "http://example.com",
+			},
+			wantId:  "",
+			wantErr: true,
+		},
+		{
+			name: "Existent",
+			fields: fields{
+				UrlsToIds: map[string]string{"http://example.com": "123"},
+				IdsToURLs: map[string]string{"123": "http://example.com"},
+			},
+			args: args{
+				url: "http://example.com",
+			},
+			wantId:  "123",
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rep := SimpleRepository{
+				UrlsToIds: tt.fields.UrlsToIds,
+				IdsToURLs: tt.fields.IdsToURLs,
+			}
+			gotId, err := rep.RetrieveID(tt.args.url)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("SimpleRepository.RetrieveID() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if gotId != tt.wantId {
+				t.Errorf("SimpleRepository.RetrieveID() = %v, want %v", gotId, tt.wantId)
+			}
+		})
+	}
+}
+
+func TestSimpleRepository_SaveURLs(t *testing.T) {
+	type fields struct {
+		UrlsToIds map[string]string
+		IdsToURLs map[string]string
+	}
+	type args struct {
+		urls []string
+	}
+	tests := []struct {
+		name         string
+		fields       fields
+		args         args
+		wantIdsCount int
+		wantErr      bool
+	}{
+		{
+			name: "All new IDs",
+			fields: fields{
+				UrlsToIds: map[string]string{},
+				IdsToURLs: map[string]string{},
+			},
+			args: args{
+				urls: []string{"http://example.com", "http://ya.ru"},
+			},
+			wantIdsCount: 2,
+			wantErr:      false,
+		},
+		{
+			name: "One new IDs",
+			fields: fields{
+				UrlsToIds: map[string]string{"http://example.com": "123"},
+				IdsToURLs: map[string]string{"123": "http://example.com"},
+			},
+			args: args{
+				urls: []string{"http://example.com", "http://ya.ru"},
+			},
+			wantIdsCount: 2,
+			wantErr:      false,
+		},
+		{
+			name: "Existing IDs",
+			fields: fields{
+				UrlsToIds: map[string]string{"http://example.com": "123", "http://ya.ru": "456"},
+				IdsToURLs: map[string]string{"123": "http://example.com", "456": "http://ya.ru"},
+			},
+			args: args{
+				urls: []string{"http://example.com", "http://ya.ru"},
+			},
+			wantIdsCount: 2,
+			wantErr:      false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := SimpleRepository{
+				UrlsToIds: tt.fields.UrlsToIds,
+				IdsToURLs: tt.fields.IdsToURLs,
+			}
+			gotIds, err := repo.SaveURLs(context.Background(), tt.args.urls)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("SimpleRepository.SaveURLs() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			assert.Equal(t, len(gotIds), tt.wantIdsCount)
+		})
 	}
 }
