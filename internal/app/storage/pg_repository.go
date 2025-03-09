@@ -46,12 +46,12 @@ func createTableIfNeeded(ctx context.Context, db *sql.DB) error {
 		return err
 	}
 
-	_, err = tx.ExecContext(ctx, "CREATE UNIQUE INDEX short_url_idx ON urls (short_url)")
+	_, err = tx.ExecContext(ctx, "CREATE UNIQUE INDEX IF NOT EXISTS short_url_index ON urls (short_url)")
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.ExecContext(ctx, "CREATE UNIQUE INDEX original_url_idx ON urls (original_url)")
+	_, err = tx.ExecContext(ctx, "CREATE UNIQUE INDEX IF NOT EXISTS original_url_index ON urls (original_url)")
 	if err != nil {
 		return err
 	}
