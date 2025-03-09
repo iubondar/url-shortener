@@ -11,6 +11,7 @@ import (
 func NewRouter(BaseURL string, repo storage.Repository) (chi.Router, error) {
 	createIDHandler := handlers.NewCreateIDHandler(repo, BaseURL)
 	shortenHandler := handlers.NewShortenHandler(repo, BaseURL)
+	shortenBatchHandler := handlers.NewShortenBatchHandler(repo, BaseURL)
 	retrieveURLHandler := handlers.NewRetrieveURLHandler(repo)
 	pingHandler := handlers.NewPingHandler(repo)
 
@@ -19,6 +20,7 @@ func NewRouter(BaseURL string, repo storage.Repository) (chi.Router, error) {
 	r.Use(logging.WithLogging, compress.WithGzipCompression)
 	r.Post("/", createIDHandler.CreateID)
 	r.Post("/api/shorten", shortenHandler.Shorten)
+	r.Post("/api/shorten/batch", shortenBatchHandler.ShortenBatch)
 	r.Get("/{id}", retrieveURLHandler.RetrieveURL)
 	r.Get("/ping", pingHandler.Ping)
 
