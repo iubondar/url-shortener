@@ -56,7 +56,7 @@ func (c *gzipWriter) Write(p []byte) (int, error) {
 
 func (c *gzipWriter) WriteHeader(statusCode int) {
 	ct := c.w.Header().Get(contentType)
-	if shouldCompress(ct) && statusCode < 300 {
+	if shouldCompress(ct) && (statusCode < 300 || statusCode == http.StatusConflict) {
 		c.w.Header().Set(contentEncoding, "gzip")
 	}
 	c.w.WriteHeader(statusCode)

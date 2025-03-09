@@ -6,6 +6,8 @@ import (
 	"errors"
 
 	"github.com/iubondar/url-shortener/internal/app/strings"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	"go.uber.org/zap"
 )
 
@@ -61,22 +63,27 @@ func createTableIfNeeded(ctx context.Context, db *sql.DB) error {
 }
 
 func (repo *PGRepository) SaveURL(ctx context.Context, url string) (id string, exists bool, err error) {
-	// Если URL уже был сохранён - возвращаем имеющееся значение
-	shortURL, err := repo.getShortURLByOriginalURL(ctx, url)
-	if err != nil {
-		zap.L().Sugar().Debugln("Error getting short URL:", err.Error())
-		return "", false, err
-	}
-
-	if len(shortURL) > 0 {
-		return shortURL, true, nil
-	}
-
 	// создаём идентификатор и добавляем запись
 	id = strings.RandString(idLength)
 	_, err = repo.db.ExecContext(ctx, "INSERT INTO urls (short_url, original_url) VALUES ($1, $2);", id, url)
 	if err != nil {
-		zap.L().Sugar().Debugln("Error saving URL:", err.Error())
+		// Если URL уже был сохранён - возвращаем имеющееся значение
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
+
+			shortURL, err := repo.getShortURLByOriginalURL(ctx, url)
+			if err != nil {
+				zap.L().Sugar().Debugln("Error getting short URL:", err.Error())
+				return "", false, err
+			}
+
+			if len(shortURL) > 0 {
+				return shortURL, true, nil
+			}
+		}
+
+		// Другая ошибка
+		zap.L().Sugar().Debugln("Error insert new URL:", err.Error())
 		return "", false, err
 	}
 
