@@ -47,7 +47,10 @@ func (handler CreateIDHandler) CreateID(res http.ResponseWriter, req *http.Reque
 	}
 
 	res.Header().Add("Content-Type", "text/plain")
-	if !exists {
+
+	if exists {
+		res.WriteHeader(http.StatusConflict)
+	} else {
 		res.WriteHeader(http.StatusCreated)
 	}
 

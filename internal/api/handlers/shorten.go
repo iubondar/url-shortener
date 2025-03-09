@@ -76,7 +76,9 @@ func (handler ShortenHandler) Shorten(res http.ResponseWriter, req *http.Request
 	}
 
 	res.Header().Set("Content-Type", "application/json")
-	if !exists {
+	if exists {
+		res.WriteHeader(http.StatusConflict)
+	} else {
 		res.WriteHeader(http.StatusCreated)
 	}
 
