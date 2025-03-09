@@ -48,6 +48,7 @@ func (c *gzipWriter) Write(p []byte) (int, error) {
 	ct := c.w.Header().Get(contentType)
 	if shouldCompress(ct) {
 		// Сжимаем только если контент нужного типа
+		c.w.Header().Set(contentEncoding, "gzip")
 		return c.zw.Write(p)
 	}
 	return c.w.Write(p)
