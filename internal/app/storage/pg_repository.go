@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/iubondar/url-shortener/internal/app/strings"
 	"go.uber.org/zap"
@@ -88,7 +89,7 @@ func (repo *PGRepository) getShortURLByOriginalURL(ctx context.Context, url stri
 
 	err = row.Scan(&shortURL)
 
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return "", nil
 	}
 
@@ -100,7 +101,7 @@ func (repo *PGRepository) RetrieveURL(ctx context.Context, id string) (url strin
 
 	err = row.Scan(&url)
 
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return "", ErrorNotFound
 	}
 
