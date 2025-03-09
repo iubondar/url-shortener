@@ -141,6 +141,7 @@ func (repo *PGRepository) SaveURLs(ctx context.Context, urls []string) (ids []st
 
 		// Сохраняем URL
 		id := strings.RandString(idLength)
+		ids = append(ids, id)
 		_, err = stmt.ExecContext(ctx, id, url)
 		if err != nil {
 			return nil, err
