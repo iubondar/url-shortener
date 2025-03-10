@@ -22,7 +22,7 @@ func TestConfig_Load(t *testing.T) {
 				ServerAddress:   defaultAddress,
 				BaseURLAddress:  defaultAddress,
 				FileStoragePath: defaultStoragePath,
-				DatabaseDSN:     localDatabaseDSN,
+				DatabaseDSN:     defaultDatabaseDSN(),
 			},
 		},
 		{
