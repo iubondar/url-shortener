@@ -20,8 +20,8 @@ func NewSimpleRepository() SimpleRepository {
 	}
 }
 
-func (rep SimpleRepository) SaveURL(ctx context.Context, url string) (id string, exists bool, err error) {
-	id, ok := rep.UrlsToIds[url]
+func (repo SimpleRepository) SaveURL(ctx context.Context, url string) (id string, exists bool, err error) {
+	id, ok := repo.UrlsToIds[url]
 	if ok {
 		// URL уже был сохранён - возвращаем имеющееся значение
 		return id, true, nil
@@ -29,14 +29,14 @@ func (rep SimpleRepository) SaveURL(ctx context.Context, url string) (id string,
 
 	// создаём идентификатор и сохраняем URL
 	id = strings.RandString(idLength)
-	rep.UrlsToIds[url] = id
-	rep.IdsToURLs[id] = url
+	repo.UrlsToIds[url] = id
+	repo.IdsToURLs[id] = url
 
 	return id, false, nil
 }
 
-func (rep SimpleRepository) RetrieveURL(ctx context.Context, id string) (url string, err error) {
-	url, ok := rep.IdsToURLs[id]
+func (repo SimpleRepository) RetrieveURL(ctx context.Context, id string) (url string, err error) {
+	url, ok := repo.IdsToURLs[id]
 	if !ok {
 		return "", ErrorNotFound
 	}
@@ -44,7 +44,7 @@ func (rep SimpleRepository) RetrieveURL(ctx context.Context, id string) (url str
 	return url, nil
 }
 
-func (rep SimpleRepository) CheckStatus(ctx context.Context) error {
+func (repo SimpleRepository) CheckStatus(ctx context.Context) error {
 	// Статус всегда ок
 	return nil
 }
@@ -61,8 +61,8 @@ func (repo SimpleRepository) SaveURLs(ctx context.Context, urls []string) (ids [
 	return ids, nil
 }
 
-func (rep SimpleRepository) RetrieveID(url string) (id string, err error) {
-	id, ok := rep.UrlsToIds[url]
+func (repo SimpleRepository) RetrieveID(url string) (id string, err error) {
+	id, ok := repo.UrlsToIds[url]
 	if !ok {
 		return "", ErrorNotFound
 	}

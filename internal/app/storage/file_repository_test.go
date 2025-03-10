@@ -196,7 +196,7 @@ func TestFileRepository_SaveURLs(t *testing.T) {
 		name         string
 		fields       fields
 		args         args
-		wantIdsCount int
+		wantIDsCount int
 		wantErr      bool
 	}{
 		{
@@ -207,7 +207,7 @@ func TestFileRepository_SaveURLs(t *testing.T) {
 			args: args{
 				urls: []string{"http://yandex.ru", "http://ya.ru", "http://practicum.yandex.ru"},
 			},
-			wantIdsCount: 3,
+			wantIDsCount: 3,
 			wantErr:      false,
 		},
 		{
@@ -221,7 +221,7 @@ func TestFileRepository_SaveURLs(t *testing.T) {
 			args: args{
 				urls: []string{"http://yandex.ru", "http://ya.ru", "http://practicum.yandex.ru"},
 			},
-			wantIdsCount: 3,
+			wantIDsCount: 3,
 			wantErr:      false,
 		},
 		{
@@ -236,7 +236,7 @@ func TestFileRepository_SaveURLs(t *testing.T) {
 			args: args{
 				urls: []string{"http://yandex.ru", "http://ya.ru", "http://practicum.yandex.ru"},
 			},
-			wantIdsCount: 3,
+			wantIDsCount: 3,
 			wantErr:      false,
 		},
 	}
@@ -247,12 +247,12 @@ func TestFileRepository_SaveURLs(t *testing.T) {
 				fPath:   fpath,
 				records: tt.fields.records,
 			}
-			gotIds, err := frepo.SaveURLs(context.Background(), tt.args.urls)
+			gotIDs, err := frepo.SaveURLs(context.Background(), tt.args.urls)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("FileRepository.SaveURLs() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			assert.Equal(t, len(gotIds), tt.wantIdsCount)
+			assert.Equal(t, len(gotIDs), tt.wantIDsCount)
 		})
 	}
 }

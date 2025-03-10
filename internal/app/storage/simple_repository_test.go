@@ -160,7 +160,7 @@ func TestSimpleRepository_RetrieveID(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		wantId  string
+		wantID  string
 		wantErr bool
 	}{
 		{
@@ -172,7 +172,7 @@ func TestSimpleRepository_RetrieveID(t *testing.T) {
 			args: args{
 				url: "http://example.com",
 			},
-			wantId:  "",
+			wantID:  "",
 			wantErr: true,
 		},
 		{
@@ -184,7 +184,7 @@ func TestSimpleRepository_RetrieveID(t *testing.T) {
 			args: args{
 				url: "http://example.com",
 			},
-			wantId:  "123",
+			wantID:  "123",
 			wantErr: false,
 		},
 	}
@@ -194,13 +194,13 @@ func TestSimpleRepository_RetrieveID(t *testing.T) {
 				UrlsToIds: tt.fields.UrlsToIds,
 				IdsToURLs: tt.fields.IdsToURLs,
 			}
-			gotId, err := rep.RetrieveID(tt.args.url)
+			gotID, err := rep.RetrieveID(tt.args.url)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SimpleRepository.RetrieveID() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if gotId != tt.wantId {
-				t.Errorf("SimpleRepository.RetrieveID() = %v, want %v", gotId, tt.wantId)
+			if gotID != tt.wantID {
+				t.Errorf("SimpleRepository.RetrieveID() = %v, want %v", gotID, tt.wantID)
 			}
 		})
 	}
@@ -218,7 +218,7 @@ func TestSimpleRepository_SaveURLs(t *testing.T) {
 		name         string
 		fields       fields
 		args         args
-		wantIdsCount int
+		wantIDsCount int
 		wantErr      bool
 	}{
 		{
@@ -230,7 +230,7 @@ func TestSimpleRepository_SaveURLs(t *testing.T) {
 			args: args{
 				urls: []string{"http://example.com", "http://ya.ru"},
 			},
-			wantIdsCount: 2,
+			wantIDsCount: 2,
 			wantErr:      false,
 		},
 		{
@@ -242,7 +242,7 @@ func TestSimpleRepository_SaveURLs(t *testing.T) {
 			args: args{
 				urls: []string{"http://example.com", "http://ya.ru"},
 			},
-			wantIdsCount: 2,
+			wantIDsCount: 2,
 			wantErr:      false,
 		},
 		{
@@ -254,7 +254,7 @@ func TestSimpleRepository_SaveURLs(t *testing.T) {
 			args: args{
 				urls: []string{"http://example.com", "http://ya.ru"},
 			},
-			wantIdsCount: 2,
+			wantIDsCount: 2,
 			wantErr:      false,
 		},
 	}
@@ -264,12 +264,12 @@ func TestSimpleRepository_SaveURLs(t *testing.T) {
 				UrlsToIds: tt.fields.UrlsToIds,
 				IdsToURLs: tt.fields.IdsToURLs,
 			}
-			gotIds, err := repo.SaveURLs(context.Background(), tt.args.urls)
+			gotIDs, err := repo.SaveURLs(context.Background(), tt.args.urls)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SimpleRepository.SaveURLs() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			assert.Equal(t, len(gotIds), tt.wantIdsCount)
+			assert.Equal(t, len(gotIDs), tt.wantIDsCount)
 		})
 	}
 }
