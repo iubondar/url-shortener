@@ -24,6 +24,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	zap.L().Sugar().Debugln(
+		"Config: ",
+		"ServerAddress", config.ServerAddress,
+		"BaseURLAddress", config.BaseURLAddress,
+		"FileStoragePath", config.FileStoragePath,
+		"DatabaseDSN", config.DatabaseDSN,
+	)
 
 	var repo storage.Repository
 
@@ -52,6 +59,7 @@ func main() {
 		log.Fatal(err)
 	}
 
+	zap.L().Sugar().Debugln("Starting serving requests: ", config.ServerAddress)
 	log.Fatal(
 		http.ListenAndServe(config.ServerAddress, router),
 	)
