@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+	"os"
 
 	"github.com/caarlos0/env"
 )
@@ -16,7 +17,7 @@ type Config struct {
 const (
 	defaultAddress     = "localhost:8080"
 	defaultStoragePath = "./storage/storage.txt"
-	defaultDatabaseDSN = "host=localhost user=newuser password=password dbname=url_shortener sslmode=disable" // для локальной разработки
+	localDatabaseDSN   = "host=localhost user=newuser password=password dbname=url_shortener sslmode=disable" // для локальной разработки
 )
 
 func NewConfig(progname string, args []string) (*Config, error) {
@@ -29,7 +30,7 @@ func NewConfig(progname string, args []string) (*Config, error) {
 	flags.StringVar(&c.ServerAddress, "a", defaultAddress, "address to run server")
 	flags.StringVar(&c.BaseURLAddress, "b", defaultAddress, "base address to construct short URL")
 	flags.StringVar(&c.FileStoragePath, "f", defaultStoragePath, "path to storage file")
-	flags.StringVar(&c.DatabaseDSN, "d", defaultDatabaseDSN, "database DSN")
+	flags.StringVar(&c.DatabaseDSN, "d", defaultDatabaseDSN(), "database DSN")
 
 	err := flags.Parse(args)
 	if err != nil {
@@ -43,4 +44,21 @@ func NewConfig(progname string, args []string) (*Config, error) {
 	}
 
 	return &c, nil
+}
+
+func defaultDatabaseDSN() string {
+	if isRunningLocally() {
+		return localDatabaseDSN
+	}
+
+	return ""
+}
+
+func isRunningInDocker() bool {
+	_, err := os.Stat("/.dockerenv")
+	return err == nil
+}
+
+func isRunningLocally() bool {
+	return !isRunningInDocker()
 }
