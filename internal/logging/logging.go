@@ -1,26 +1,12 @@
 package logging
 
 import (
+	"log"
 	"net/http"
 	"time"
 
 	"go.uber.org/zap"
 )
-
-var sugar zap.SugaredLogger
-
-func init() {
-	// создаём предустановленный регистратор zap
-	logger, err := zap.NewDevelopment()
-	if err != nil {
-		// вызываем панику, если ошибка
-		panic(err)
-	}
-	defer logger.Sync()
-
-	// делаем регистратор SugaredLogger
-	sugar = *logger.Sugar()
-}
 
 type (
 	// берём структуру для хранения сведений об ответе
@@ -51,6 +37,14 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 
 func WithLogging(h http.Handler) http.Handler {
 	logFn := func(w http.ResponseWriter, r *http.Request) {
+		logger, err := zap.NewDevelopment()
+		if err != nil {
+			log.Fatalf("can't initialize zap logger: %v", err)
+		}
+		defer logger.Sync()
+
+		sugar := *logger.Sugar()
+
 		start := time.Now()
 
 		responseData := &responseData{

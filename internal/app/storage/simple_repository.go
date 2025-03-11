@@ -1,6 +1,10 @@
 package storage
 
-import "github.com/iubondar/url-shortener/internal/app/strings"
+import (
+	"context"
+
+	"github.com/iubondar/url-shortener/internal/app/strings"
+)
 
 const idLength int = 8
 
@@ -16,8 +20,8 @@ func NewSimpleRepository() SimpleRepository {
 	}
 }
 
-func (rep SimpleRepository) SaveURL(url string) (id string, exists bool, err error) {
-	id, ok := rep.UrlsToIds[url]
+func (repo SimpleRepository) SaveURL(ctx context.Context, url string) (id string, exists bool, err error) {
+	id, ok := repo.UrlsToIds[url]
 	if ok {
 		// URL уже был сохранён - возвращаем имеющееся значение
 		return id, true, nil
@@ -25,14 +29,14 @@ func (rep SimpleRepository) SaveURL(url string) (id string, exists bool, err err
 
 	// создаём идентификатор и сохраняем URL
 	id = strings.RandString(idLength)
-	rep.UrlsToIds[url] = id
-	rep.IdsToURLs[id] = url
+	repo.UrlsToIds[url] = id
+	repo.IdsToURLs[id] = url
 
 	return id, false, nil
 }
 
-func (rep SimpleRepository) RetrieveURL(id string) (url string, err error) {
-	url, ok := rep.IdsToURLs[id]
+func (repo SimpleRepository) RetrieveURL(ctx context.Context, id string) (url string, err error) {
+	url, ok := repo.IdsToURLs[id]
 	if !ok {
 		return "", ErrorNotFound
 	}
@@ -40,8 +44,25 @@ func (rep SimpleRepository) RetrieveURL(id string) (url string, err error) {
 	return url, nil
 }
 
-func (rep SimpleRepository) RetrieveID(url string) (id string, err error) {
-	id, ok := rep.UrlsToIds[url]
+func (repo SimpleRepository) CheckStatus(ctx context.Context) error {
+	// Статус всегда ок
+	return nil
+}
+
+func (repo SimpleRepository) SaveURLs(ctx context.Context, urls []string) (ids []string, err error) {
+	ids = make([]string, 0)
+	for _, url := range urls {
+		id, _, err := repo.SaveURL(ctx, url)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
+}
+
+func (repo SimpleRepository) RetrieveID(url string) (id string, err error) {
+	id, ok := repo.UrlsToIds[url]
 	if !ok {
 		return "", ErrorNotFound
 	}

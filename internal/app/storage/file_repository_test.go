@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -89,7 +90,7 @@ func TestFileRepository_SaveURL(t *testing.T) {
 				fPath:   fpath,
 				records: tt.records,
 			}
-			gotID, gotExists, err := frepo.SaveURL(tt.args.url)
+			gotID, gotExists, err := frepo.SaveURL(context.Background(), tt.args.url)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("FileRepository.SaveURL() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -149,7 +150,7 @@ func TestFileRepository_RetrieveURL(t *testing.T) {
 				fPath:   fpath,
 				records: tt.records,
 			}
-			gotURL, err := frepo.RetrieveURL(tt.args.id)
+			gotURL, err := frepo.RetrieveURL(context.Background(), tt.args.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("FileRepository.RetrieveURL() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -167,12 +168,12 @@ func TestFileRepository_SaveAndRetrieve(t *testing.T) {
 	frepo, err := NewFileRepository(fpath)
 	require.NoError(t, err)
 	testURL := "http://example.com"
-	id, _, _ := frepo.SaveURL(testURL)
+	id, _, _ := frepo.SaveURL(context.Background(), testURL)
 
 	frepo2, err := NewFileRepository(fpath)
 	require.NoError(t, err)
 
-	url, err := frepo2.RetrieveURL(id)
+	url, err := frepo2.RetrieveURL(context.Background(), id)
 	if err != nil {
 		t.Errorf("Got unexpected error %s", err.Error())
 		return
@@ -182,4 +183,77 @@ func TestFileRepository_SaveAndRetrieve(t *testing.T) {
 		return
 	}
 	os.Remove(fpath)
+}
+
+func TestFileRepository_SaveURLs(t *testing.T) {
+	type fields struct {
+		records []URLRecord
+	}
+	type args struct {
+		urls []string
+	}
+	tests := []struct {
+		name         string
+		fields       fields
+		args         args
+		wantIDsCount int
+		wantErr      bool
+	}{
+		{
+			name: "All new IDs",
+			fields: fields{
+				records: []URLRecord{},
+			},
+			args: args{
+				urls: []string{"http://yandex.ru", "http://ya.ru", "http://practicum.yandex.ru"},
+			},
+			wantIDsCount: 3,
+			wantErr:      false,
+		},
+		{
+			name: "One new IDs",
+			fields: fields{
+				records: []URLRecord{
+					{UUID: "1", ShortURL: "4rSPg8ap", OriginalURL: "http://yandex.ru"},
+					{UUID: "2", ShortURL: "edVPg3ks", OriginalURL: "http://ya.ru"},
+				},
+			},
+			args: args{
+				urls: []string{"http://yandex.ru", "http://ya.ru", "http://practicum.yandex.ru"},
+			},
+			wantIDsCount: 3,
+			wantErr:      false,
+		},
+		{
+			name: "Existing IDs",
+			fields: fields{
+				records: []URLRecord{
+					{UUID: "1", ShortURL: "4rSPg8ap", OriginalURL: "http://yandex.ru"},
+					{UUID: "2", ShortURL: "edVPg3ks", OriginalURL: "http://ya.ru"},
+					{UUID: "3", ShortURL: "dG56Hqxm", OriginalURL: "http://practicum.yandex.ru"},
+				},
+			},
+			args: args{
+				urls: []string{"http://yandex.ru", "http://ya.ru", "http://practicum.yandex.ru"},
+			},
+			wantIDsCount: 3,
+			wantErr:      false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fpath := os.TempDir() + "frepo_save_url_tmp"
+			frepo := FileRepository{
+				fPath:   fpath,
+				records: tt.fields.records,
+			}
+			gotIDs, err := frepo.SaveURLs(context.Background(), tt.args.urls)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("FileRepository.SaveURLs() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			assert.Equal(t, len(gotIDs), tt.wantIDsCount)
+			os.Remove(fpath)
+		})
+	}
 }

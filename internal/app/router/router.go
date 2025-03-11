@@ -1,33 +1,28 @@
 package router
 
 import (
-	"log"
-
 	"github.com/go-chi/chi"
 	"github.com/iubondar/url-shortener/internal/api/handlers"
-	"github.com/iubondar/url-shortener/internal/app/config"
 	"github.com/iubondar/url-shortener/internal/app/storage"
 	"github.com/iubondar/url-shortener/internal/compress"
 	"github.com/iubondar/url-shortener/internal/logging"
 )
 
-func Default(config config.Config) chi.Router {
-
-	repo, err := storage.NewFileRepository(config.FileStoragePath)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	createIDHandler := handlers.NewCreateIDHandler(repo, config.BaseURLAddress)
-	shortenHandler := handlers.NewShortenHandler(repo, config.BaseURLAddress)
+func NewRouter(BaseURL string, repo storage.Repository) (chi.Router, error) {
+	createIDHandler := handlers.NewCreateIDHandler(repo, BaseURL)
+	shortenHandler := handlers.NewShortenHandler(repo, BaseURL)
+	shortenBatchHandler := handlers.NewShortenBatchHandler(repo, BaseURL)
 	retrieveURLHandler := handlers.NewRetrieveURLHandler(repo)
+	pingHandler := handlers.NewPingHandler(repo)
 
 	r := chi.NewRouter()
 
 	r.Use(logging.WithLogging, compress.WithGzipCompression)
 	r.Post("/", createIDHandler.CreateID)
 	r.Post("/api/shorten", shortenHandler.Shorten)
+	r.Post("/api/shorten/batch", shortenBatchHandler.ShortenBatch)
 	r.Get("/{id}", retrieveURLHandler.RetrieveURL)
+	r.Get("/ping", pingHandler.Ping)
 
-	return r
+	return r, nil
 }

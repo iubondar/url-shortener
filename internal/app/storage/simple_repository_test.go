@@ -1,7 +1,10 @@
 package storage
 
 import (
+	"context"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSimpleRepository_SaveURL(t *testing.T) {
@@ -53,7 +56,7 @@ func TestSimpleRepository_SaveURL(t *testing.T) {
 				UrlsToIds: tt.fields.urlsToIds,
 				IdsToURLs: tt.fields.idsToURLs,
 			}
-			gotID, gotExists, err := rep.SaveURL(tt.args.url)
+			gotID, gotExists, err := rep.SaveURL(context.Background(), tt.args.url)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SimpleRepository.SaveURL() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -117,7 +120,7 @@ func TestSimpleRepository_RetrieveURL(t *testing.T) {
 				UrlsToIds: tt.fields.urlsToIds,
 				IdsToURLs: tt.fields.idsToURLs,
 			}
-			gotURL, err := rep.RetrieveURL(tt.args.id)
+			gotURL, err := rep.RetrieveURL(context.Background(), tt.args.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SimpleRepository.RetrieveURL() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -132,8 +135,9 @@ func TestSimpleRepository_RetrieveURL(t *testing.T) {
 func TestSimpleRepository_SaveAndRetrieve(t *testing.T) {
 	rep := NewSimpleRepository()
 	testURL := "http://example.com"
-	id, _, _ := rep.SaveURL(testURL)
-	url, err := rep.RetrieveURL(id)
+	ctx := context.Background()
+	id, _, _ := rep.SaveURL(ctx, testURL)
+	url, err := rep.RetrieveURL(ctx, id)
 	if err != nil {
 		t.Errorf("Got unexpected error %s", err.Error())
 		return
@@ -141,5 +145,131 @@ func TestSimpleRepository_SaveAndRetrieve(t *testing.T) {
 	if url != testURL {
 		t.Errorf("Expected: %s, got: %s", testURL, url)
 		return
+	}
+}
+
+func TestSimpleRepository_RetrieveID(t *testing.T) {
+	type fields struct {
+		UrlsToIds map[string]string
+		IdsToURLs map[string]string
+	}
+	type args struct {
+		url string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantID  string
+		wantErr bool
+	}{
+		{
+			name: "Non-existent",
+			fields: fields{
+				UrlsToIds: map[string]string{},
+				IdsToURLs: map[string]string{},
+			},
+			args: args{
+				url: "http://example.com",
+			},
+			wantID:  "",
+			wantErr: true,
+		},
+		{
+			name: "Existent",
+			fields: fields{
+				UrlsToIds: map[string]string{"http://example.com": "123"},
+				IdsToURLs: map[string]string{"123": "http://example.com"},
+			},
+			args: args{
+				url: "http://example.com",
+			},
+			wantID:  "123",
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rep := SimpleRepository{
+				UrlsToIds: tt.fields.UrlsToIds,
+				IdsToURLs: tt.fields.IdsToURLs,
+			}
+			gotID, err := rep.RetrieveID(tt.args.url)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("SimpleRepository.RetrieveID() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if gotID != tt.wantID {
+				t.Errorf("SimpleRepository.RetrieveID() = %v, want %v", gotID, tt.wantID)
+			}
+		})
+	}
+}
+
+func TestSimpleRepository_SaveURLs(t *testing.T) {
+	type fields struct {
+		UrlsToIds map[string]string
+		IdsToURLs map[string]string
+	}
+	type args struct {
+		urls []string
+	}
+	tests := []struct {
+		name         string
+		fields       fields
+		args         args
+		wantIDsCount int
+		wantErr      bool
+	}{
+		{
+			name: "All new IDs",
+			fields: fields{
+				UrlsToIds: map[string]string{},
+				IdsToURLs: map[string]string{},
+			},
+			args: args{
+				urls: []string{"http://example.com", "http://ya.ru"},
+			},
+			wantIDsCount: 2,
+			wantErr:      false,
+		},
+		{
+			name: "One new IDs",
+			fields: fields{
+				UrlsToIds: map[string]string{"http://example.com": "123"},
+				IdsToURLs: map[string]string{"123": "http://example.com"},
+			},
+			args: args{
+				urls: []string{"http://example.com", "http://ya.ru"},
+			},
+			wantIDsCount: 2,
+			wantErr:      false,
+		},
+		{
+			name: "Existing IDs",
+			fields: fields{
+				UrlsToIds: map[string]string{"http://example.com": "123", "http://ya.ru": "456"},
+				IdsToURLs: map[string]string{"123": "http://example.com", "456": "http://ya.ru"},
+			},
+			args: args{
+				urls: []string{"http://example.com", "http://ya.ru"},
+			},
+			wantIDsCount: 2,
+			wantErr:      false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := SimpleRepository{
+				UrlsToIds: tt.fields.UrlsToIds,
+				IdsToURLs: tt.fields.IdsToURLs,
+			}
+			gotIDs, err := repo.SaveURLs(context.Background(), tt.args.urls)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("SimpleRepository.SaveURLs() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			assert.Equal(t, len(gotIDs), tt.wantIDsCount)
+		})
 	}
 }
