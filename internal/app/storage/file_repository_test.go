@@ -253,6 +253,7 @@ func TestFileRepository_SaveURLs(t *testing.T) {
 				return
 			}
 			assert.Equal(t, len(gotIDs), tt.wantIDsCount)
+			os.Remove(fpath)
 		})
 	}
 }
