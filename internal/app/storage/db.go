@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"context"
 	"database/sql"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -18,7 +17,7 @@ func NewDB(dsn string) (db *DB, err error) {
 		return nil, err
 	}
 
-	repo, err := NewPGRepository(context.Background(), pgx)
+	repo, err := NewPGRepository(pgx)
 	if err != nil {
 		return nil, err
 	}

@@ -16,44 +16,10 @@ type PGRepository struct {
 	db *sql.DB
 }
 
-func NewPGRepository(ctx context.Context, db *sql.DB) (*PGRepository, error) {
-	err := createTableIfNeeded(ctx, db)
-
-	if err != nil {
-		return nil, err
-	}
-
+func NewPGRepository(db *sql.DB) (*PGRepository, error) {
 	return &PGRepository{
 		db: db,
 	}, nil
-}
-
-func createTableIfNeeded(ctx context.Context, db *sql.DB) error {
-	tx, err := db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-
-	// в случае неуспешного коммита все изменения транзакции будут отменены
-	defer tx.Rollback()
-
-	// Создаём таблицу и добавляем индексы на оба поля с оригинальным и коротким URL, т.к. по ним происходит интенсивный поиск
-	_, err = tx.ExecContext(ctx, queries.CreateURLsTable)
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.ExecContext(ctx, queries.CreateShortURLIndex)
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.ExecContext(ctx, queries.CreateOriginalURLIndex)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
 }
 
 func (repo *PGRepository) SaveURL(ctx context.Context, url string) (id string, exists bool, err error) {

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose"
 
 	"github.com/iubondar/url-shortener/internal/app/storage/testhelpers"
 	"github.com/stretchr/testify/assert"
@@ -34,7 +35,13 @@ func (suite *PGRepoTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 
-	pgRepo, err := NewPGRepository(suite.ctx, db)
+	goose.SetDialect("postgres")
+	err = goose.Up(db, "./migrations")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	pgRepo, err := NewPGRepository(db)
 	if err != nil {
 		log.Fatal(err)
 	}
