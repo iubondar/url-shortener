@@ -1,8 +1,6 @@
 package main
 
 import (
-	"context"
-	"database/sql"
 	"log"
 	"net/http"
 	"os"
@@ -35,16 +33,14 @@ func main() {
 	var repo storage.Repository
 
 	if len(config.DatabaseDSN) > 0 {
-		db, err := sql.Open("pgx", config.DatabaseDSN)
+		db, err := storage.NewDB(config.DatabaseDSN)
 		if err != nil {
 			log.Fatal(err)
 		}
-		defer db.Close()
 
-		repo, err = storage.NewPGRepository(context.Background(), db)
-		if err != nil {
-			log.Fatal(err)
-		}
+		defer db.SQLDB.Close()
+
+		repo = db.Repo
 	} else if len(config.FileStoragePath) > 0 {
 		repo, err = storage.NewFileRepository(config.FileStoragePath)
 		if err != nil {
