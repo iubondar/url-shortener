@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 
+	"github.com/iubondar/url-shortener/internal/app/storage/queries"
 	"github.com/iubondar/url-shortener/internal/app/strings"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -37,24 +38,17 @@ func createTableIfNeeded(ctx context.Context, db *sql.DB) error {
 	defer tx.Rollback()
 
 	// Создаём таблицу и добавляем индексы на оба поля с оригинальным и коротким URL, т.к. по ним происходит интенсивный поиск
-	_, err = tx.ExecContext(
-		ctx,
-		"CREATE TABLE IF NOT EXISTS urls ("+
-			"id SERIAL PRIMARY KEY,"+
-			"short_url VARCHAR(10) UNIQUE NOT NULL,"+
-			"original_url VARCHAR(2048) UNIQUE NOT NULL"+
-			");",
-	)
+	_, err = tx.ExecContext(ctx, queries.CreateURLsTable)
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.ExecContext(ctx, "CREATE UNIQUE INDEX IF NOT EXISTS short_url_index ON urls (short_url)")
+	_, err = tx.ExecContext(ctx, queries.CreateShortURLIndex)
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.ExecContext(ctx, "CREATE UNIQUE INDEX IF NOT EXISTS original_url_index ON urls (original_url)")
+	_, err = tx.ExecContext(ctx, queries.CreateOriginalURLIndex)
 	if err != nil {
 		return err
 	}
@@ -65,7 +59,7 @@ func createTableIfNeeded(ctx context.Context, db *sql.DB) error {
 func (repo *PGRepository) SaveURL(ctx context.Context, url string) (id string, exists bool, err error) {
 	// создаём идентификатор и добавляем запись
 	id = strings.RandString(idLength)
-	_, err = repo.db.ExecContext(ctx, "INSERT INTO urls (short_url, original_url) VALUES ($1, $2);", id, url)
+	_, err = repo.db.ExecContext(ctx, queries.InsertURL, id, url)
 	if err != nil {
 		// Если URL уже был сохранён - возвращаем имеющееся значение
 		var pgErr *pgconn.PgError
@@ -92,7 +86,7 @@ func (repo *PGRepository) SaveURL(ctx context.Context, url string) (id string, e
 
 // Возвращает короткий URL если он уже есть в БД, иначе пустую строку
 func (repo *PGRepository) getShortURLByOriginalURL(ctx context.Context, url string) (shortURL string, err error) {
-	row := repo.db.QueryRowContext(ctx, "SELECT short_url from urls WHERE original_url = $1;", url)
+	row := repo.db.QueryRowContext(ctx, queries.GetShortURL, url)
 
 	err = row.Scan(&shortURL)
 
@@ -104,7 +98,7 @@ func (repo *PGRepository) getShortURLByOriginalURL(ctx context.Context, url stri
 }
 
 func (repo *PGRepository) RetrieveURL(ctx context.Context, id string) (url string, err error) {
-	row := repo.db.QueryRowContext(ctx, "SELECT original_url from urls WHERE short_url = $1;", id)
+	row := repo.db.QueryRowContext(ctx, queries.GetOriginalURL, id)
 
 	err = row.Scan(&url)
 
@@ -129,7 +123,7 @@ func (repo *PGRepository) SaveURLs(ctx context.Context, urls []string) (ids []st
 	// если Commit будет раньше, то откат проигнорируется
 	defer tx.Rollback()
 
-	stmt, err := tx.PrepareContext(ctx, "INSERT INTO urls (short_url, original_url) VALUES ($1, $2);")
+	stmt, err := tx.PrepareContext(ctx, queries.InsertURL)
 	if err != nil {
 		return nil, err
 	}
