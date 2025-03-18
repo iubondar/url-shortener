@@ -86,5 +86,6 @@ func (handler ShortenBatchHandler) ShortenBatch(res http.ResponseWriter, req *ht
 	}
 
 	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusCreated)
 	res.Write(resp)
 }
