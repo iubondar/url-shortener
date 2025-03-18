@@ -41,7 +41,7 @@ func TestShortenBatchHandler_ShortenBatch(t *testing.T) {
 				idsToURLs: map[string]string{},
 			},
 			want: want{
-				code:        http.StatusOK,
+				code:        http.StatusCreated,
 				contentType: "application/json",
 			},
 		},
@@ -58,7 +58,7 @@ func TestShortenBatchHandler_ShortenBatch(t *testing.T) {
 				idsToURLs: map[string]string{"098": "http://practicum.yandex.ru"},
 			},
 			want: want{
-				code:        http.StatusOK,
+				code:        http.StatusCreated,
 				contentType: "application/json",
 			},
 		},
