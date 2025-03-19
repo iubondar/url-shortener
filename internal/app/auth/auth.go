@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
-const secret_key = "supersecretkey"
+const secretKey = "supersecretkey"
 const AuthCookieName = "Authorization"
 
 // claims — структура утверждений, которая включает стандартные утверждения и
@@ -66,7 +66,7 @@ func buildJWTString(userID uuid.UUID) (string, error) {
 	})
 
 	// создаём строку токена
-	tokenString, err := token.SignedString([]byte(secret_key))
+	tokenString, err := token.SignedString([]byte(secretKey))
 	if err != nil {
 		return "", err
 	}
@@ -82,7 +82,7 @@ func GetUserID(tokenString string) (userID uuid.UUID, err error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 			}
-			return []byte(secret_key), nil
+			return []byte(secretKey), nil
 		})
 	if err != nil {
 		return uuid.Nil, err

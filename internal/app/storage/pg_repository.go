@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/iubondar/url-shortener/internal/app/storage/queries"
@@ -122,10 +123,12 @@ func (repo *PGRepository) SaveURLs(ctx context.Context, urls []string) (ids []st
 
 func (repo *PGRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID) (URLPairs []URLPair, err error) {
 	rows, err := repo.db.QueryContext(ctx, queries.GetUserUrls, userID.String())
-	if errors.Is(err, sql.ErrNoRows) {
-		return []URLPair{}, nil
-	} else if err != nil {
-		return nil, err
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []URLPair{}, nil
+		} else {
+			return nil, err
+		}
 	}
 
 	defer rows.Close()
@@ -139,5 +142,10 @@ func (repo *PGRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID
 		}
 		URLPairs = append(URLPairs, pair)
 	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error processing rows: %s", err.Error())
+	}
+
 	return URLPairs, nil
 }

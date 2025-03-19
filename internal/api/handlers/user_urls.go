@@ -6,6 +6,7 @@ import (
 
 	"github.com/iubondar/url-shortener/internal/app/auth"
 	"github.com/iubondar/url-shortener/internal/app/storage"
+	"go.uber.org/zap"
 )
 
 type UserUrlsHandler struct {
@@ -35,6 +36,7 @@ func (handler UserUrlsHandler) RetrieveUserURLs(res http.ResponseWriter, req *ht
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
+	zap.L().Sugar().Debugln("UserID: ", userID)
 
 	URLPairs, err := handler.repo.RetrieveUserURLs(req.Context(), userID)
 	if err != nil {
