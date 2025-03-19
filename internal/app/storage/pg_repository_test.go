@@ -94,7 +94,7 @@ func (suite *PGRepoTestSuite) TestSaveURL() {
 		{
 			name: "SaveURL Existent",
 			execStatement: "INSERT INTO urls (short_url, original_url, user_id)" +
-				" VALUES ('4rSPg8ap', 'http://yandex.ru', " + userID.String() + "), ('edVPg3ks', 'http://ya.ru', " + userID.String() + ")",
+				" VALUES ('4rSPg8ap', 'http://yandex.ru', '" + userID.String() + "'), ('edVPg3ks', 'http://ya.ru', '" + userID.String() + "')",
 			args: args{
 				url: "http://yandex.ru",
 			},
@@ -262,6 +262,6 @@ func (suite *PGRepoTestSuite) TestSaveURLs() {
 }
 
 // Запуск сьюта тестов
-func TestCustomerRepoTestSuite(t *testing.T) {
+func TestPGRepositoryTestSuite(t *testing.T) {
 	suite.Run(t, new(PGRepoTestSuite))
 }

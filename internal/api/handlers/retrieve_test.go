@@ -84,7 +84,7 @@ func TestRetrieveURLHandler_RetrieveURL(t *testing.T) {
 					},
 				},
 			}
-			handler := NewRetrieveURLHandler(repo)
+			handler := NewRetrieveURLHandler(&repo)
 
 			request := httptest.NewRequest(test.method, "/", nil)
 
@@ -118,7 +118,7 @@ func TestRetrieveURLHandler_WithNoIdParameter(t *testing.T) {
 			},
 		},
 	}
-	handler := NewRetrieveURLHandler(repo)
+	handler := NewRetrieveURLHandler(&repo)
 	request := httptest.NewRequest(http.MethodGet, "/", nil)
 
 	// создаём новый Recorder

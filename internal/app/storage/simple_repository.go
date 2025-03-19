@@ -18,13 +18,13 @@ type SimpleRepository struct {
 	Records []Record
 }
 
-func NewSimpleRepository() SimpleRepository {
-	return SimpleRepository{
+func NewSimpleRepository() *SimpleRepository {
+	return &SimpleRepository{
 		Records: []Record{},
 	}
 }
 
-func (repo SimpleRepository) SaveURL(ctx context.Context, userID uuid.UUID, url string) (id string, exists bool, err error) {
+func (repo *SimpleRepository) SaveURL(ctx context.Context, userID uuid.UUID, url string) (id string, exists bool, err error) {
 	id, err = repo.RetrieveID(url)
 	if err == nil && len(id) > 0 {
 		return id, true, nil
@@ -49,7 +49,7 @@ func (repo SimpleRepository) CheckStatus(ctx context.Context) error {
 	return nil
 }
 
-func (repo SimpleRepository) SaveURLs(ctx context.Context, urls []string) (ids []string, err error) {
+func (repo *SimpleRepository) SaveURLs(ctx context.Context, urls []string) (ids []string, err error) {
 	ids = make([]string, 0)
 	for _, url := range urls {
 		id, _, err := repo.SaveURL(ctx, uuid.Nil, url)
@@ -73,7 +73,7 @@ func (repo SimpleRepository) RetrieveURL(ctx context.Context, id string) (url st
 
 func (repo SimpleRepository) RetrieveID(url string) (id string, err error) {
 	for _, r := range repo.Records {
-		if r.OriginalURL == id {
+		if r.OriginalURL == url {
 			return r.ShortURL, nil
 		}
 	}

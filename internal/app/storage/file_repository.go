@@ -119,7 +119,7 @@ func (frepo FileRepository) CheckStatus(ctx context.Context) error {
 	return nil
 }
 
-func (frepo FileRepository) SaveURLs(ctx context.Context, urls []string) (ids []string, err error) {
+func (frepo *FileRepository) SaveURLs(ctx context.Context, urls []string) (ids []string, err error) {
 	ids = make([]string, 0)
 	newRecords := make([]URLRecord, 0)
 	for _, url := range urls {

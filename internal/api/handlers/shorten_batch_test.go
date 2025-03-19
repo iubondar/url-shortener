@@ -142,7 +142,7 @@ func TestShortenBatchHandler_ShortenBatch(t *testing.T) {
 			repo := storage.SimpleRepository{
 				Records: test.fields.records,
 			}
-			handler := NewShortenBatchHandler(repo, "127.0.0.1")
+			handler := NewShortenBatchHandler(&repo, "127.0.0.1")
 			handler.ShortenBatch(w, request)
 
 			res := w.Result()

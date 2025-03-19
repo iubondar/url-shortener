@@ -15,28 +15,23 @@ import (
 
 func TestCreateIDHandler_CreateID(t *testing.T) {
 	userID := uuid.New()
-	type fields struct {
-		records []storage.Record
-	}
 	type want struct {
 		code        int
 		response    string
 		contentType string
 	}
 	tests := []struct {
-		name   string
-		method string
-		url    string
-		fields fields
-		want   want
+		name    string
+		method  string
+		url     string
+		records []storage.Record
+		want    want
 	}{
 		{
-			name:   "Positive test",
-			method: http.MethodPost,
-			url:    "https://practicum.yandex.ru/",
-			fields: fields{
-				records: []storage.Record{},
-			},
+			name:    "Positive test",
+			method:  http.MethodPost,
+			url:     "https://practicum.yandex.ru/",
+			records: []storage.Record{},
 			want: want{
 				code:        http.StatusCreated,
 				response:    `http://127.0.0.1`,
@@ -47,13 +42,11 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			name:   "Existed record test",
 			method: http.MethodPost,
 			url:    testURL,
-			fields: fields{
-				records: []storage.Record{
-					{
-						ShortURL:    "123",
-						OriginalURL: testURL,
-						UserID:      userID,
-					},
+			records: []storage.Record{
+				{
+					ShortURL:    "123",
+					OriginalURL: testURL,
+					UserID:      userID,
 				},
 			},
 			want: want{
@@ -63,12 +56,10 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			},
 		},
 		{
-			name:   "Test invalid URL",
-			method: http.MethodPost,
-			url:    "https/practicum.yandex.ru/",
-			fields: fields{
-				records: []storage.Record{},
-			},
+			name:    "Test invalid URL",
+			method:  http.MethodPost,
+			url:     "https/practicum.yandex.ru/",
+			records: []storage.Record{},
 			want: want{
 				code:        http.StatusBadRequest,
 				response:    `http://127.0.0.1`,
@@ -76,12 +67,10 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			},
 		},
 		{
-			name:   "Test GET method not allowed",
-			method: http.MethodGet,
-			url:    "https://practicum.yandex.ru/",
-			fields: fields{
-				records: []storage.Record{},
-			},
+			name:    "Test GET method not allowed",
+			method:  http.MethodGet,
+			url:     "https://practicum.yandex.ru/",
+			records: []storage.Record{},
 			want: want{
 				code:        http.StatusMethodNotAllowed,
 				response:    `http://127.0.0.1`,
@@ -89,12 +78,10 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			},
 		},
 		{
-			name:   "Test PUT method not allowed",
-			method: http.MethodPut,
-			url:    "https://practicum.yandex.ru/",
-			fields: fields{
-				records: []storage.Record{},
-			},
+			name:    "Test PUT method not allowed",
+			method:  http.MethodPut,
+			url:     "https://practicum.yandex.ru/",
+			records: []storage.Record{},
 			want: want{
 				code:        http.StatusMethodNotAllowed,
 				response:    `http://127.0.0.1`,
@@ -102,12 +89,10 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			},
 		},
 		{
-			name:   "Test DELETE method not allowed",
-			method: http.MethodDelete,
-			url:    "https://practicum.yandex.ru/",
-			fields: fields{
-				records: []storage.Record{},
-			},
+			name:    "Test DELETE method not allowed",
+			method:  http.MethodDelete,
+			url:     "https://practicum.yandex.ru/",
+			records: []storage.Record{},
 			want: want{
 				code:        http.StatusMethodNotAllowed,
 				response:    `http://127.0.0.1`,
@@ -121,9 +106,9 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			// создаём новый Recorder
 			w := httptest.NewRecorder()
 			repo := storage.SimpleRepository{
-				Records: test.fields.records,
+				Records: test.records,
 			}
-			handler := NewCreateIDHandler(repo, "127.0.0.1")
+			handler := NewCreateIDHandler(&repo, "127.0.0.1")
 			handler.CreateID(w, request)
 
 			res := w.Result()

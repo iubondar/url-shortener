@@ -108,7 +108,7 @@ func TestSimpleRepository_RetrieveURL(t *testing.T) {
 			name: "Existent",
 			fields: fields{
 				records: []Record{
-					Record{
+					{
 						ShortURL:    "123",
 						OriginalURL: "http://example.com",
 						UserID:      userID,
@@ -185,7 +185,7 @@ func TestSimpleRepository_RetrieveID(t *testing.T) {
 			name: "Existent",
 			fields: fields{
 				records: []Record{
-					Record{
+					{
 						ShortURL:    "123",
 						OriginalURL: "http://example.com",
 						UserID:      userID,
@@ -246,7 +246,7 @@ func TestSimpleRepository_SaveURLs(t *testing.T) {
 			name: "One new IDs",
 			fields: fields{
 				records: []Record{
-					Record{
+					{
 						ShortURL:    "123",
 						OriginalURL: "http://example.com",
 						UserID:      userID,
@@ -263,12 +263,12 @@ func TestSimpleRepository_SaveURLs(t *testing.T) {
 			name: "Existing IDs",
 			fields: fields{
 				records: []Record{
-					Record{
+					{
 						ShortURL:    "123",
 						OriginalURL: "http://example.com",
 						UserID:      userID,
 					},
-					Record{
+					{
 						ShortURL:    "456",
 						OriginalURL: "http://ya.ru",
 						UserID:      userID,

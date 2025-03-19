@@ -141,7 +141,7 @@ func TestShortenHandler_Shorten(t *testing.T) {
 			repo := storage.SimpleRepository{
 				Records: test.fields.records,
 			}
-			handler := NewShortenHandler(repo, "127.0.0.1")
+			handler := NewShortenHandler(&repo, "127.0.0.1")
 			handler.Shorten(w, request)
 
 			res := w.Result()
