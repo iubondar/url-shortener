@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 
+	"github.com/google/uuid"
 	"github.com/iubondar/url-shortener/internal/app/storage/queries"
 	"github.com/iubondar/url-shortener/internal/app/strings"
 	"github.com/jackc/pgerrcode"
@@ -22,10 +23,10 @@ func NewPGRepository(db *sql.DB) (*PGRepository, error) {
 	}, nil
 }
 
-func (repo *PGRepository) SaveURL(ctx context.Context, url string) (id string, exists bool, err error) {
+func (repo *PGRepository) SaveURL(ctx context.Context, userID uuid.UUID, url string) (id string, exists bool, err error) {
 	// создаём идентификатор и добавляем запись
 	id = strings.RandString(idLength)
-	_, err = repo.db.ExecContext(ctx, queries.InsertURL, id, url)
+	_, err = repo.db.ExecContext(ctx, queries.InsertURL, id, url, userID)
 	if err != nil {
 		// Если URL уже был сохранён - возвращаем имеющееся значение
 		var pgErr *pgconn.PgError
@@ -110,7 +111,7 @@ func (repo *PGRepository) SaveURLs(ctx context.Context, urls []string) (ids []st
 		// Сохраняем URL
 		id := strings.RandString(idLength)
 		ids = append(ids, id)
-		_, err = stmt.ExecContext(ctx, id, url)
+		_, err = stmt.ExecContext(ctx, id, url, uuid.Nil)
 		if err != nil {
 			return nil, err
 		}

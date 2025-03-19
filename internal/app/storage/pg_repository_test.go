@@ -6,6 +6,7 @@ import (
 	"log"
 	"testing"
 
+	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose"
 
@@ -68,6 +69,7 @@ func (suite *PGRepoTestSuite) clearUrlsTable() error {
 
 // Tests are here
 func (suite *PGRepoTestSuite) TestSaveURL() {
+	userID := uuid.New()
 	type args struct {
 		url string
 	}
@@ -90,8 +92,9 @@ func (suite *PGRepoTestSuite) TestSaveURL() {
 			wantErr:    false,
 		},
 		{
-			name:          "SaveURL Existent",
-			execStatement: "INSERT INTO urls (short_url, original_url) VALUES ('4rSPg8ap', 'http://yandex.ru'), ('edVPg3ks', 'http://ya.ru')",
+			name: "SaveURL Existent",
+			execStatement: "INSERT INTO urls (short_url, original_url, user_id)" +
+				" VALUES ('4rSPg8ap', 'http://yandex.ru', " + userID.String() + "), ('edVPg3ks', 'http://ya.ru', " + userID.String() + ")",
 			args: args{
 				url: "http://yandex.ru",
 			},
@@ -111,7 +114,7 @@ func (suite *PGRepoTestSuite) TestSaveURL() {
 				require.NoError(t, err)
 			}
 
-			gotID, gotExists, err := suite.repo.SaveURL(suite.ctx, tt.args.url)
+			gotID, gotExists, err := suite.repo.SaveURL(suite.ctx, userID, tt.args.url)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("PGRepoTestSuite.TestSaveURL error = %v, wantErr %v", err, tt.wantErr)
@@ -189,7 +192,7 @@ func (suite *PGRepoTestSuite) TestSaveAndRetrieve() {
 	require.NoError(t, err)
 
 	testURL := "http://example.com"
-	id, exists, err := suite.repo.SaveURL(suite.ctx, testURL)
+	id, exists, err := suite.repo.SaveURL(suite.ctx, uuid.New(), testURL)
 	require.NoError(t, err)
 	assert.False(t, exists, "URL should not exists in DB yet")
 

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi"
+	"github.com/google/uuid"
 	"github.com/iubondar/url-shortener/internal/app/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,6 +25,7 @@ func withURLParam(r *http.Request, key, value string) *http.Request {
 }
 
 func TestRetrieveURLHandler_RetrieveURL(t *testing.T) {
+	userID := uuid.New()
 	type want struct {
 		code     int
 		location string
@@ -74,8 +76,13 @@ func TestRetrieveURLHandler_RetrieveURL(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			repo := storage.SimpleRepository{
-				UrlsToIds: map[string]string{"https://practicum.yandex.ru/": "123"},
-				IdsToURLs: map[string]string{"123": "https://practicum.yandex.ru/"},
+				Records: []storage.Record{
+					{
+						ShortURL:    "123",
+						OriginalURL: testURL,
+						UserID:      userID,
+					},
+				},
 			}
 			handler := NewRetrieveURLHandler(repo)
 
@@ -103,8 +110,13 @@ func TestRetrieveURLHandler_RetrieveURL(t *testing.T) {
 
 func TestRetrieveURLHandler_WithNoIdParameter(t *testing.T) {
 	repo := storage.SimpleRepository{
-		UrlsToIds: map[string]string{"https://practicum.yandex.ru/": "123"},
-		IdsToURLs: map[string]string{"123": "https://practicum.yandex.ru/"},
+		Records: []storage.Record{
+			{
+				ShortURL:    "123",
+				OriginalURL: testURL,
+				UserID:      uuid.New(),
+			},
+		},
 	}
 	handler := NewRetrieveURLHandler(repo)
 	request := httptest.NewRequest(http.MethodGet, "/", nil)

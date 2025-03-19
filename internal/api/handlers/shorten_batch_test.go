@@ -7,15 +7,16 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/iubondar/url-shortener/internal/app/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestShortenBatchHandler_ShortenBatch(t *testing.T) {
+	userID := uuid.New()
 	type fields struct {
-		urlsToIds map[string]string
-		idsToURLs map[string]string
+		records []storage.Record
 	}
 	type want struct {
 		code        int
@@ -37,8 +38,7 @@ func TestShortenBatchHandler_ShortenBatch(t *testing.T) {
 				{CorrelationID: "123", OriginalURL: "http://practicum.yandex.ru"},
 			},
 			fields: fields{
-				urlsToIds: map[string]string{},
-				idsToURLs: map[string]string{},
+				records: []storage.Record{},
 			},
 			want: want{
 				code:        http.StatusCreated,
@@ -54,8 +54,13 @@ func TestShortenBatchHandler_ShortenBatch(t *testing.T) {
 				{CorrelationID: "123", OriginalURL: "http://practicum.yandex.ru"},
 			},
 			fields: fields{
-				urlsToIds: map[string]string{"http://practicum.yandex.ru": "098"},
-				idsToURLs: map[string]string{"098": "http://practicum.yandex.ru"},
+				records: []storage.Record{
+					{
+						ShortURL:    "098",
+						OriginalURL: "http://practicum.yandex.ru",
+						UserID:      userID,
+					},
+				},
 			},
 			want: want{
 				code:        http.StatusCreated,
@@ -71,8 +76,7 @@ func TestShortenBatchHandler_ShortenBatch(t *testing.T) {
 				{CorrelationID: "123", OriginalURL: "http://practicum.yandex.ru"},
 			},
 			fields: fields{
-				urlsToIds: map[string]string{},
-				idsToURLs: map[string]string{},
+				records: []storage.Record{},
 			},
 			want: want{
 				code:        http.StatusBadRequest,
@@ -88,8 +92,7 @@ func TestShortenBatchHandler_ShortenBatch(t *testing.T) {
 				{CorrelationID: "123", OriginalURL: "http://practicum.yandex.ru"},
 			},
 			fields: fields{
-				urlsToIds: map[string]string{},
-				idsToURLs: map[string]string{},
+				records: []storage.Record{},
 			},
 			want: want{
 				code:        http.StatusMethodNotAllowed,
@@ -105,8 +108,7 @@ func TestShortenBatchHandler_ShortenBatch(t *testing.T) {
 				{CorrelationID: "123", OriginalURL: "http://practicum.yandex.ru"},
 			},
 			fields: fields{
-				urlsToIds: map[string]string{},
-				idsToURLs: map[string]string{},
+				records: []storage.Record{},
 			},
 			want: want{
 				code:        http.StatusMethodNotAllowed,
@@ -122,8 +124,7 @@ func TestShortenBatchHandler_ShortenBatch(t *testing.T) {
 				{CorrelationID: "123", OriginalURL: "http://practicum.yandex.ru"},
 			},
 			fields: fields{
-				urlsToIds: map[string]string{},
-				idsToURLs: map[string]string{},
+				records: []storage.Record{},
 			},
 			want: want{
 				code:        http.StatusMethodNotAllowed,
@@ -139,8 +140,7 @@ func TestShortenBatchHandler_ShortenBatch(t *testing.T) {
 			// создаём новый Recorder
 			w := httptest.NewRecorder()
 			repo := storage.SimpleRepository{
-				UrlsToIds: test.fields.urlsToIds,
-				IdsToURLs: test.fields.idsToURLs,
+				Records: test.fields.records,
 			}
 			handler := NewShortenBatchHandler(repo, "127.0.0.1")
 			handler.ShortenBatch(w, request)

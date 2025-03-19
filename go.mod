@@ -7,6 +7,7 @@ toolchain go1.24.0
 require (
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/go-chi/chi v1.5.5
+	github.com/golang-jwt/jwt/v4 v4.5.1
 	github.com/golang/mock v1.6.0
 	github.com/jackc/pgerrcode v0.0.0-20240316143900-6e2875d9b438
 	github.com/pressly/goose v2.7.0+incompatible

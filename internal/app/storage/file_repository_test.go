@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -90,7 +91,8 @@ func TestFileRepository_SaveURL(t *testing.T) {
 				fPath:   fpath,
 				records: tt.records,
 			}
-			gotID, gotExists, err := frepo.SaveURL(context.Background(), tt.args.url)
+			userID := uuid.New()
+			gotID, gotExists, err := frepo.SaveURL(context.Background(), userID, tt.args.url)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("FileRepository.SaveURL() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -168,20 +170,16 @@ func TestFileRepository_SaveAndRetrieve(t *testing.T) {
 	frepo, err := NewFileRepository(fpath)
 	require.NoError(t, err)
 	testURL := "http://example.com"
-	id, _, _ := frepo.SaveURL(context.Background(), testURL)
+	id, _, _ := frepo.SaveURL(context.Background(), uuid.New(), testURL)
 
 	frepo2, err := NewFileRepository(fpath)
 	require.NoError(t, err)
 
 	url, err := frepo2.RetrieveURL(context.Background(), id)
-	if err != nil {
-		t.Errorf("Got unexpected error %s", err.Error())
-		return
-	}
-	if url != testURL {
-		t.Errorf("Expected: %s, got: %s", testURL, url)
-		return
-	}
+
+	require.NoError(t, err)
+	assert.Equal(t, testURL, url)
+
 	os.Remove(fpath)
 }
 

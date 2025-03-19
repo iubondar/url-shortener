@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/iubondar/url-shortener/internal/app/auth"
 	"github.com/iubondar/url-shortener/internal/app/storage"
 )
 
@@ -40,7 +41,13 @@ func (handler CreateIDHandler) CreateID(res http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	id, exists, err := handler.repo.SaveURL(req.Context(), url.String())
+	userID, err := auth.SetAuthCookie(res, req)
+	if err != nil {
+		http.Error(res, "Error setting userID "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	id, exists, err := handler.repo.SaveURL(req.Context(), userID, url.String())
 	if err != nil {
 		http.Error(res, "Can't save URL", http.StatusBadRequest)
 		return

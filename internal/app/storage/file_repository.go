@@ -9,13 +9,15 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/google/uuid"
 	"github.com/iubondar/url-shortener/internal/app/strings"
 )
 
 type URLRecord struct {
-	UUID        string `json:"uuid"`
-	ShortURL    string `json:"short_url"`
-	OriginalURL string `json:"original_url"`
+	UUID        string    `json:"uuid"`
+	ShortURL    string    `json:"short_url"`
+	OriginalURL string    `json:"original_url"`
+	UserID      uuid.UUID `json:"user_id"`
 }
 
 type FileRepository struct {
@@ -57,7 +59,7 @@ func NewFileRepository(fPath string) (*FileRepository, error) {
 	}, nil
 }
 
-func (frepo *FileRepository) SaveURL(ctx context.Context, url string) (id string, exists bool, err error) {
+func (frepo *FileRepository) SaveURL(ctx context.Context, userID uuid.UUID, url string) (id string, exists bool, err error) {
 	// Если URL уже был сохранён - возвращаем имеющееся значение
 	record := frepo.getRecordByOriginalURL(url)
 	if record != nil {
