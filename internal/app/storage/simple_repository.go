@@ -80,3 +80,13 @@ func (repo SimpleRepository) RetrieveID(url string) (id string, err error) {
 
 	return "", ErrorNotFound
 }
+
+func (repo SimpleRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID) (URLPairs []URLPair, err error) {
+	URLPairs = make([]URLPair, 0)
+	for _, r := range repo.Records {
+		if r.UserID == userID {
+			URLPairs = append(URLPairs, URLPair{ShortURL: r.ShortURL, OriginalURL: r.OriginalURL})
+		}
+	}
+	return URLPairs, nil
+}

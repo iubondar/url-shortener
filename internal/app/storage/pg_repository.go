@@ -119,3 +119,25 @@ func (repo *PGRepository) SaveURLs(ctx context.Context, urls []string) (ids []st
 
 	return ids, tx.Commit()
 }
+
+func (repo *PGRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID) (URLPairs []URLPair, err error) {
+	rows, err := repo.db.QueryContext(ctx, queries.GetUserUrls, userID.String())
+	if errors.Is(err, sql.ErrNoRows) {
+		return []URLPair{}, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	URLPairs = []URLPair{}
+	for rows.Next() {
+		var pair URLPair
+		err = rows.Scan(&pair.ShortURL, &pair.OriginalURL)
+		if err != nil {
+			return nil, err
+		}
+		URLPairs = append(URLPairs, pair)
+	}
+	return URLPairs, nil
+}

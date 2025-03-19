@@ -10,7 +10,7 @@ import (
 )
 
 const secret_key = "supersecretkey"
-const authCookieName = "Authorization"
+const AuthCookieName = "Authorization"
 
 // claims — структура утверждений, которая включает стандартные утверждения и
 // одно пользовательское UserID
@@ -20,13 +20,13 @@ type claims struct {
 }
 
 func SetAuthCookie(res http.ResponseWriter, req *http.Request) (userID uuid.UUID, err error) {
-	authCookie, err := req.Cookie(authCookieName)
+	authCookie, err := req.Cookie(AuthCookieName)
 	if err != nil {
 		zap.L().Sugar().Debugln("No auth cookie found, set new")
 		return setNewAuthCookie(res)
 	}
 
-	userID, err = getUserID(authCookie.Value)
+	userID, err = GetUserID(authCookie.Value)
 	if err != nil {
 		zap.L().Sugar().Debugln("Error getting user id from cookie, will set new. Message: ", err.Error())
 		return setNewAuthCookie(res)
@@ -45,7 +45,7 @@ func setNewAuthCookie(res http.ResponseWriter) (userID uuid.UUID, err error) {
 	}
 
 	cookie := &http.Cookie{
-		Name:     authCookieName,
+		Name:     AuthCookieName,
 		Value:    jwtString,
 		HttpOnly: true, // Prevents JavaScript access
 		SameSite: http.SameSiteLaxMode,
@@ -75,7 +75,7 @@ func buildJWTString(userID uuid.UUID) (string, error) {
 	return tokenString, nil
 }
 
-func getUserID(tokenString string) (userID uuid.UUID, err error) {
+func GetUserID(tokenString string) (userID uuid.UUID, err error) {
 	claims := &claims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims,
 		func(t *jwt.Token) (interface{}, error) {
