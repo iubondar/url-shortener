@@ -35,6 +35,7 @@ func (handler UserUrlsHandler) RetrieveUserURLs(res http.ResponseWriter, req *ht
 	}
 
 	authCookie, err := req.Cookie(auth.AuthCookieName)
+	zap.L().Sugar().Debugln("authCookie: ", authCookie.Value)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusUnauthorized)
 		return
