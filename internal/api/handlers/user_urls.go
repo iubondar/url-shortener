@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/iubondar/url-shortener/internal/app/auth"
 	"github.com/iubondar/url-shortener/internal/app/storage"
@@ -10,13 +12,20 @@ import (
 )
 
 type UserUrlsHandler struct {
-	repo storage.Repository
+	repo    storage.Repository
+	baseURL string
 }
 
-func NewUserUrlsHandler(repo storage.Repository) UserUrlsHandler {
+func NewUserUrlsHandler(repo storage.Repository, baseURL string) UserUrlsHandler {
 	return UserUrlsHandler{
-		repo: repo,
+		repo:    repo,
+		baseURL: baseURL,
 	}
+}
+
+type UserUrlsOut struct {
+	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
 }
 
 func (handler UserUrlsHandler) RetrieveUserURLs(res http.ResponseWriter, req *http.Request) {
@@ -44,14 +53,23 @@ func (handler UserUrlsHandler) RetrieveUserURLs(res http.ResponseWriter, req *ht
 		return
 	}
 
-	resp, err := json.Marshal(URLPairs)
+	out := make([]UserUrlsOut, 0, len(URLPairs))
+	baseURL := strings.TrimSuffix(strings.TrimPrefix(handler.baseURL, "http://"), "/")
+	for i := 0; i < len(URLPairs); i++ {
+		outElem := UserUrlsOut{
+			ShortURL:    fmt.Sprintf("http://%s/%s", baseURL, URLPairs[i].ID),
+			OriginalURL: URLPairs[i].URL,
+		}
+		out = append(out, outElem)
+	}
+	resp, err := json.Marshal(out)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	res.Header().Set("Content-Type", "application/json")
-	if len(URLPairs) == 0 {
+	if len(out) == 0 {
 		res.WriteHeader(http.StatusNoContent)
 	} else {
 		res.WriteHeader(http.StatusOK)

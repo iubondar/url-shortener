@@ -136,7 +136,7 @@ func (repo *PGRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID
 	URLPairs = []URLPair{}
 	for rows.Next() {
 		var pair URLPair
-		err = rows.Scan(&pair.ShortURL, &pair.OriginalURL)
+		err = rows.Scan(&pair.ID, &pair.URL)
 		if err != nil {
 			return nil, err
 		}

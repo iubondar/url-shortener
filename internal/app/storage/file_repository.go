@@ -172,7 +172,7 @@ func (frepo FileRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UU
 	URLPairs = make([]URLPair, 0)
 	for _, r := range frepo.records {
 		if r.UserID == userID {
-			URLPairs = append(URLPairs, URLPair{ShortURL: r.ShortURL, OriginalURL: r.OriginalURL})
+			URLPairs = append(URLPairs, URLPair{ID: r.ShortURL, URL: r.OriginalURL})
 		}
 	}
 	return URLPairs, nil

@@ -11,8 +11,8 @@ import (
 var ErrorNotFound = errors.New("not found")
 
 type URLPair struct {
-	ShortURL    string `json:"short_url"`
-	OriginalURL string `json:"original_url"`
+	URL string
+	ID  string
 }
 
 type Repository interface {
