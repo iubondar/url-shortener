@@ -8,7 +8,6 @@ import (
 
 	"github.com/iubondar/url-shortener/internal/app/auth"
 	"github.com/iubondar/url-shortener/internal/app/storage"
-	"go.uber.org/zap"
 )
 
 type UserUrlsHandler struct {
@@ -34,22 +33,11 @@ func (handler UserUrlsHandler) RetrieveUserURLs(res http.ResponseWriter, req *ht
 		return
 	}
 
-	authCookie, err := req.Cookie(auth.AuthCookieName)
-	if authCookie == nil {
-		zap.L().Sugar().Debugln("No auth cookie found")
-	}
+	userID, err := auth.SetAuthCookie(res, req)
 	if err != nil {
-		zap.L().Sugar().Debugln("Error getting auth cookie: ", err.Error())
-		http.Error(res, err.Error(), http.StatusUnauthorized)
+		http.Error(res, "Error setting userID "+err.Error(), http.StatusBadRequest)
 		return
 	}
-
-	userID, err := auth.GetUserID(authCookie.Value)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
-		return
-	}
-	zap.L().Sugar().Debugln("UserID: ", userID)
 
 	URLPairs, err := handler.repo.RetrieveUserURLs(req.Context(), userID)
 	if err != nil {
