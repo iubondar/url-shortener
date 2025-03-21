@@ -9,11 +9,6 @@ import (
 
 const idLength int = 8
 
-type Record struct {
-	ShortURL    string
-	OriginalURL string
-	UserID      uuid.UUID
-}
 type SimpleRepository struct {
 	Records []Record
 }
@@ -61,14 +56,14 @@ func (repo *SimpleRepository) SaveURLs(ctx context.Context, urls []string) (ids 
 	return ids, nil
 }
 
-func (repo SimpleRepository) RetrieveURL(ctx context.Context, id string) (url string, err error) {
+func (repo SimpleRepository) RetrieveByShortURL(ctx context.Context, shortURL string) (record Record, err error) {
 	for _, r := range repo.Records {
-		if r.ShortURL == id {
-			return r.OriginalURL, nil
+		if r.ShortURL == shortURL {
+			return r, nil
 		}
 	}
 
-	return "", ErrorNotFound
+	return Record{}, ErrorNotFound
 }
 
 func (repo SimpleRepository) RetrieveID(url string) (id string, err error) {
@@ -81,12 +76,12 @@ func (repo SimpleRepository) RetrieveID(url string) (id string, err error) {
 	return "", ErrorNotFound
 }
 
-func (repo SimpleRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID) (URLPairs []URLPair, err error) {
-	URLPairs = make([]URLPair, 0)
+func (repo SimpleRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID) (records []Record, err error) {
+	records = make([]Record, 0)
 	for _, r := range repo.Records {
 		if r.UserID == userID {
-			URLPairs = append(URLPairs, URLPair{ID: r.ShortURL, URL: r.OriginalURL})
+			records = append(records, r)
 		}
 	}
-	return URLPairs, nil
+	return records, nil
 }

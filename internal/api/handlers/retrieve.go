@@ -29,12 +29,12 @@ func (handler RetrieveURLHandler) RetrieveURL(res http.ResponseWriter, req *http
 		return
 	}
 
-	url, err := handler.repo.RetrieveURL(req.Context(), id)
+	record, err := handler.repo.RetrieveByShortURL(req.Context(), id)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	res.Header().Add("Location", url)
+	res.Header().Add("Location", record.OriginalURL)
 	res.WriteHeader(http.StatusTemporaryRedirect)
 }

@@ -78,7 +78,7 @@ func TestSimpleRepository_SaveURL(t *testing.T) {
 	}
 }
 
-func TestSimpleRepository_RetrieveURL(t *testing.T) {
+func TestSimpleRepository_RetrieveByShortURL(t *testing.T) {
 	userID := uuid.New()
 	type fields struct {
 		records []Record
@@ -127,13 +127,13 @@ func TestSimpleRepository_RetrieveURL(t *testing.T) {
 			rep := SimpleRepository{
 				Records: tt.fields.records,
 			}
-			gotURL, err := rep.RetrieveURL(context.Background(), tt.args.id)
+			record, err := rep.RetrieveByShortURL(context.Background(), tt.args.id)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("SimpleRepository.RetrieveURL() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("SimpleRepository.RetrieveByShortURL() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if gotURL != tt.wantURL {
-				t.Errorf("SimpleRepository.RetrieveURL() = %v, want %v", gotURL, tt.wantURL)
+			if record.OriginalURL != tt.wantURL {
+				t.Errorf("SimpleRepository.RetrieveByShortURL() = %v, want %v", record.OriginalURL, tt.wantURL)
 			}
 		})
 	}
@@ -144,13 +144,13 @@ func TestSimpleRepository_SaveAndRetrieve(t *testing.T) {
 	testURL := "http://example.com"
 	ctx := context.Background()
 	id, _, _ := rep.SaveURL(ctx, uuid.New(), testURL)
-	url, err := rep.RetrieveURL(ctx, id)
+	record, err := rep.RetrieveByShortURL(ctx, id)
 	if err != nil {
 		t.Errorf("Got unexpected error %s", err.Error())
 		return
 	}
-	if url != testURL {
-		t.Errorf("Expected: %s, got: %s", testURL, url)
+	if record.OriginalURL != testURL {
+		t.Errorf("Expected: %s, got: %s", testURL, record.OriginalURL)
 		return
 	}
 }

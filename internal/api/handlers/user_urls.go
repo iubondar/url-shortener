@@ -39,18 +39,18 @@ func (handler UserUrlsHandler) RetrieveUserURLs(res http.ResponseWriter, req *ht
 		return
 	}
 
-	URLPairs, err := handler.repo.RetrieveUserURLs(req.Context(), userID)
+	records, err := handler.repo.RetrieveUserURLs(req.Context(), userID)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	out := make([]UserUrlsOut, 0, len(URLPairs))
+	out := make([]UserUrlsOut, 0, len(records))
 	baseURL := strings.TrimSuffix(strings.TrimPrefix(handler.baseURL, "http://"), "/")
-	for i := 0; i < len(URLPairs); i++ {
+	for i := 0; i < len(records); i++ {
 		outElem := UserUrlsOut{
-			ShortURL:    fmt.Sprintf("http://%s/%s", baseURL, URLPairs[i].ID),
-			OriginalURL: URLPairs[i].URL,
+			ShortURL:    fmt.Sprintf("http://%s/%s", baseURL, records[i].ShortURL),
+			OriginalURL: records[i].OriginalURL,
 		}
 		out = append(out, outElem)
 	}

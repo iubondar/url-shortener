@@ -18,9 +18,9 @@ func TestFileRepository_ReadFromFile(t *testing.T) {
 		require.NoError(t, err)
 
 		var want = []URLRecord{
-			{UUID: "1", ShortURL: "4rSPg8ap", OriginalURL: "http://yandex.ru"},
-			{UUID: "2", ShortURL: "edVPg3ks", OriginalURL: "http://ya.ru"},
-			{UUID: "3", ShortURL: "dG56Hqxm", OriginalURL: "http://practicum.yandex.ru"},
+			{UUID: "1", Record: Record{ShortURL: "4rSPg8ap", OriginalURL: "http://yandex.ru"}},
+			{UUID: "2", Record: Record{ShortURL: "edVPg3ks", OriginalURL: "http://ya.ru"}},
+			{UUID: "3", Record: Record{ShortURL: "dG56Hqxm", OriginalURL: "http://practicum.yandex.ru"}},
 		}
 
 		assert.ElementsMatch(t, want, frepo.records)
@@ -72,9 +72,9 @@ func TestFileRepository_SaveURL(t *testing.T) {
 		{
 			name: "Existent",
 			records: []URLRecord{
-				{UUID: "1", ShortURL: "4rSPg8ap", OriginalURL: "http://yandex.ru"},
-				{UUID: "2", ShortURL: "edVPg3ks", OriginalURL: "http://ya.ru"},
-				{UUID: "3", ShortURL: "dG56Hqxm", OriginalURL: "http://practicum.yandex.ru"},
+				{UUID: "1", Record: Record{ShortURL: "4rSPg8ap", OriginalURL: "http://yandex.ru"}},
+				{UUID: "2", Record: Record{ShortURL: "edVPg3ks", OriginalURL: "http://ya.ru"}},
+				{UUID: "3", Record: Record{ShortURL: "dG56Hqxm", OriginalURL: "http://practicum.yandex.ru"}},
 			},
 			args: args{
 				url: "http://yandex.ru",
@@ -111,7 +111,7 @@ func TestFileRepository_SaveURL(t *testing.T) {
 	}
 }
 
-func TestFileRepository_RetrieveURL(t *testing.T) {
+func TestFileRepository_RetrieveByShortURL(t *testing.T) {
 	type args struct {
 		id string
 	}
@@ -134,9 +134,9 @@ func TestFileRepository_RetrieveURL(t *testing.T) {
 		{
 			name: "Existent",
 			records: []URLRecord{
-				{UUID: "1", ShortURL: "4rSPg8ap", OriginalURL: "http://yandex.ru"},
-				{UUID: "2", ShortURL: "edVPg3ks", OriginalURL: "http://ya.ru"},
-				{UUID: "3", ShortURL: "dG56Hqxm", OriginalURL: "http://practicum.yandex.ru"},
+				{UUID: "1", Record: Record{ShortURL: "4rSPg8ap", OriginalURL: "http://yandex.ru"}},
+				{UUID: "2", Record: Record{ShortURL: "edVPg3ks", OriginalURL: "http://ya.ru"}},
+				{UUID: "3", Record: Record{ShortURL: "dG56Hqxm", OriginalURL: "http://practicum.yandex.ru"}},
 			},
 			args: args{
 				id: "dG56Hqxm",
@@ -152,13 +152,13 @@ func TestFileRepository_RetrieveURL(t *testing.T) {
 				fPath:   fpath,
 				records: tt.records,
 			}
-			gotURL, err := frepo.RetrieveURL(context.Background(), tt.args.id)
+			record, err := frepo.RetrieveByShortURL(context.Background(), tt.args.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("FileRepository.RetrieveURL() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if gotURL != tt.wantURL {
-				t.Errorf("FileRepository.RetrieveURL() = %v, want %v", gotURL, tt.wantURL)
+			if record.OriginalURL != tt.wantURL {
+				t.Errorf("FileRepository.RetrieveURL() = %v, want %v", record.OriginalURL, tt.wantURL)
 			}
 			os.Remove(fpath)
 		})
@@ -175,10 +175,10 @@ func TestFileRepository_SaveAndRetrieve(t *testing.T) {
 	frepo2, err := NewFileRepository(fpath)
 	require.NoError(t, err)
 
-	url, err := frepo2.RetrieveURL(context.Background(), id)
+	record, err := frepo2.RetrieveByShortURL(context.Background(), id)
 
 	require.NoError(t, err)
-	assert.Equal(t, testURL, url)
+	assert.Equal(t, testURL, record.OriginalURL)
 
 	os.Remove(fpath)
 }
@@ -212,8 +212,8 @@ func TestFileRepository_SaveURLs(t *testing.T) {
 			name: "One new IDs",
 			fields: fields{
 				records: []URLRecord{
-					{UUID: "1", ShortURL: "4rSPg8ap", OriginalURL: "http://yandex.ru"},
-					{UUID: "2", ShortURL: "edVPg3ks", OriginalURL: "http://ya.ru"},
+					{UUID: "1", Record: Record{ShortURL: "4rSPg8ap", OriginalURL: "http://yandex.ru"}},
+					{UUID: "2", Record: Record{ShortURL: "edVPg3ks", OriginalURL: "http://ya.ru"}},
 				},
 			},
 			args: args{
@@ -226,9 +226,9 @@ func TestFileRepository_SaveURLs(t *testing.T) {
 			name: "Existing IDs",
 			fields: fields{
 				records: []URLRecord{
-					{UUID: "1", ShortURL: "4rSPg8ap", OriginalURL: "http://yandex.ru"},
-					{UUID: "2", ShortURL: "edVPg3ks", OriginalURL: "http://ya.ru"},
-					{UUID: "3", ShortURL: "dG56Hqxm", OriginalURL: "http://practicum.yandex.ru"},
+					{UUID: "1", Record: Record{ShortURL: "4rSPg8ap", OriginalURL: "http://yandex.ru"}},
+					{UUID: "2", Record: Record{ShortURL: "edVPg3ks", OriginalURL: "http://ya.ru"}},
+					{UUID: "3", Record: Record{ShortURL: "dG56Hqxm", OriginalURL: "http://practicum.yandex.ru"}},
 				},
 			},
 			args: args{

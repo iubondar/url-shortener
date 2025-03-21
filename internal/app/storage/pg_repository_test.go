@@ -133,7 +133,7 @@ func (suite *PGRepoTestSuite) TestSaveURL() {
 	}
 }
 
-func (suite *PGRepoTestSuite) TestRetrieveURL() {
+func (suite *PGRepoTestSuite) TestRetrieveByShortURL() {
 	type args struct {
 		id string
 	}
@@ -145,7 +145,7 @@ func (suite *PGRepoTestSuite) TestRetrieveURL() {
 		wantErr       bool
 	}{
 		{
-			name:          "RetrieveURL Non-existent",
+			name:          "RetrieveByShortURL Non-existent",
 			execStatement: "",
 			args: args{
 				id: "123",
@@ -154,7 +154,7 @@ func (suite *PGRepoTestSuite) TestRetrieveURL() {
 			wantErr: true,
 		},
 		{
-			name:          "RetrieveURL Existent",
+			name:          "RetrieveByShortURL Existent",
 			execStatement: "INSERT INTO urls (short_url, original_url) VALUES ('4rSPg8ap', 'http://yandex.ru'), ('dG56Hqxm', 'http://practicum.yandex.ru')",
 			args: args{
 				id: "dG56Hqxm",
@@ -174,13 +174,13 @@ func (suite *PGRepoTestSuite) TestRetrieveURL() {
 				require.NoError(t, err)
 			}
 
-			gotURL, err := suite.repo.RetrieveURL(context.Background(), tt.args.id)
+			record, err := suite.repo.RetrieveByShortURL(context.Background(), tt.args.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("PGRepoTestSuite.RetrieveURL error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if gotURL != tt.wantURL {
-				t.Errorf("PGRepoTestSuite.RetrieveURL got = %v, want %v", gotURL, tt.wantURL)
+			if record.OriginalURL != tt.wantURL {
+				t.Errorf("PGRepoTestSuite.RetrieveURL got = %v, want %v", record.OriginalURL, tt.wantURL)
 			}
 		})
 	}
@@ -196,9 +196,9 @@ func (suite *PGRepoTestSuite) TestSaveAndRetrieve() {
 	require.NoError(t, err)
 	assert.False(t, exists, "URL should not exists in DB yet")
 
-	url, err := suite.repo.RetrieveURL(suite.ctx, id)
+	record, err := suite.repo.RetrieveByShortURL(suite.ctx, id)
 	require.NoError(t, err)
-	assert.Equal(t, url, testURL)
+	assert.Equal(t, record.OriginalURL, testURL)
 }
 
 func (suite *PGRepoTestSuite) TestSaveURLs() {

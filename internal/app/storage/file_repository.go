@@ -14,10 +14,8 @@ import (
 )
 
 type URLRecord struct {
-	UUID        string    `json:"uuid"`
-	ShortURL    string    `json:"short_url"`
-	OriginalURL string    `json:"original_url"`
-	UserID      uuid.UUID `json:"user_id"`
+	Record
+	UUID string `json:"uuid"`
 }
 
 type FileRepository struct {
@@ -67,7 +65,7 @@ func (frepo *FileRepository) SaveURL(ctx context.Context, userID uuid.UUID, url 
 	}
 
 	// сохраняем изменения на диск
-	record = frepo.addRecordForURL(url)
+	record = frepo.addRecordForURL(url, userID)
 
 	frepo.appendToFile([]URLRecord{*record})
 
@@ -85,28 +83,31 @@ func (frepo *FileRepository) getRecordByOriginalURL(originalURL string) *URLReco
 	return nil
 }
 
-func (frepo *FileRepository) addRecordForURL(url string) *URLRecord {
+func (frepo *FileRepository) addRecordForURL(url string, userID uuid.UUID) *URLRecord {
 	// создаём идентификатор и добавляем запись
 	id := strings.RandString(idLength)
 	uuid := strconv.Itoa(frepo.nextID())
 	record := URLRecord{
-		UUID:        uuid,
-		ShortURL:    id,
-		OriginalURL: url,
+		UUID: uuid,
+		Record: Record{
+			ShortURL:    id,
+			OriginalURL: url,
+			UserID:      userID,
+		},
 	}
 	frepo.records = append(frepo.records, record)
 
 	return &record
 }
 
-func (frepo FileRepository) RetrieveURL(ctx context.Context, id string) (url string, err error) {
+func (frepo FileRepository) RetrieveByShortURL(ctx context.Context, shortURL string) (record Record, err error) {
 	for _, rec := range frepo.records {
-		if rec.ShortURL == id {
-			return rec.OriginalURL, nil
+		if rec.ShortURL == shortURL {
+			return rec.Record, nil
 		}
 	}
 
-	return "", ErrorNotFound
+	return Record{}, ErrorNotFound
 }
 
 func (frepo FileRepository) CheckStatus(ctx context.Context) error {
@@ -129,7 +130,7 @@ func (frepo *FileRepository) SaveURLs(ctx context.Context, urls []string) (ids [
 			continue
 		}
 
-		record = frepo.addRecordForURL(url)
+		record = frepo.addRecordForURL(url, uuid.Nil)
 		newRecords = append(newRecords, *record)
 		ids = append(ids, record.ShortURL)
 	}
@@ -168,12 +169,11 @@ func (frepo FileRepository) appendToFile(records []URLRecord) error {
 	return nil
 }
 
-func (frepo FileRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID) (URLPairs []URLPair, err error) {
-	URLPairs = make([]URLPair, 0)
+func (frepo FileRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID) (records []Record, err error) {
 	for _, r := range frepo.records {
 		if r.UserID == userID {
-			URLPairs = append(URLPairs, URLPair{ID: r.ShortURL, URL: r.OriginalURL})
+			records = append(records, r.Record)
 		}
 	}
-	return URLPairs, nil
+	return records, nil
 }

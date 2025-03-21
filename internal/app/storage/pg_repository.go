@@ -65,16 +65,16 @@ func (repo *PGRepository) getShortURLByOriginalURL(ctx context.Context, url stri
 	return shortURL, err
 }
 
-func (repo *PGRepository) RetrieveURL(ctx context.Context, id string) (url string, err error) {
-	row := repo.db.QueryRowContext(ctx, queries.GetOriginalURL, id)
+func (repo *PGRepository) RetrieveByShortURL(ctx context.Context, shortURL string) (record Record, err error) {
+	row := repo.db.QueryRowContext(ctx, queries.GetByShortURL, shortURL)
 
-	err = row.Scan(&url)
+	err = row.Scan(&record.UserID, &record.ShortURL, &record.OriginalURL, &record.IsDeleted)
 
 	if errors.Is(err, sql.ErrNoRows) {
-		return "", ErrorNotFound
+		return Record{}, ErrorNotFound
 	}
 
-	return url, err
+	return
 }
 
 func (repo *PGRepository) CheckStatus(ctx context.Context) error {
@@ -121,11 +121,11 @@ func (repo *PGRepository) SaveURLs(ctx context.Context, urls []string) (ids []st
 	return ids, tx.Commit()
 }
 
-func (repo *PGRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID) (URLPairs []URLPair, err error) {
+func (repo *PGRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID) (records []Record, err error) {
 	rows, err := repo.db.QueryContext(ctx, queries.GetUserUrls, userID.String())
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return []URLPair{}, nil
+			return []Record{}, nil
 		} else {
 			return nil, err
 		}
@@ -133,19 +133,18 @@ func (repo *PGRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID
 
 	defer rows.Close()
 
-	URLPairs = []URLPair{}
 	for rows.Next() {
-		var pair URLPair
-		err = rows.Scan(&pair.ID, &pair.URL)
+		var record Record
+		err = rows.Scan(&record.UserID, &record.ShortURL, &record.OriginalURL, &record.IsDeleted)
 		if err != nil {
 			return nil, err
 		}
-		URLPairs = append(URLPairs, pair)
+		records = append(records, record)
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("error processing rows: %s", err.Error())
 	}
 
-	return URLPairs, nil
+	return records, nil
 }
