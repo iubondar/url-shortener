@@ -72,6 +72,15 @@ func TestRetrieveURLHandler_RetrieveURL(t *testing.T) {
 				location: "",
 			},
 		},
+		{
+			name:   "Test deleted URL",
+			method: http.MethodGet,
+			id:     "456",
+			want: want{
+				code:     http.StatusGone,
+				location: "",
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -81,6 +90,12 @@ func TestRetrieveURLHandler_RetrieveURL(t *testing.T) {
 						ShortURL:    "123",
 						OriginalURL: testURL,
 						UserID:      userID,
+					},
+					{
+						ShortURL:    "456",
+						OriginalURL: "http://abc.com",
+						UserID:      userID,
+						IsDeleted:   true,
 					},
 				},
 			}

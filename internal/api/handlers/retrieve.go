@@ -35,6 +35,10 @@ func (handler RetrieveURLHandler) RetrieveURL(res http.ResponseWriter, req *http
 		return
 	}
 
-	res.Header().Add("Location", record.OriginalURL)
-	res.WriteHeader(http.StatusTemporaryRedirect)
+	if record.IsDeleted {
+		res.WriteHeader(http.StatusGone)
+	} else {
+		res.Header().Add("Location", record.OriginalURL)
+		res.WriteHeader(http.StatusTemporaryRedirect)
+	}
 }
