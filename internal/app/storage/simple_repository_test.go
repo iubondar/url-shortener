@@ -296,3 +296,175 @@ func TestSimpleRepository_SaveURLs(t *testing.T) {
 		})
 	}
 }
+
+func TestSimpleRepository_DeleteByShortURLs(t *testing.T) {
+	userID := uuid.New()
+	type args struct {
+		userID    uuid.UUID
+		shortURLs []string
+	}
+	tests := []struct {
+		name        string
+		records     []Record
+		args        args
+		wantRecords []Record
+	}{
+		{
+			name:    "Empty repo",
+			records: []Record{},
+			args: args{
+				userID:    userID,
+				shortURLs: []string{"hsgdbbn"},
+			},
+			wantRecords: []Record{},
+		},
+		{
+			name: "One record - deleted successfully",
+			records: []Record{
+				{
+					ShortURL:    "123",
+					OriginalURL: "http://example.com",
+					UserID:      userID,
+				},
+			},
+			args: args{
+				userID:    userID,
+				shortURLs: []string{"123"},
+			},
+			wantRecords: []Record{
+				{
+					ShortURL:    "123",
+					OriginalURL: "http://example.com",
+					UserID:      userID,
+					IsDeleted:   true,
+				},
+			},
+		},
+		{
+			name: "UserID not match",
+			records: []Record{
+				{
+					ShortURL:    "123",
+					OriginalURL: "http://example.com",
+					UserID:      userID,
+				},
+			},
+			args: args{
+				userID:    uuid.New(),
+				shortURLs: []string{"123"},
+			},
+			wantRecords: []Record{
+				{
+					ShortURL:    "123",
+					OriginalURL: "http://example.com",
+					UserID:      userID,
+					IsDeleted:   false,
+				},
+			},
+		},
+		{
+			name: "Delete some",
+			records: []Record{
+				{
+					ShortURL:    "123",
+					OriginalURL: "http://example.com",
+					UserID:      userID,
+					IsDeleted:   false,
+				},
+				{
+					ShortURL:    "456",
+					OriginalURL: "http://ya.ru",
+					UserID:      userID,
+					IsDeleted:   false,
+				},
+				{
+					ShortURL:    "789",
+					OriginalURL: "http://avito.ru",
+					UserID:      userID,
+					IsDeleted:   false,
+				},
+			},
+			args: args{
+				userID:    userID,
+				shortURLs: []string{"456"},
+			},
+			wantRecords: []Record{
+				{
+					ShortURL:    "123",
+					OriginalURL: "http://example.com",
+					UserID:      userID,
+					IsDeleted:   false,
+				},
+				{
+					ShortURL:    "456",
+					OriginalURL: "http://ya.ru",
+					UserID:      userID,
+					IsDeleted:   true,
+				},
+				{
+					ShortURL:    "789",
+					OriginalURL: "http://avito.ru",
+					UserID:      userID,
+					IsDeleted:   false,
+				},
+			},
+		},
+		{
+			name: "Delete all",
+			records: []Record{
+				{
+					ShortURL:    "123",
+					OriginalURL: "http://example.com",
+					UserID:      userID,
+					IsDeleted:   false,
+				},
+				{
+					ShortURL:    "456",
+					OriginalURL: "http://ya.ru",
+					UserID:      userID,
+					IsDeleted:   false,
+				},
+				{
+					ShortURL:    "789",
+					OriginalURL: "http://avito.ru",
+					UserID:      userID,
+					IsDeleted:   false,
+				},
+			},
+			args: args{
+				userID:    userID,
+				shortURLs: []string{"123", "456", "789"},
+			},
+			wantRecords: []Record{
+				{
+					ShortURL:    "123",
+					OriginalURL: "http://example.com",
+					UserID:      userID,
+					IsDeleted:   true,
+				},
+				{
+					ShortURL:    "456",
+					OriginalURL: "http://ya.ru",
+					UserID:      userID,
+					IsDeleted:   true,
+				},
+				{
+					ShortURL:    "789",
+					OriginalURL: "http://avito.ru",
+					UserID:      userID,
+					IsDeleted:   true,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := SimpleRepository{
+				Records: tt.records,
+			}
+			repo.DeleteByShortURLs(context.Background(), tt.args.userID, tt.args.shortURLs)
+
+			assert.ElementsMatch(t, tt.wantRecords, repo.Records)
+		})
+	}
+}

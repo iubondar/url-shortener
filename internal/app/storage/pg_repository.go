@@ -148,3 +148,7 @@ func (repo *PGRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID
 
 	return records, nil
 }
+
+func (repo *PGRepository) DeleteByShortURLs(ctx context.Context, userID uuid.UUID, shortURLs []string) {
+	// TODO: implementation
+}

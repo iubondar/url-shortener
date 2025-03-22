@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"slices"
 
 	"github.com/google/uuid"
 	"github.com/iubondar/url-shortener/internal/app/strings"
@@ -84,4 +85,13 @@ func (repo SimpleRepository) RetrieveUserURLs(ctx context.Context, userID uuid.U
 		}
 	}
 	return records, nil
+}
+
+func (repo *SimpleRepository) DeleteByShortURLs(ctx context.Context, userID uuid.UUID, shortURLs []string) {
+	for i, r := range repo.Records {
+		if r.UserID == userID && slices.Contains(shortURLs, r.ShortURL) {
+			r.IsDeleted = true
+			repo.Records[i] = r
+		}
+	}
 }

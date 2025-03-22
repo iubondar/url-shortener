@@ -177,3 +177,7 @@ func (frepo FileRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UU
 	}
 	return records, nil
 }
+
+func (frepo FileRepository) DeleteByShortURLs(ctx context.Context, userID uuid.UUID, shortURLs []string) {
+	// TODO: implementation
+}

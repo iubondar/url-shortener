@@ -22,5 +22,6 @@ type Repository interface {
 	SaveURLs(ctx context.Context, urls []string) (ids []string, err error)
 	RetrieveByShortURL(ctx context.Context, shortURL string) (record Record, err error)
 	RetrieveUserURLs(ctx context.Context, userID uuid.UUID) (records []Record, err error)
+	DeleteByShortURLs(ctx context.Context, userID uuid.UUID, shortURLs []string)
 	StatusChecker
 }
