@@ -255,3 +255,211 @@ func TestFileRepository_SaveURLs(t *testing.T) {
 		})
 	}
 }
+
+func TestFileRepository_DeleteByShortURLs(t *testing.T) {
+	userID := uuid.New()
+	type args struct {
+		userID    uuid.UUID
+		shortURLs []string
+	}
+	tests := []struct {
+		name        string
+		records     []URLRecord
+		args        args
+		wantRecords []URLRecord
+	}{
+		{
+			name:    "Empty repo",
+			records: []URLRecord{},
+			args: args{
+				userID:    userID,
+				shortURLs: []string{"hsgdbbn"},
+			},
+			wantRecords: []URLRecord{},
+		},
+		{
+			name: "One record - deleted successfully",
+			records: []URLRecord{
+				{
+					Record: Record{
+						ShortURL:    "123",
+						OriginalURL: "http://example.com",
+						UserID:      userID,
+					},
+				},
+			},
+			args: args{
+				userID:    userID,
+				shortURLs: []string{"123"},
+			},
+			wantRecords: []URLRecord{
+				{
+					Record: Record{
+						ShortURL:    "123",
+						OriginalURL: "http://example.com",
+						UserID:      userID,
+						IsDeleted:   true,
+					},
+				},
+			},
+		},
+		{
+			name: "UserID not match",
+			records: []URLRecord{
+				{
+					Record: Record{
+						ShortURL:    "123",
+						OriginalURL: "http://example.com",
+						UserID:      userID,
+					},
+				},
+			},
+			args: args{
+				userID:    uuid.New(),
+				shortURLs: []string{"123"},
+			},
+			wantRecords: []URLRecord{
+				{
+					Record: Record{
+						ShortURL:    "123",
+						OriginalURL: "http://example.com",
+						UserID:      userID,
+						IsDeleted:   false,
+					},
+				},
+			},
+		},
+		{
+			name: "Delete some",
+			records: []URLRecord{
+				{
+					Record: Record{
+						ShortURL:    "123",
+						OriginalURL: "http://example.com",
+						UserID:      userID,
+						IsDeleted:   false,
+					},
+				},
+				{
+					Record: Record{
+						ShortURL:    "456",
+						OriginalURL: "http://ya.ru",
+						UserID:      userID,
+						IsDeleted:   false,
+					},
+				},
+				{
+					Record: Record{
+						ShortURL:    "789",
+						OriginalURL: "http://avito.ru",
+						UserID:      userID,
+						IsDeleted:   false,
+					},
+				},
+			},
+			args: args{
+				userID:    userID,
+				shortURLs: []string{"456"},
+			},
+			wantRecords: []URLRecord{
+				{
+					Record: Record{
+						ShortURL:    "123",
+						OriginalURL: "http://example.com",
+						UserID:      userID,
+						IsDeleted:   false,
+					},
+				},
+				{
+					Record: Record{
+						ShortURL:    "456",
+						OriginalURL: "http://ya.ru",
+						UserID:      userID,
+						IsDeleted:   true,
+					},
+				},
+				{
+					Record: Record{
+						ShortURL:    "789",
+						OriginalURL: "http://avito.ru",
+						UserID:      userID,
+						IsDeleted:   false,
+					},
+				},
+			},
+		},
+		{
+			name: "Delete all",
+			records: []URLRecord{
+				{
+					Record: Record{
+						ShortURL:    "123",
+						OriginalURL: "http://example.com",
+						UserID:      userID,
+						IsDeleted:   false,
+					},
+				},
+				{
+					Record: Record{
+						ShortURL:    "456",
+						OriginalURL: "http://ya.ru",
+						UserID:      userID,
+						IsDeleted:   false,
+					},
+				},
+				{
+					Record: Record{
+						ShortURL:    "789",
+						OriginalURL: "http://avito.ru",
+						UserID:      userID,
+						IsDeleted:   false,
+					},
+				},
+			},
+			args: args{
+				userID:    userID,
+				shortURLs: []string{"123", "456", "789"},
+			},
+			wantRecords: []URLRecord{
+				{
+					Record: Record{
+						ShortURL:    "123",
+						OriginalURL: "http://example.com",
+						UserID:      userID,
+						IsDeleted:   true,
+					},
+				},
+				{
+					Record: Record{
+						ShortURL:    "456",
+						OriginalURL: "http://ya.ru",
+						UserID:      userID,
+						IsDeleted:   true,
+					},
+				},
+				{
+					Record: Record{
+						ShortURL:    "789",
+						OriginalURL: "http://avito.ru",
+						UserID:      userID,
+						IsDeleted:   true,
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fpath := os.TempDir() + "frepo_save_url_tmp"
+			frepo := FileRepository{
+				fPath:   fpath,
+				records: tt.records,
+			}
+
+			frepo.DeleteByShortURLs(context.Background(), tt.args.userID, tt.args.shortURLs)
+
+			assert.ElementsMatch(t, tt.wantRecords, frepo.records)
+			os.Remove(fpath)
+		})
+	}
+}

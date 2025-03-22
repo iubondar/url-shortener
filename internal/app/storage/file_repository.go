@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 
 	"github.com/google/uuid"
@@ -179,5 +180,10 @@ func (frepo FileRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UU
 }
 
 func (frepo FileRepository) DeleteByShortURLs(ctx context.Context, userID uuid.UUID, shortURLs []string) {
-	// TODO: implementation
+	for i, r := range frepo.records {
+		if r.UserID == userID && slices.Contains(shortURLs, r.ShortURL) {
+			r.IsDeleted = true
+			frepo.records[i] = r
+		}
+	}
 }
