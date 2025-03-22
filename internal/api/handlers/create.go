@@ -41,7 +41,7 @@ func (handler CreateIDHandler) CreateID(res http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	userID, err := auth.SetAuthCookie(res, req)
+	userID, err := auth.GetUserIDFromAuthCookieOrSetNew(res, req)
 	if err != nil {
 		http.Error(res, "Error setting userID "+err.Error(), http.StatusBadRequest)
 		return

@@ -16,7 +16,7 @@ import (
 
 const testURL string = "https://practicum.yandex.ru"
 
-var validResultCodes = []int{http.StatusCreated, http.StatusOK, http.StatusConflict}
+var validResultCodes = []int{http.StatusCreated, http.StatusOK, http.StatusConflict, http.StatusAccepted}
 
 func TestShortenHandler_Shorten(t *testing.T) {
 	userID := uuid.New()

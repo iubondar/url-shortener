@@ -33,7 +33,7 @@ func (handler UserUrlsHandler) RetrieveUserURLs(res http.ResponseWriter, req *ht
 		return
 	}
 
-	userID, err := auth.SetAuthCookie(res, req)
+	userID, err := auth.GetUserIDFromAuthCookieOrSetNew(res, req)
 	if err != nil {
 		http.Error(res, "Error setting userID "+err.Error(), http.StatusBadRequest)
 		return

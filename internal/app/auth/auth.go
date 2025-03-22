@@ -19,7 +19,7 @@ type claims struct {
 	UserID uuid.UUID
 }
 
-func SetAuthCookie(res http.ResponseWriter, req *http.Request) (userID uuid.UUID, err error) {
+func GetUserIDFromAuthCookieOrSetNew(res http.ResponseWriter, req *http.Request) (userID uuid.UUID, err error) {
 	authCookie, err := req.Cookie(AuthCookieName)
 	if err != nil {
 		zap.L().Sugar().Debugln("No auth cookie found, set new")
@@ -38,22 +38,31 @@ func SetAuthCookie(res http.ResponseWriter, req *http.Request) (userID uuid.UUID
 func setNewAuthCookie(res http.ResponseWriter) (userID uuid.UUID, err error) {
 	userID = uuid.New()
 
-	jwtString, err := buildJWTString(userID)
+	authCookie, err := NewAuthCookie(userID)
 	if err != nil {
-		zap.L().Sugar().Debugln("Error building jwtString", err.Error())
 		return uuid.Nil, err
 	}
 
-	cookie := &http.Cookie{
+	http.SetCookie(res, authCookie)
+
+	return userID, nil
+}
+
+func NewAuthCookie(userID uuid.UUID) (authCookie *http.Cookie, err error) {
+	jwtString, err := buildJWTString(userID)
+	if err != nil {
+		zap.L().Sugar().Debugln("Error building jwtString", err.Error())
+		return nil, err
+	}
+
+	authCookie = &http.Cookie{
 		Name:     AuthCookieName,
 		Value:    jwtString,
 		HttpOnly: true, // Prevents JavaScript access
 		SameSite: http.SameSiteLaxMode,
 	}
 
-	http.SetCookie(res, cookie)
-
-	return userID, nil
+	return authCookie, nil
 }
 
 // BuildJWTString создаёт токен и возвращает его в виде строки.

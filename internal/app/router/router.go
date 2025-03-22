@@ -15,6 +15,7 @@ func NewRouter(baseURL string, repo storage.Repository) (chi.Router, error) {
 	userURLsHandler := handlers.NewUserUrlsHandler(repo, baseURL)
 	retrieveURLHandler := handlers.NewRetrieveURLHandler(repo)
 	pingHandler := handlers.NewPingHandler(repo)
+	deleteURLsHandler := handlers.NewDeleteUrlsHandler(repo)
 
 	r := chi.NewRouter()
 
@@ -25,6 +26,7 @@ func NewRouter(baseURL string, repo storage.Repository) (chi.Router, error) {
 	r.Get("/api/user/urls", userURLsHandler.RetrieveUserURLs)
 	r.Get("/{id}", retrieveURLHandler.RetrieveURL)
 	r.Get("/ping", pingHandler.Ping)
+	r.Delete("/api/user/urls", deleteURLsHandler.DeleteUserURLs)
 
 	return r, nil
 }
