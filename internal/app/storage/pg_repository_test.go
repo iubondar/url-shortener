@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"log"
+	"slices"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -42,7 +44,7 @@ func (suite *PGRepoTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 
-	pgRepo, err := NewPGRepository(db)
+	pgRepo, err := NewPGRepository(db, 30*time.Millisecond)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -65,6 +67,16 @@ func (suite *PGRepoTestSuite) SetupTest() {
 func (suite *PGRepoTestSuite) clearUrlsTable() error {
 	_, err := suite.repo.db.ExecContext(suite.ctx, "TRUNCATE TABLE urls;")
 	return err
+}
+
+func setupSeparateTest(t *testing.T, suite *PGRepoTestSuite, execStatement string) {
+	err := suite.clearUrlsTable()
+	require.NoError(t, err)
+
+	if len(execStatement) > 0 {
+		_, err := suite.repo.db.ExecContext(suite.ctx, execStatement)
+		require.NoError(t, err)
+	}
 }
 
 // Tests are here
@@ -106,13 +118,7 @@ func (suite *PGRepoTestSuite) TestSaveURL() {
 	t := suite.T()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := suite.clearUrlsTable()
-			require.NoError(t, err)
-
-			if len(tt.execStatement) > 0 {
-				_, err = suite.repo.db.ExecContext(suite.ctx, tt.execStatement)
-				require.NoError(t, err)
-			}
+			setupSeparateTest(t, suite, tt.execStatement)
 
 			gotID, gotExists, err := suite.repo.SaveURL(suite.ctx, userID, tt.args.url)
 
@@ -166,13 +172,7 @@ func (suite *PGRepoTestSuite) TestRetrieveByShortURL() {
 	t := suite.T()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := suite.clearUrlsTable()
-			require.NoError(t, err)
-
-			if len(tt.execStatement) > 0 {
-				_, err := suite.repo.db.ExecContext(suite.ctx, tt.execStatement)
-				require.NoError(t, err)
-			}
+			setupSeparateTest(t, suite, tt.execStatement)
 
 			record, err := suite.repo.RetrieveByShortURL(context.Background(), tt.args.id)
 			if (err != nil) != tt.wantErr {
@@ -244,19 +244,61 @@ func (suite *PGRepoTestSuite) TestSaveURLs() {
 	t := suite.T()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := suite.clearUrlsTable()
-			require.NoError(t, err)
+			setupSeparateTest(t, suite, tt.execStatement)
 
-			if len(tt.execStatement) > 0 {
-				_, err := suite.repo.db.ExecContext(suite.ctx, tt.execStatement)
-				require.NoError(t, err)
-			}
 			gotIDs, err := suite.repo.SaveURLs(context.Background(), tt.args.urls)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("FileRepository.SaveURLs() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			assert.Equal(t, len(gotIDs), tt.wantIDsCount)
+		})
+	}
+}
+
+func (suite *PGRepoTestSuite) TestDeleteByShortURLs() {
+	userID := uuid.New()
+	type args struct {
+		userID    uuid.UUID
+		shortURLs []string
+	}
+	tests := []struct {
+		name                 string
+		execStatement        string
+		args                 args
+		allShortURLs         []string
+		wantShortURLsDeleted []string
+	}{
+		{
+			name: "Delete all",
+			execStatement: "INSERT INTO urls (short_url, original_url, user_id) " +
+				"VALUES ('4rSPg8ap', 'http://yandex.ru', '" + userID.String() + "'), ('edVPg3ks', 'http://ya.ru', '" + userID.String() + "');",
+			args: args{
+				userID:    userID,
+				shortURLs: []string{"4rSPg8ap", "edVPg3ks"},
+			},
+			allShortURLs:         []string{"4rSPg8ap", "edVPg3ks"},
+			wantShortURLsDeleted: []string{"4rSPg8ap", "edVPg3ks"},
+		},
+	}
+	t := suite.T()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			setupSeparateTest(t, suite, tt.execStatement)
+
+			suite.repo.DeleteByShortURLs(context.Background(), tt.args.userID, tt.args.shortURLs)
+
+			time.Sleep(50 * time.Millisecond)
+
+			for _, shortURL := range tt.allShortURLs {
+				record, err := suite.repo.RetrieveByShortURL(context.TODO(), shortURL)
+				require.NoError(t, err)
+				if slices.Contains(tt.wantShortURLsDeleted, shortURL) {
+					assert.True(t, record.IsDeleted)
+				} else {
+					assert.False(t, record.IsDeleted)
+				}
+			}
 		})
 	}
 }

@@ -20,20 +20,24 @@ type deleteIn struct {
 	userID   uuid.UUID
 }
 
-const deletionInterval = 5 * time.Second
+const defaultDeletionInterval = 5 * time.Second
 
 type PGRepository struct {
 	db          *sql.DB
 	deleteQueue chan deleteIn
 }
 
-func NewPGRepository(db *sql.DB) (*PGRepository, error) {
+func NewPGRepository(db *sql.DB, deletionInterval time.Duration) (*PGRepository, error) {
+	if deletionInterval == 0 {
+		deletionInterval = defaultDeletionInterval
+	}
+
 	instance := &PGRepository{
 		db:          db,
 		deleteQueue: make(chan deleteIn, 1024),
 	}
 
-	go instance.flushDeletions()
+	go instance.flushDeletions(deletionInterval)
 
 	return instance, nil
 }
@@ -170,7 +174,7 @@ func (repo *PGRepository) DeleteByShortURLs(ctx context.Context, userID uuid.UUI
 }
 
 // flushDeletions периодически сохраняет накопленные в очереди удаления в БД
-func (repo *PGRepository) flushDeletions() {
+func (repo *PGRepository) flushDeletions(deletionInterval time.Duration) {
 	ticker := time.NewTicker(deletionInterval)
 
 	var deletions []deleteIn

@@ -33,7 +33,7 @@ func NewDB(dsn string) (db *DB, err error) {
 		return nil, err
 	}
 
-	repo, err := NewPGRepository(pgx)
+	repo, err := NewPGRepository(pgx, 0)
 	if err != nil {
 		return nil, err
 	}
