@@ -463,3 +463,77 @@ func TestFileRepository_DeleteByShortURLs(t *testing.T) {
 		})
 	}
 }
+
+func TestFileRepository_RetrieveUserURLs(t *testing.T) {
+	userID := uuid.New()
+	type args struct {
+		userID uuid.UUID
+	}
+	tests := []struct {
+		name        string
+		records     []URLRecord
+		args        args
+		wantRecords []Record
+	}{
+		{
+			name:    "Empty repo",
+			records: []URLRecord{},
+			args: args{
+				userID: userID,
+			},
+			wantRecords: []Record{},
+		},
+		{
+			name: "One record",
+			records: []URLRecord{
+				{
+					Record: Record{
+						ShortURL:    "123",
+						OriginalURL: "http://example.com",
+						UserID:      userID,
+					},
+				},
+			},
+			args: args{
+				userID: userID,
+			},
+			wantRecords: []Record{
+				{
+					ShortURL:    "123",
+					OriginalURL: "http://example.com",
+					UserID:      userID,
+				},
+			},
+		},
+		{
+			name: "UserID not match",
+			records: []URLRecord{
+				{
+					Record: Record{
+						ShortURL:    "123",
+						OriginalURL: "http://example.com",
+						UserID:      userID,
+					},
+				},
+			},
+			args: args{
+				userID: uuid.New(),
+			},
+			wantRecords: []Record{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fpath := os.TempDir() + "frepo_save_url_tmp"
+			frepo := FileRepository{
+				fPath:   fpath,
+				records: tt.records,
+			}
+
+			records, err := frepo.RetrieveUserURLs(context.Background(), tt.args.userID)
+			require.NoError(t, err)
+			assert.ElementsMatch(t, tt.wantRecords, records)
+			os.Remove(fpath)
+		})
+	}
+}

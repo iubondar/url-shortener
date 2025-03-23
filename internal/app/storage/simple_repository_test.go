@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSimpleRepository_SaveURL(t *testing.T) {
@@ -465,6 +466,72 @@ func TestSimpleRepository_DeleteByShortURLs(t *testing.T) {
 			repo.DeleteByShortURLs(context.Background(), tt.args.userID, tt.args.shortURLs)
 
 			assert.ElementsMatch(t, tt.wantRecords, repo.Records)
+		})
+	}
+}
+
+func TestSimpleRepository_RetrieveUserURLs(t *testing.T) {
+	userID := uuid.New()
+	type args struct {
+		userID uuid.UUID
+	}
+	tests := []struct {
+		name        string
+		records     []Record
+		args        args
+		wantRecords []Record
+	}{
+		{
+			name:    "Empty repo",
+			records: []Record{},
+			args: args{
+				userID: userID,
+			},
+			wantRecords: []Record{},
+		},
+		{
+			name: "One record",
+			records: []Record{
+				{
+					ShortURL:    "123",
+					OriginalURL: "http://example.com",
+					UserID:      userID,
+				},
+			},
+			args: args{
+				userID: userID,
+			},
+			wantRecords: []Record{
+				{
+					ShortURL:    "123",
+					OriginalURL: "http://example.com",
+					UserID:      userID,
+				},
+			},
+		},
+		{
+			name: "UserID not match",
+			records: []Record{
+				{
+					ShortURL:    "123",
+					OriginalURL: "http://example.com",
+					UserID:      userID,
+				},
+			},
+			args: args{
+				userID: uuid.New(),
+			},
+			wantRecords: []Record{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := SimpleRepository{
+				Records: tt.records,
+			}
+			records, err := repo.RetrieveUserURLs(context.Background(), tt.args.userID)
+			require.NoError(t, err)
+			assert.ElementsMatch(t, tt.wantRecords, records)
 		})
 	}
 }

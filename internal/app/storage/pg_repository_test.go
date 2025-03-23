@@ -325,6 +325,69 @@ func (suite *PGRepoTestSuite) TestDeleteByShortURLs() {
 	}
 }
 
+func (suite *PGRepoTestSuite) TestRetrieveUserURLs() {
+	userID := uuid.New()
+	type args struct {
+		userID uuid.UUID
+	}
+	tests := []struct {
+		name          string
+		execStatement string
+		args          args
+		wantRecords   []Record
+	}{
+		{
+			name:          "Empty repo",
+			execStatement: "",
+			args: args{
+				userID: userID,
+			},
+			wantRecords: []Record{},
+		},
+		{
+			name: "One record",
+			execStatement: "INSERT INTO urls (short_url, original_url, user_id) " +
+				"VALUES ('4rSPg8ap', 'http://yandex.ru', '" + userID.String() + "');",
+			args: args{
+				userID: userID,
+			},
+			wantRecords: []Record{
+				{
+					ShortURL:    "4rSPg8ap",
+					OriginalURL: "http://yandex.ru",
+					UserID:      userID,
+				},
+			},
+		},
+		{
+			name: "Only with matching userID",
+			execStatement: "INSERT INTO urls (short_url, original_url, user_id) " +
+				"VALUES ('4rSPg8ap', 'http://yandex.ru', '" + userID.String() + "'), ('edVPg3ks', 'http://ya.ru', '" + uuid.NewString() + "');",
+			args: args{
+				userID: userID,
+			},
+			wantRecords: []Record{
+				{
+					ShortURL:    "4rSPg8ap",
+					OriginalURL: "http://yandex.ru",
+					UserID:      userID,
+				},
+			},
+		},
+	}
+	t := suite.T()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			setupSeparateTest(t, suite, tt.execStatement)
+
+			records, err := suite.repo.RetrieveUserURLs(context.TODO(), tt.args.userID)
+
+			require.NoError(t, err)
+			assert.ElementsMatch(t, tt.wantRecords, records)
+		})
+	}
+}
+
 // Запуск сьюта тестов
 func TestPGRepositoryTestSuite(t *testing.T) {
 	suite.Run(t, new(PGRepoTestSuite))
