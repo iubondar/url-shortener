@@ -119,6 +119,7 @@ func TestUserUrlsHandler_RetrieveUserURLs(t *testing.T) {
 			handler.RetrieveUserURLs(w, request)
 
 			res := w.Result()
+			defer res.Body.Close()
 
 			require.Equal(t, test.wantCode, res.StatusCode)
 			if res.StatusCode != http.StatusNoContent && res.StatusCode != http.StatusOK {

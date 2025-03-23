@@ -100,6 +100,7 @@ func TestDeleteUrlsHandler_DeleteUserURLs(t *testing.T) {
 			handler.DeleteUserURLs(w, request)
 
 			res := w.Result()
+			defer res.Body.Close()
 
 			assert.Equal(t, test.wantCode, res.StatusCode)
 			assert.ElementsMatch(t, test.wantRecords, repo.Records)
