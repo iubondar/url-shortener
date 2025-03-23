@@ -280,6 +280,28 @@ func (suite *PGRepoTestSuite) TestDeleteByShortURLs() {
 			allShortURLs:         []string{"4rSPg8ap", "edVPg3ks"},
 			wantShortURLsDeleted: []string{"4rSPg8ap", "edVPg3ks"},
 		},
+		{
+			name: "Delete one",
+			execStatement: "INSERT INTO urls (short_url, original_url, user_id) " +
+				"VALUES ('4rSPg8ap', 'http://yandex.ru', '" + userID.String() + "'), ('edVPg3ks', 'http://ya.ru', '" + userID.String() + "');",
+			args: args{
+				userID:    userID,
+				shortURLs: []string{"4rSPg8ap"},
+			},
+			allShortURLs:         []string{"4rSPg8ap", "edVPg3ks"},
+			wantShortURLsDeleted: []string{"4rSPg8ap"},
+		},
+		{
+			name: "Delete only with matching userID",
+			execStatement: "INSERT INTO urls (short_url, original_url, user_id) " +
+				"VALUES ('4rSPg8ap', 'http://yandex.ru', '" + userID.String() + "'), ('edVPg3ks', 'http://ya.ru', '" + uuid.NewString() + "');",
+			args: args{
+				userID:    userID,
+				shortURLs: []string{"4rSPg8ap", "edVPg3ks"},
+			},
+			allShortURLs:         []string{"4rSPg8ap", "edVPg3ks"},
+			wantShortURLsDeleted: []string{"4rSPg8ap"},
+		},
 	}
 	t := suite.T()
 	for _, tt := range tests {
