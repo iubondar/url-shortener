@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/iubondar/url-shortener/internal/app/storage/queries"
@@ -14,14 +15,27 @@ import (
 	"go.uber.org/zap"
 )
 
+type deleteIn struct {
+	shortURL string
+	userID   uuid.UUID
+}
+
+const deletionInterval = 5 * time.Second
+
 type PGRepository struct {
-	db *sql.DB
+	db          *sql.DB
+	deleteQueue chan deleteIn
 }
 
 func NewPGRepository(db *sql.DB) (*PGRepository, error) {
-	return &PGRepository{
-		db: db,
-	}, nil
+	instance := &PGRepository{
+		db:          db,
+		deleteQueue: make(chan deleteIn, 1024),
+	}
+
+	go instance.flushDeletions()
+
+	return instance, nil
 }
 
 func (repo *PGRepository) SaveURL(ctx context.Context, userID uuid.UUID, url string) (id string, exists bool, err error) {
@@ -150,5 +164,58 @@ func (repo *PGRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID
 }
 
 func (repo *PGRepository) DeleteByShortURLs(ctx context.Context, userID uuid.UUID, shortURLs []string) {
-	// TODO: implementation
+	for _, shortURL := range shortURLs {
+		repo.deleteQueue <- deleteIn{shortURL: shortURL, userID: userID}
+	}
+}
+
+// flushDeletions периодически сохраняет накопленные в очереди удаления в БД
+func (repo *PGRepository) flushDeletions() {
+	ticker := time.NewTicker(deletionInterval)
+
+	var deletions []deleteIn
+
+	for {
+		select {
+		case deleteIn := <-repo.deleteQueue:
+			// добавим сообщение в слайс для последующего удаления
+			deletions = append(deletions, deleteIn)
+		case <-ticker.C:
+			// подождём, пока придёт хотя бы одно сообщение
+			if len(deletions) == 0 {
+				continue
+			}
+			// сохраним все пришедшие сообщения одновременно
+			err := repo.markAsDeleted(context.Background(), deletions...)
+			if err != nil {
+				zap.L().Sugar().Debugln("cannot mark deletions:", err.Error())
+			}
+			// сотрём успешно отосланные сообщения
+			deletions = nil
+		}
+	}
+}
+
+func (repo *PGRepository) markAsDeleted(ctx context.Context, deletions ...deleteIn) error {
+	tx, err := repo.db.Begin()
+	if err != nil {
+		return err
+	}
+	// если Commit будет раньше, то откат проигнорируется
+	defer tx.Rollback()
+
+	stmt, err := tx.PrepareContext(ctx, queries.DeleteUserURL)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, deleteIn := range deletions {
+		_, err = stmt.ExecContext(ctx, deleteIn.userID, deleteIn.shortURL)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
