@@ -46,6 +46,42 @@ func TestDeleteUrlsHandler_DeleteUserURLs(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:        "Invalid JSON",
+			method:      http.MethodDelete,
+			records:     []storage.Record{},
+			body:        "[\"123\", 456,]",
+			userID:      userID,
+			wantCode:    http.StatusBadRequest,
+			wantRecords: []storage.Record{},
+		},
+		{
+			name:        "GET method not allowed",
+			method:      http.MethodGet,
+			records:     []storage.Record{},
+			body:        "[\"123\"]",
+			userID:      userID,
+			wantCode:    http.StatusMethodNotAllowed,
+			wantRecords: []storage.Record{},
+		},
+		{
+			name:        "POST method not allowed",
+			method:      http.MethodPost,
+			records:     []storage.Record{},
+			body:        "[\"123\"]",
+			userID:      userID,
+			wantCode:    http.StatusMethodNotAllowed,
+			wantRecords: []storage.Record{},
+		},
+		{
+			name:        "PUT method not allowed",
+			method:      http.MethodPut,
+			records:     []storage.Record{},
+			body:        "[\"123\"]",
+			userID:      userID,
+			wantCode:    http.StatusMethodNotAllowed,
+			wantRecords: []storage.Record{},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
