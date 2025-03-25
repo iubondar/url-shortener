@@ -7,15 +7,16 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 
+	"github.com/google/uuid"
 	"github.com/iubondar/url-shortener/internal/app/strings"
 )
 
 type URLRecord struct {
-	UUID        string `json:"uuid"`
-	ShortURL    string `json:"short_url"`
-	OriginalURL string `json:"original_url"`
+	Record
+	UUID string `json:"uuid"`
 }
 
 type FileRepository struct {
@@ -57,7 +58,7 @@ func NewFileRepository(fPath string) (*FileRepository, error) {
 	}, nil
 }
 
-func (frepo *FileRepository) SaveURL(ctx context.Context, url string) (id string, exists bool, err error) {
+func (frepo *FileRepository) SaveURL(ctx context.Context, userID uuid.UUID, url string) (id string, exists bool, err error) {
 	// Если URL уже был сохранён - возвращаем имеющееся значение
 	record := frepo.getRecordByOriginalURL(url)
 	if record != nil {
@@ -65,7 +66,7 @@ func (frepo *FileRepository) SaveURL(ctx context.Context, url string) (id string
 	}
 
 	// сохраняем изменения на диск
-	record = frepo.addRecordForURL(url)
+	record = frepo.addRecordForURL(url, userID)
 
 	frepo.appendToFile([]URLRecord{*record})
 
@@ -83,28 +84,31 @@ func (frepo *FileRepository) getRecordByOriginalURL(originalURL string) *URLReco
 	return nil
 }
 
-func (frepo *FileRepository) addRecordForURL(url string) *URLRecord {
+func (frepo *FileRepository) addRecordForURL(url string, userID uuid.UUID) *URLRecord {
 	// создаём идентификатор и добавляем запись
 	id := strings.RandString(idLength)
 	uuid := strconv.Itoa(frepo.nextID())
 	record := URLRecord{
-		UUID:        uuid,
-		ShortURL:    id,
-		OriginalURL: url,
+		UUID: uuid,
+		Record: Record{
+			ShortURL:    id,
+			OriginalURL: url,
+			UserID:      userID,
+		},
 	}
 	frepo.records = append(frepo.records, record)
 
 	return &record
 }
 
-func (frepo FileRepository) RetrieveURL(ctx context.Context, id string) (url string, err error) {
+func (frepo FileRepository) RetrieveByShortURL(ctx context.Context, shortURL string) (record Record, err error) {
 	for _, rec := range frepo.records {
-		if rec.ShortURL == id {
-			return rec.OriginalURL, nil
+		if rec.ShortURL == shortURL {
+			return rec.Record, nil
 		}
 	}
 
-	return "", ErrorNotFound
+	return Record{}, ErrorNotFound
 }
 
 func (frepo FileRepository) CheckStatus(ctx context.Context) error {
@@ -117,7 +121,7 @@ func (frepo FileRepository) CheckStatus(ctx context.Context) error {
 	return nil
 }
 
-func (frepo FileRepository) SaveURLs(ctx context.Context, urls []string) (ids []string, err error) {
+func (frepo *FileRepository) SaveURLs(ctx context.Context, urls []string) (ids []string, err error) {
 	ids = make([]string, 0)
 	newRecords := make([]URLRecord, 0)
 	for _, url := range urls {
@@ -127,7 +131,7 @@ func (frepo FileRepository) SaveURLs(ctx context.Context, urls []string) (ids []
 			continue
 		}
 
-		record = frepo.addRecordForURL(url)
+		record = frepo.addRecordForURL(url, uuid.Nil)
 		newRecords = append(newRecords, *record)
 		ids = append(ids, record.ShortURL)
 	}
@@ -164,4 +168,22 @@ func (frepo FileRepository) appendToFile(records []URLRecord) error {
 	}
 
 	return nil
+}
+
+func (frepo FileRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID) (records []Record, err error) {
+	for _, r := range frepo.records {
+		if r.UserID == userID {
+			records = append(records, r.Record)
+		}
+	}
+	return records, nil
+}
+
+func (frepo FileRepository) DeleteByShortURLs(ctx context.Context, userID uuid.UUID, shortURLs []string) {
+	for i, r := range frepo.records {
+		if r.UserID == userID && slices.Contains(shortURLs, r.ShortURL) {
+			r.IsDeleted = true
+			frepo.records[i] = r
+		}
+	}
 }

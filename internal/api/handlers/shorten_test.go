@@ -8,6 +8,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/iubondar/url-shortener/internal/app/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,12 +16,12 @@ import (
 
 const testURL string = "https://practicum.yandex.ru"
 
-var validResultCodes = []int{http.StatusCreated, http.StatusOK, http.StatusConflict}
+var validResultCodes = []int{http.StatusCreated, http.StatusOK, http.StatusConflict, http.StatusAccepted}
 
 func TestShortenHandler_Shorten(t *testing.T) {
+	userID := uuid.New()
 	type fields struct {
-		urlsToIds map[string]string
-		idsToURLs map[string]string
+		records []storage.Record
 	}
 	type want struct {
 		code        int
@@ -39,8 +40,7 @@ func TestShortenHandler_Shorten(t *testing.T) {
 			method: http.MethodPost,
 			body:   "{\"url\": \"" + testURL + "\"}",
 			fields: fields{
-				urlsToIds: map[string]string{},
-				idsToURLs: map[string]string{},
+				records: []storage.Record{},
 			},
 			want: want{
 				code:        http.StatusCreated,
@@ -53,8 +53,13 @@ func TestShortenHandler_Shorten(t *testing.T) {
 			method: http.MethodPost,
 			body:   "{\"url\": \"" + testURL + "\"}",
 			fields: fields{
-				urlsToIds: map[string]string{testURL: "123"},
-				idsToURLs: map[string]string{"123": testURL},
+				records: []storage.Record{
+					{
+						ShortURL:    "123",
+						OriginalURL: testURL,
+						UserID:      userID,
+					},
+				},
 			},
 			want: want{
 				code:        http.StatusConflict,
@@ -67,8 +72,7 @@ func TestShortenHandler_Shorten(t *testing.T) {
 			method: http.MethodPost,
 			body:   "{url: " + testURL + "}",
 			fields: fields{
-				urlsToIds: map[string]string{},
-				idsToURLs: map[string]string{},
+				records: []storage.Record{},
 			},
 			want: want{
 				code:        http.StatusBadRequest,
@@ -81,8 +85,7 @@ func TestShortenHandler_Shorten(t *testing.T) {
 			method: http.MethodPost,
 			body:   "{\"url\": \"htps/practicum.yandex.ru\"}",
 			fields: fields{
-				urlsToIds: map[string]string{},
-				idsToURLs: map[string]string{},
+				records: []storage.Record{},
 			},
 			want: want{
 				code:        http.StatusBadRequest,
@@ -95,8 +98,7 @@ func TestShortenHandler_Shorten(t *testing.T) {
 			method: http.MethodGet,
 			body:   "{\"url\": \"" + testURL + "\"}",
 			fields: fields{
-				urlsToIds: map[string]string{},
-				idsToURLs: map[string]string{},
+				records: []storage.Record{},
 			},
 			want: want{
 				code:        http.StatusMethodNotAllowed,
@@ -109,8 +111,7 @@ func TestShortenHandler_Shorten(t *testing.T) {
 			method: http.MethodPut,
 			body:   "{\"url\": \"" + testURL + "\"}",
 			fields: fields{
-				urlsToIds: map[string]string{},
-				idsToURLs: map[string]string{},
+				records: []storage.Record{},
 			},
 			want: want{
 				code:        http.StatusMethodNotAllowed,
@@ -123,8 +124,7 @@ func TestShortenHandler_Shorten(t *testing.T) {
 			method: http.MethodDelete,
 			body:   "{\"url\": \"" + testURL + "\"}",
 			fields: fields{
-				urlsToIds: map[string]string{},
-				idsToURLs: map[string]string{},
+				records: []storage.Record{},
 			},
 			want: want{
 				code:        http.StatusMethodNotAllowed,
@@ -139,10 +139,9 @@ func TestShortenHandler_Shorten(t *testing.T) {
 			// создаём новый Recorder
 			w := httptest.NewRecorder()
 			repo := storage.SimpleRepository{
-				UrlsToIds: test.fields.urlsToIds,
-				IdsToURLs: test.fields.idsToURLs,
+				Records: test.fields.records,
 			}
-			handler := NewShortenHandler(repo, "127.0.0.1")
+			handler := NewShortenHandler(&repo, "127.0.0.1")
 			handler.Shorten(w, request)
 
 			res := w.Result()

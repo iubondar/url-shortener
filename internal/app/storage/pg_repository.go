@@ -4,68 +4,48 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"time"
 
+	"github.com/google/uuid"
+	"github.com/iubondar/url-shortener/internal/app/storage/queries"
 	"github.com/iubondar/url-shortener/internal/app/strings"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"go.uber.org/zap"
 )
 
+type deleteIn struct {
+	shortURL string
+	userID   uuid.UUID
+}
+
+const defaultDeletionInterval = 5 * time.Second
+
 type PGRepository struct {
-	db *sql.DB
+	db          *sql.DB
+	deleteQueue chan deleteIn
 }
 
-func NewPGRepository(ctx context.Context, db *sql.DB) (*PGRepository, error) {
-	err := createTableIfNeeded(ctx, db)
-
-	if err != nil {
-		return nil, err
+func NewPGRepository(db *sql.DB, deletionInterval time.Duration) (*PGRepository, error) {
+	if deletionInterval == 0 {
+		deletionInterval = defaultDeletionInterval
 	}
 
-	return &PGRepository{
-		db: db,
-	}, nil
+	instance := &PGRepository{
+		db:          db,
+		deleteQueue: make(chan deleteIn, 1024),
+	}
+
+	go instance.flushDeletions(deletionInterval)
+
+	return instance, nil
 }
 
-func createTableIfNeeded(ctx context.Context, db *sql.DB) error {
-	tx, err := db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-
-	// в случае неуспешного коммита все изменения транзакции будут отменены
-	defer tx.Rollback()
-
-	// Создаём таблицу и добавляем индексы на оба поля с оригинальным и коротким URL, т.к. по ним происходит интенсивный поиск
-	_, err = tx.ExecContext(
-		ctx,
-		"CREATE TABLE IF NOT EXISTS urls ("+
-			"id SERIAL PRIMARY KEY,"+
-			"short_url VARCHAR(10) UNIQUE NOT NULL,"+
-			"original_url VARCHAR(2048) UNIQUE NOT NULL"+
-			");",
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.ExecContext(ctx, "CREATE UNIQUE INDEX IF NOT EXISTS short_url_index ON urls (short_url)")
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.ExecContext(ctx, "CREATE UNIQUE INDEX IF NOT EXISTS original_url_index ON urls (original_url)")
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
-}
-
-func (repo *PGRepository) SaveURL(ctx context.Context, url string) (id string, exists bool, err error) {
+func (repo *PGRepository) SaveURL(ctx context.Context, userID uuid.UUID, url string) (id string, exists bool, err error) {
 	// создаём идентификатор и добавляем запись
 	id = strings.RandString(idLength)
-	_, err = repo.db.ExecContext(ctx, "INSERT INTO urls (short_url, original_url) VALUES ($1, $2);", id, url)
+	_, err = repo.db.ExecContext(ctx, queries.InsertURL, id, url, userID)
 	if err != nil {
 		// Если URL уже был сохранён - возвращаем имеющееся значение
 		var pgErr *pgconn.PgError
@@ -92,7 +72,7 @@ func (repo *PGRepository) SaveURL(ctx context.Context, url string) (id string, e
 
 // Возвращает короткий URL если он уже есть в БД, иначе пустую строку
 func (repo *PGRepository) getShortURLByOriginalURL(ctx context.Context, url string) (shortURL string, err error) {
-	row := repo.db.QueryRowContext(ctx, "SELECT short_url from urls WHERE original_url = $1;", url)
+	row := repo.db.QueryRowContext(ctx, queries.GetShortURL, url)
 
 	err = row.Scan(&shortURL)
 
@@ -103,16 +83,16 @@ func (repo *PGRepository) getShortURLByOriginalURL(ctx context.Context, url stri
 	return shortURL, err
 }
 
-func (repo *PGRepository) RetrieveURL(ctx context.Context, id string) (url string, err error) {
-	row := repo.db.QueryRowContext(ctx, "SELECT original_url from urls WHERE short_url = $1;", id)
+func (repo *PGRepository) RetrieveByShortURL(ctx context.Context, shortURL string) (record Record, err error) {
+	row := repo.db.QueryRowContext(ctx, queries.GetByShortURL, shortURL)
 
-	err = row.Scan(&url)
+	err = row.Scan(&record.UserID, &record.ShortURL, &record.OriginalURL, &record.IsDeleted)
 
 	if errors.Is(err, sql.ErrNoRows) {
-		return "", ErrorNotFound
+		return Record{}, ErrorNotFound
 	}
 
-	return url, err
+	return
 }
 
 func (repo *PGRepository) CheckStatus(ctx context.Context) error {
@@ -129,7 +109,7 @@ func (repo *PGRepository) SaveURLs(ctx context.Context, urls []string) (ids []st
 	// если Commit будет раньше, то откат проигнорируется
 	defer tx.Rollback()
 
-	stmt, err := tx.PrepareContext(ctx, "INSERT INTO urls (short_url, original_url) VALUES ($1, $2);")
+	stmt, err := tx.PrepareContext(ctx, queries.InsertURL)
 	if err != nil {
 		return nil, err
 	}
@@ -150,11 +130,96 @@ func (repo *PGRepository) SaveURLs(ctx context.Context, urls []string) (ids []st
 		// Сохраняем URL
 		id := strings.RandString(idLength)
 		ids = append(ids, id)
-		_, err = stmt.ExecContext(ctx, id, url)
+		_, err = stmt.ExecContext(ctx, id, url, uuid.Nil)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	return ids, tx.Commit()
+}
+
+func (repo *PGRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID) (records []Record, err error) {
+	rows, err := repo.db.QueryContext(ctx, queries.GetUserUrls, userID.String())
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []Record{}, nil
+		} else {
+			return nil, err
+		}
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var record Record
+		err = rows.Scan(&record.UserID, &record.ShortURL, &record.OriginalURL, &record.IsDeleted)
+		if err != nil {
+			return nil, err
+		}
+		records = append(records, record)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error processing rows: %s", err.Error())
+	}
+
+	return records, nil
+}
+
+func (repo *PGRepository) DeleteByShortURLs(ctx context.Context, userID uuid.UUID, shortURLs []string) {
+	for _, shortURL := range shortURLs {
+		repo.deleteQueue <- deleteIn{shortURL: shortURL, userID: userID}
+	}
+}
+
+// flushDeletions периодически сохраняет накопленные в очереди удаления в БД
+func (repo *PGRepository) flushDeletions(deletionInterval time.Duration) {
+	ticker := time.NewTicker(deletionInterval)
+
+	var deletions []deleteIn
+
+	for {
+		select {
+		case deleteIn := <-repo.deleteQueue:
+			// добавим сообщение в слайс для последующего удаления
+			deletions = append(deletions, deleteIn)
+		case <-ticker.C:
+			// подождём, пока придёт хотя бы одно сообщение
+			if len(deletions) == 0 {
+				continue
+			}
+			// сохраним все пришедшие сообщения одновременно
+			err := repo.markAsDeleted(context.Background(), deletions...)
+			if err != nil {
+				zap.L().Sugar().Debugln("cannot mark deletions:", err.Error())
+			}
+			// сотрём успешно отосланные сообщения
+			deletions = nil
+		}
+	}
+}
+
+func (repo *PGRepository) markAsDeleted(ctx context.Context, deletions ...deleteIn) error {
+	tx, err := repo.db.Begin()
+	if err != nil {
+		return err
+	}
+	// если Commit будет раньше, то откат проигнорируется
+	defer tx.Rollback()
+
+	stmt, err := tx.PrepareContext(ctx, queries.DeleteUserURL)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, deleteIn := range deletions {
+		_, err = stmt.ExecContext(ctx, deleteIn.userID, deleteIn.shortURL)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }

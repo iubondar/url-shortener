@@ -7,36 +7,31 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/iubondar/url-shortener/internal/app/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestCreateIDHandler_CreateID(t *testing.T) {
-	type fields struct {
-		urlsToIds map[string]string
-		idsToURLs map[string]string
-	}
+	userID := uuid.New()
 	type want struct {
 		code        int
 		response    string
 		contentType string
 	}
 	tests := []struct {
-		name   string
-		method string
-		url    string
-		fields fields
-		want   want
+		name    string
+		method  string
+		url     string
+		records []storage.Record
+		want    want
 	}{
 		{
-			name:   "Positive test",
-			method: http.MethodPost,
-			url:    "https://practicum.yandex.ru/",
-			fields: fields{
-				urlsToIds: map[string]string{},
-				idsToURLs: map[string]string{},
-			},
+			name:    "Positive test",
+			method:  http.MethodPost,
+			url:     "https://practicum.yandex.ru/",
+			records: []storage.Record{},
 			want: want{
 				code:        http.StatusCreated,
 				response:    `http://127.0.0.1`,
@@ -47,9 +42,12 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			name:   "Existed record test",
 			method: http.MethodPost,
 			url:    testURL,
-			fields: fields{
-				urlsToIds: map[string]string{testURL: "123"},
-				idsToURLs: map[string]string{"123": testURL},
+			records: []storage.Record{
+				{
+					ShortURL:    "123",
+					OriginalURL: testURL,
+					UserID:      userID,
+				},
 			},
 			want: want{
 				code:        http.StatusConflict,
@@ -58,13 +56,10 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			},
 		},
 		{
-			name:   "Test invalid URL",
-			method: http.MethodPost,
-			url:    "https/practicum.yandex.ru/",
-			fields: fields{
-				urlsToIds: map[string]string{},
-				idsToURLs: map[string]string{},
-			},
+			name:    "Test invalid URL",
+			method:  http.MethodPost,
+			url:     "https/practicum.yandex.ru/",
+			records: []storage.Record{},
 			want: want{
 				code:        http.StatusBadRequest,
 				response:    `http://127.0.0.1`,
@@ -72,13 +67,10 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			},
 		},
 		{
-			name:   "Test GET method not allowed",
-			method: http.MethodGet,
-			url:    "https://practicum.yandex.ru/",
-			fields: fields{
-				urlsToIds: map[string]string{},
-				idsToURLs: map[string]string{},
-			},
+			name:    "Test GET method not allowed",
+			method:  http.MethodGet,
+			url:     "https://practicum.yandex.ru/",
+			records: []storage.Record{},
 			want: want{
 				code:        http.StatusMethodNotAllowed,
 				response:    `http://127.0.0.1`,
@@ -86,13 +78,10 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			},
 		},
 		{
-			name:   "Test PUT method not allowed",
-			method: http.MethodPut,
-			url:    "https://practicum.yandex.ru/",
-			fields: fields{
-				urlsToIds: map[string]string{},
-				idsToURLs: map[string]string{},
-			},
+			name:    "Test PUT method not allowed",
+			method:  http.MethodPut,
+			url:     "https://practicum.yandex.ru/",
+			records: []storage.Record{},
 			want: want{
 				code:        http.StatusMethodNotAllowed,
 				response:    `http://127.0.0.1`,
@@ -100,13 +89,10 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			},
 		},
 		{
-			name:   "Test DELETE method not allowed",
-			method: http.MethodDelete,
-			url:    "https://practicum.yandex.ru/",
-			fields: fields{
-				urlsToIds: map[string]string{},
-				idsToURLs: map[string]string{},
-			},
+			name:    "Test DELETE method not allowed",
+			method:  http.MethodDelete,
+			url:     "https://practicum.yandex.ru/",
+			records: []storage.Record{},
 			want: want{
 				code:        http.StatusMethodNotAllowed,
 				response:    `http://127.0.0.1`,
@@ -120,10 +106,9 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			// создаём новый Recorder
 			w := httptest.NewRecorder()
 			repo := storage.SimpleRepository{
-				UrlsToIds: test.fields.urlsToIds,
-				IdsToURLs: test.fields.idsToURLs,
+				Records: test.records,
 			}
-			handler := NewCreateIDHandler(repo, "127.0.0.1")
+			handler := NewCreateIDHandler(&repo, "127.0.0.1")
 			handler.CreateID(w, request)
 
 			res := w.Result()
