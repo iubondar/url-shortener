@@ -3,6 +3,9 @@
 package router
 
 import (
+	"net/http"
+	"net/http/pprof"
+
 	"github.com/go-chi/chi"
 	"github.com/iubondar/url-shortener/internal/api/handlers"
 	"github.com/iubondar/url-shortener/internal/app/storage"
@@ -43,5 +46,29 @@ func NewRouter(baseURL string, repo storage.Repository) (chi.Router, error) {
 	r.Get("/ping", pingHandler.Ping)
 	r.Delete("/api/user/urls", deleteURLsHandler.DeleteUserURLs)
 
+	// Подключаем pprof
+	r.Mount("/debug/pprof", pprofRouter())
+
 	return r, nil
+}
+
+// pprofRouter возвращает роутер с pprof-эндпоинтами
+func pprofRouter() http.Handler {
+	r := chi.NewRouter()
+
+	// Регистрируем стандартные обработчики pprof
+	r.Get("/", pprof.Index)
+	r.Get("/cmdline", pprof.Cmdline)
+	r.Get("/profile", pprof.Profile)
+	r.Post("/symbol", pprof.Symbol)
+	r.Get("/symbol", pprof.Symbol)
+	r.Get("/trace", pprof.Trace)
+	r.Get("/allocs", pprof.Handler("allocs").ServeHTTP)
+	r.Get("/block", pprof.Handler("block").ServeHTTP)
+	r.Get("/goroutine", pprof.Handler("goroutine").ServeHTTP)
+	r.Get("/heap", pprof.Handler("heap").ServeHTTP)
+	r.Get("/mutex", pprof.Handler("mutex").ServeHTTP)
+	r.Get("/threadcreate", pprof.Handler("threadcreate").ServeHTTP)
+
+	return r
 }

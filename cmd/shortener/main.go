@@ -14,6 +14,8 @@ import (
 	"github.com/iubondar/url-shortener/internal/app/config"
 	"github.com/iubondar/url-shortener/internal/app/router"
 	"github.com/iubondar/url-shortener/internal/app/storage"
+
+	_ "net/http/pprof" // подключаем пакет pprof
 )
 
 func init() {
