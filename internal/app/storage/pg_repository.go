@@ -41,7 +41,7 @@ func NewPGRepository(db *sql.DB, deletionInterval time.Duration) (*PGRepository,
 
 	instance := &PGRepository{
 		db:          db,
-		deleteQueue: make(chan deleteIn, 1024),
+		deleteQueue: make(chan deleteIn, 64),
 	}
 
 	go instance.flushDeletions(deletionInterval)
