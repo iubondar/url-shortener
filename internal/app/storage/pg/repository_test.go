@@ -441,3 +441,95 @@ func TestRetrieveUserURLs(t *testing.T) {
 		})
 	}
 }
+
+// BenchmarkPGRepository_SaveURL измеряет производительность сохранения URL
+func BenchmarkPGRepository_SaveURL(b *testing.B) {
+	cleanup()
+	userID := uuid.New()
+	ctx := context.Background()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _, _ = repo.SaveURL(ctx, userID, "http://example.com")
+	}
+}
+
+// BenchmarkPGRepository_RetrieveByShortURL измеряет производительность получения URL по короткому идентификатору
+func BenchmarkPGRepository_RetrieveByShortURL(b *testing.B) {
+	cleanup()
+	userID := uuid.New()
+	ctx := context.Background()
+
+	// Подготовка данных
+	id, _, _ := repo.SaveURL(ctx, userID, "http://example.com")
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = repo.RetrieveByShortURL(ctx, id)
+	}
+}
+
+// BenchmarkPGRepository_RetrieveUserURLs измеряет производительность получения всех URL пользователя
+func BenchmarkPGRepository_RetrieveUserURLs(b *testing.B) {
+	cleanup()
+	userID := uuid.New()
+	ctx := context.Background()
+
+	// Подготовка данных
+	for i := 0; i < 100; i++ {
+		_, _, _ = repo.SaveURL(ctx, userID, "http://example.com")
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = repo.RetrieveUserURLs(ctx, userID)
+	}
+}
+
+// BenchmarkPGRepository_DeleteByShortURLs измеряет производительность удаления URL
+func BenchmarkPGRepository_DeleteByShortURLs(b *testing.B) {
+	cleanup()
+	userID := uuid.New()
+	ctx := context.Background()
+
+	// Подготовка данных
+	var shortURLs []string
+	for range 100 {
+		id, _, _ := repo.SaveURL(ctx, userID, "http://example.com")
+		shortURLs = append(shortURLs, id)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		repo.DeleteByShortURLs(ctx, userID, shortURLs)
+		// Ждем завершения асинхронных операций
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
+// BenchmarkPGRepository_SaveURLs измеряет производительность пакетного сохранения URL
+func BenchmarkPGRepository_SaveURLs(b *testing.B) {
+	cleanup()
+	ctx := context.Background()
+
+	urls := make([]string, 100)
+	for range 100 {
+		urls = append(urls, "http://example.com")
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = repo.SaveURLs(ctx, urls)
+	}
+}
+
+// BenchmarkPGRepository_CheckStatus измеряет производительность проверки состояния хранилища
+func BenchmarkPGRepository_CheckStatus(b *testing.B) {
+	cleanup()
+	ctx := context.Background()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = repo.CheckStatus(ctx)
+	}
+}
