@@ -1,3 +1,5 @@
+// Package auth предоставляет функциональность для аутентификации пользователей.
+// Использует JWT токены для хранения идентификатора пользователя в cookie.
 package auth
 
 import (
@@ -10,15 +12,20 @@ import (
 )
 
 const secretKey = "supersecretkey"
+
+// AuthCookieName - имя cookie для хранения токена аутентификации
 const AuthCookieName = "Authorization"
 
-// claims — структура утверждений, которая включает стандартные утверждения и
-// одно пользовательское UserID
+// claims представляет структуру JWT токена.
+// Включает стандартные поля JWT и идентификатор пользователя.
 type claims struct {
 	jwt.RegisteredClaims
-	UserID uuid.UUID
+	UserID uuid.UUID // идентификатор пользователя
 }
 
+// GetUserIDFromAuthCookieOrSetNew получает идентификатор пользователя из cookie или создает новый.
+// Если cookie не существует или содержит невалидный токен, создает новый токен.
+// Возвращает идентификатор пользователя и ошибку, если она возникла.
 func GetUserIDFromAuthCookieOrSetNew(res http.ResponseWriter, req *http.Request) (userID uuid.UUID, err error) {
 	authCookie, err := req.Cookie(AuthCookieName)
 	if err != nil {
@@ -35,6 +42,8 @@ func GetUserIDFromAuthCookieOrSetNew(res http.ResponseWriter, req *http.Request)
 	return userID, nil
 }
 
+// setNewAuthCookie создает новый токен аутентификации и устанавливает его в cookie.
+// Возвращает новый идентификатор пользователя и ошибку, если она возникла.
 func setNewAuthCookie(res http.ResponseWriter) (userID uuid.UUID, err error) {
 	userID = uuid.New()
 
@@ -48,6 +57,8 @@ func setNewAuthCookie(res http.ResponseWriter) (userID uuid.UUID, err error) {
 	return userID, nil
 }
 
+// NewAuthCookie создает новую cookie с JWT токеном для указанного пользователя.
+// Возвращает cookie и ошибку, если она возникла.
 func NewAuthCookie(userID uuid.UUID) (authCookie *http.Cookie, err error) {
 	jwtString, err := buildJWTString(userID)
 	if err != nil {
@@ -65,7 +76,9 @@ func NewAuthCookie(userID uuid.UUID) (authCookie *http.Cookie, err error) {
 	return authCookie, nil
 }
 
-// BuildJWTString создаёт токен и возвращает его в виде строки.
+// buildJWTString создает JWT токен для указанного пользователя и возвращает его в виде строки.
+// Использует алгоритм подписи HS256.
+// Возвращает строку токена и ошибку, если она возникла.
 func buildJWTString(userID uuid.UUID) (string, error) {
 	// создаём новый токен с алгоритмом подписи HS256 и утверждениями — Claims
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims{
@@ -84,6 +97,9 @@ func buildJWTString(userID uuid.UUID) (string, error) {
 	return tokenString, nil
 }
 
+// GetUserID извлекает идентификатор пользователя из JWT токена.
+// Проверяет валидность токена и его подпись.
+// Возвращает идентификатор пользователя и ошибку, если она возникла.
 func GetUserID(tokenString string) (userID uuid.UUID, err error) {
 	claims := &claims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims,
