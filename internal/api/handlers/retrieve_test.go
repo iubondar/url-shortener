@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -22,6 +23,43 @@ func withURLParam(r *http.Request, key, value string) *http.Request {
 	req := r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, chiCtx))
 	chiCtx.URLParams.Add(key, value)
 	return req
+}
+
+// ExampleRetrieveURLHandler_RetrieveURL демонстрирует пример использования эндпоинта получения оригинального URL.
+// Пример показывает, как получить оригинальный URL по сокращенному идентификатору.
+func ExampleRetrieveURLHandler_RetrieveURL() {
+	// Создаем тестовый HTTP запрос
+	request := httptest.NewRequest(http.MethodGet, "/", nil)
+	request = withURLParam(request, "id", "123")
+
+	// Создаем репозиторий с тестовыми данными
+	repo := &storage.SimpleRepository{
+		Records: []storage.Record{
+			{
+				ShortURL:    "123",
+				OriginalURL: "https://example.com",
+				UserID:      uuid.New(),
+			},
+		},
+	}
+
+	// Инициализируем обработчик
+	handler := NewRetrieveURLHandler(repo)
+
+	// Вызываем обработчик
+	w := httptest.NewRecorder()
+	handler.RetrieveURL(w, request)
+
+	// Получаем ответ
+	res := w.Result()
+	defer res.Body.Close()
+
+	// Выводим статус ответа и заголовок Location
+	fmt.Println(res.Status)
+	fmt.Println(res.Header.Get("Location"))
+	// Output:
+	// 307 Temporary Redirect
+	// https://example.com
 }
 
 func TestRetrieveURLHandler_RetrieveURL(t *testing.T) {

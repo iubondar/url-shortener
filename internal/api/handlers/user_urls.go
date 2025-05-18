@@ -10,11 +10,15 @@ import (
 	"github.com/iubondar/url-shortener/internal/app/storage"
 )
 
+// UserUrlsHandler обрабатывает запросы на получение списка сокращенных URL пользователя.
+// Позволяет пользователю получить список всех своих сокращенных URL.
 type UserUrlsHandler struct {
-	repo    storage.Repository
-	baseURL string
+	repo    storage.Repository // репозиторий для хранения URL
+	baseURL string             // базовый URL для формирования сокращенных ссылок
 }
 
+// NewUserUrlsHandler создает новый экземпляр UserUrlsHandler.
+// Принимает репозиторий для хранения URL и базовый URL для формирования сокращенных ссылок.
 func NewUserUrlsHandler(repo storage.Repository, baseURL string) UserUrlsHandler {
 	return UserUrlsHandler{
 		repo:    repo,
@@ -22,11 +26,15 @@ func NewUserUrlsHandler(repo storage.Repository, baseURL string) UserUrlsHandler
 	}
 }
 
+// UserUrlsOut представляет выходные данные для списка URL пользователя.
 type UserUrlsOut struct {
-	ShortURL    string `json:"short_url"`
-	OriginalURL string `json:"original_url"`
+	ShortURL    string `json:"short_url"`    // сокращенный URL
+	OriginalURL string `json:"original_url"` // оригинальный URL
 }
 
+// RetrieveUserURLs обрабатывает HTTP GET запрос для получения списка сокращенных URL пользователя.
+// Возвращает список сокращенных URL в формате JSON.
+// Возвращает статус 200 OK если есть URL, 204 No Content если список пуст.
 func (handler UserUrlsHandler) RetrieveUserURLs(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
 		http.Error(res, "Only GET requests are allowed!", http.StatusMethodNotAllowed)

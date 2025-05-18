@@ -11,21 +11,27 @@ import (
 	"github.com/iubondar/url-shortener/internal/app/storage"
 )
 
+// ShortenBatchIn представляет входные данные для пакетного создания сокращенных URL.
 type ShortenBatchIn struct {
-	CorrelationID string `json:"correlation_id"`
-	OriginalURL   string `json:"original_url"`
+	CorrelationID string `json:"correlation_id"` // идентификатор для связи с оригинальным URL
+	OriginalURL   string `json:"original_url"`   // оригинальный URL для сокращения
 }
 
+// ShortenBatchOut представляет выходные данные пакетного создания сокращенных URL.
 type ShortenBatchOut struct {
-	CorrelationID string `json:"correlation_id"`
-	ShortURL      string `json:"short_url"`
+	CorrelationID string `json:"correlation_id"` // идентификатор для связи с оригинальным URL
+	ShortURL      string `json:"short_url"`      // сокращенный URL
 }
 
+// ShortenBatchHandler обрабатывает запросы на пакетное создание сокращенных URL.
+// Позволяет создать несколько сокращенных URL за один запрос.
 type ShortenBatchHandler struct {
-	repo    storage.Repository
-	baseURL string
+	repo    storage.Repository // репозиторий для хранения URL
+	baseURL string             // базовый URL для формирования сокращенных ссылок
 }
 
+// NewShortenBatchHandler создает новый экземпляр ShortenBatchHandler.
+// Принимает репозиторий для хранения URL и базовый URL для формирования сокращенных ссылок.
 func NewShortenBatchHandler(repo storage.Repository, baseURL string) ShortenBatchHandler {
 	return ShortenBatchHandler{
 		repo:    repo,
@@ -33,6 +39,10 @@ func NewShortenBatchHandler(repo storage.Repository, baseURL string) ShortenBatc
 	}
 }
 
+// ShortenBatch обрабатывает HTTP POST запрос для пакетного создания сокращенных URL.
+// Принимает массив URL в теле запроса в формате JSON.
+// Возвращает массив созданных сокращенных URL в формате JSON.
+// Возвращает статус 201 Created в случае успеха.
 func (handler ShortenBatchHandler) ShortenBatch(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		http.Error(res, "Only POST requests are allowed!", http.StatusMethodNotAllowed)

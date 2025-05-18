@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"slices"
@@ -17,6 +18,33 @@ import (
 const testURL string = "https://practicum.yandex.ru"
 
 var validResultCodes = []int{http.StatusCreated, http.StatusOK, http.StatusConflict, http.StatusAccepted}
+
+// ExampleShortenHandler_Shorten демонстрирует пример использования эндпоинта создания сокращенного URL.
+// Пример показывает, как создать сокращенную ссылку для одного URL.
+func ExampleShortenHandler_Shorten() {
+	// Создаем тестовые данные
+	input := ShortenIn{URL: "https://example.com"}
+	jsonIn, _ := json.Marshal(input)
+
+	// Создаем тестовый HTTP запрос
+	request := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(jsonIn))
+	w := httptest.NewRecorder()
+
+	// Инициализируем репозиторий и обработчик
+	repo := &storage.SimpleRepository{}
+	handler := NewShortenHandler(repo, "127.0.0.1")
+
+	// Вызываем обработчик
+	handler.Shorten(w, request)
+
+	// Получаем ответ
+	res := w.Result()
+	defer res.Body.Close()
+
+	// Выводим статус ответа
+	fmt.Println(res.Status)
+	// Output: 201 Created
+}
 
 func TestShortenHandler_Shorten(t *testing.T) {
 	userID := uuid.New()
