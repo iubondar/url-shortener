@@ -15,7 +15,10 @@ func ExampleWithLogging() {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"message": "Hello, World!"}`))
+		_, err := w.Write([]byte(`{"message": "Hello, World!"}`))
+		if err != nil {
+			panic(err)
+		}
 	})
 
 	// Оборачиваем обработчик в middleware для логирования
@@ -26,14 +29,21 @@ func ExampleWithLogging() {
 	defer server.Close()
 
 	// Выполняем запрос
-	req, _ := http.NewRequest("GET", server.URL+"/api/test", nil)
-	resp, _ := http.DefaultClient.Do(req)
+	req, err := http.NewRequest("GET", server.URL+"/api/test", nil)
+	if err != nil {
+		panic(err)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		panic(err)
+	}
 	defer resp.Body.Close()
 
 	// Проверяем, что запрос выполнен успешно
 	if resp.StatusCode == http.StatusOK {
 		// Запрос успешно обработан и залогирован
 	}
+	// Output:
 }
 
 // ExampleWithLogging_error демонстрирует логирование ошибок.
@@ -43,7 +53,10 @@ func ExampleWithLogging_error() {
 	// Создаем обработчик, который возвращает ошибку
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error": "Internal Server Error"}`))
+		_, err := w.Write([]byte(`{"error": "Internal Server Error"}`))
+		if err != nil {
+			panic(err)
+		}
 	})
 
 	// Оборачиваем обработчик в middleware для логирования
@@ -54,21 +67,31 @@ func ExampleWithLogging_error() {
 	defer server.Close()
 
 	// Выполняем запрос
-	req, _ := http.NewRequest("GET", server.URL+"/api/error", nil)
-	resp, _ := http.DefaultClient.Do(req)
+	req, err := http.NewRequest("GET", server.URL+"/api/error", nil)
+	if err != nil {
+		panic(err)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		panic(err)
+	}
 	defer resp.Body.Close()
 
 	// Проверяем, что запрос завершился с ошибкой
 	if resp.StatusCode == http.StatusInternalServerError {
 		// Ошибка успешно обработана и залогирована
 	}
+	// Output:
 }
 
 func TestWithLogging(t *testing.T) {
 	// Создаем тестовый обработчик
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("test response"))
+		_, err := w.Write([]byte("test response"))
+		if err != nil {
+			t.Fatal(err)
+		}
 	})
 
 	// Оборачиваем в middleware

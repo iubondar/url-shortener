@@ -19,7 +19,10 @@ func ExampleWithGzipCompression() {
 	// Создаем простой обработчик, который возвращает JSON
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(contentType, "application/json")
-		io.WriteString(w, `{"message": "Hello, World!"}`)
+		_, err := io.WriteString(w, `{"message": "Hello, World!"}`)
+		if err != nil {
+			panic(err)
+		}
 	})
 
 	// Оборачиваем обработчик в middleware для сжатия
@@ -30,22 +33,38 @@ func ExampleWithGzipCompression() {
 	defer server.Close()
 
 	// Создаем запрос с поддержкой gzip
-	req, _ := http.NewRequest("GET", server.URL, nil)
+	req, err := http.NewRequest("GET", server.URL, nil)
+	if err != nil {
+		panic(err)
+	}
 	req.Header.Set(acceptEncoding, "gzip")
 
 	// Выполняем запрос
-	resp, _ := http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		panic(err)
+	}
 	defer resp.Body.Close()
 
 	// Проверяем, что ответ сжат
 	encoding := resp.Header.Get(contentEncoding)
 	if encoding == "gzip" {
 		// Распаковываем ответ
-		reader, _ := gzip.NewReader(resp.Body)
+		reader, err := gzip.NewReader(resp.Body)
+		if err != nil {
+			panic(err)
+		}
 		defer reader.Close()
-		body, _ := io.ReadAll(reader)
-		io.WriteString(io.Discard, string(body))
+		body, err := io.ReadAll(reader)
+		if err != nil {
+			panic(err)
+		}
+		_, err = io.Discard.Write(body)
+		if err != nil {
+			panic(err)
+		}
 	}
+	// Output:
 }
 
 // ExampleWithGzipCompression_compressedRequest демонстрирует обработку сжатых запросов.
@@ -54,9 +73,15 @@ func ExampleWithGzipCompression() {
 func ExampleWithGzipCompression_compressedRequest() {
 	// Создаем простой обработчик, который читает тело запроса
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			panic(err)
+		}
 		w.Header().Set(contentType, "application/json")
-		io.WriteString(w, string(body))
+		_, err = w.Write(body)
+		if err != nil {
+			panic(err)
+		}
 	})
 
 	// Оборачиваем обработчик в middleware для сжатия
@@ -69,20 +94,39 @@ func ExampleWithGzipCompression_compressedRequest() {
 	// Создаем сжатые данные
 	var buf bytes.Buffer
 	zw := gzip.NewWriter(&buf)
-	zw.Write([]byte(`{"message": "Compressed Request"}`))
-	zw.Close()
+	_, err := zw.Write([]byte(`{"message": "Compressed Request"}`))
+	if err != nil {
+		panic(err)
+	}
+	err = zw.Close()
+	if err != nil {
+		panic(err)
+	}
 
 	// Создаем запрос со сжатым телом
-	req, _ := http.NewRequest("POST", server.URL, &buf)
+	req, err := http.NewRequest("POST", server.URL, &buf)
+	if err != nil {
+		panic(err)
+	}
 	req.Header.Set(contentEncoding, "gzip")
 
 	// Выполняем запрос
-	resp, _ := http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		panic(err)
+	}
 	defer resp.Body.Close()
 
 	// Читаем ответ
-	body, _ := io.ReadAll(resp.Body)
-	io.WriteString(io.Discard, string(body))
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+	_, err = io.Discard.Write(body)
+	if err != nil {
+		panic(err)
+	}
+	// Output:
 }
 
 func TestGzipCompression(t *testing.T) {
@@ -96,7 +140,10 @@ func TestGzipCompression(t *testing.T) {
 
 	withoutGzip := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(contentType, "application/json")
-		io.WriteString(w, successBody)
+		_, err := io.WriteString(w, successBody)
+		if err != nil {
+			panic(err)
+		}
 	})
 	handler := WithGzipCompression(withoutGzip)
 
