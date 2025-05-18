@@ -1,5 +1,5 @@
 // Package storage предоставляет интерфейсы и реализации для хранения и управления URL-ссылками.
-package storage
+package pg
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/iubondar/url-shortener/internal/app/storage"
 	"github.com/iubondar/url-shortener/internal/app/storage/queries"
 	"github.com/iubondar/url-shortener/internal/app/strings"
 	"github.com/jackc/pgerrcode"
@@ -76,7 +77,7 @@ func NewPGRepository(db *sql.DB, deletionInterval time.Duration) (*PGRepository,
 // Возвращает короткий идентификатор, флаг существования и ошибку.
 func (repo *PGRepository) SaveURL(ctx context.Context, userID uuid.UUID, url string) (id string, exists bool, err error) {
 	// создаём идентификатор и добавляем запись
-	id = strings.RandString(idLength)
+	id = strings.RandString(8)
 	_, err = repo.insertStmt.ExecContext(ctx, id, url, userID)
 	if err != nil {
 		// Если URL уже был сохранён - возвращаем имеющееся значение
@@ -115,13 +116,13 @@ func (repo *PGRepository) getShortURLByOriginalURL(ctx context.Context, url stri
 
 // RetrieveByShortURL получает запись по короткому идентификатору.
 // Возвращает запись и ошибку. Если запись не найдена, возвращает ошибку ErrorNotFound.
-func (repo *PGRepository) RetrieveByShortURL(ctx context.Context, shortURL string) (record Record, err error) {
+func (repo *PGRepository) RetrieveByShortURL(ctx context.Context, shortURL string) (record storage.Record, err error) {
 	row := repo.db.QueryRowContext(ctx, queries.GetByShortURL, shortURL)
 
 	err = row.Scan(&record.UserID, &record.ShortURL, &record.OriginalURL, &record.IsDeleted)
 
 	if errors.Is(err, sql.ErrNoRows) {
-		return Record{}, ErrorNotFound
+		return storage.Record{}, storage.ErrorNotFound
 	}
 
 	return
@@ -163,7 +164,7 @@ func (repo *PGRepository) SaveURLs(ctx context.Context, urls []string) (ids []st
 		}
 
 		// Сохраняем URL
-		id := strings.RandString(idLength)
+		id := strings.RandString(8)
 		ids = append(ids, id)
 		_, err = stmt.ExecContext(ctx, id, url, uuid.Nil)
 		if err != nil {
@@ -176,11 +177,11 @@ func (repo *PGRepository) SaveURLs(ctx context.Context, urls []string) (ids []st
 
 // RetrieveUserURLs получает все URL пользователя.
 // Возвращает массив записей и ошибку.
-func (repo *PGRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID) (records []Record, err error) {
+func (repo *PGRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID) (records []storage.Record, err error) {
 	rows, err := repo.db.QueryContext(ctx, queries.GetUserUrls, userID.String())
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return []Record{}, nil
+			return []storage.Record{}, nil
 		} else {
 			return nil, err
 		}
@@ -189,7 +190,7 @@ func (repo *PGRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID
 	defer rows.Close()
 
 	for rows.Next() {
-		var record Record
+		var record storage.Record
 		err = rows.Scan(&record.UserID, &record.ShortURL, &record.OriginalURL, &record.IsDeleted)
 		if err != nil {
 			return nil, err

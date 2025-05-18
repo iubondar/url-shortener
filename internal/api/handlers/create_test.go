@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/iubondar/url-shortener/internal/app/storage"
+	simple_storage "github.com/iubondar/url-shortener/internal/app/storage/simple"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -22,7 +23,7 @@ func ExampleCreateIDHandler_CreateID() {
 	w := httptest.NewRecorder()
 
 	// Инициализируем репозиторий и обработчик
-	repo := &storage.SimpleRepository{}
+	repo := &simple_storage.SimpleRepository{}
 	handler := NewCreateIDHandler(repo, "127.0.0.1")
 
 	// Вызываем обработчик
@@ -129,7 +130,7 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			request := httptest.NewRequest(test.method, "/", bytes.NewReader([]byte(test.url)))
 			// создаём новый Recorder
 			w := httptest.NewRecorder()
-			repo := storage.SimpleRepository{
+			repo := simple_storage.SimpleRepository{
 				Records: test.records,
 			}
 			handler := NewCreateIDHandler(&repo, "127.0.0.1")

@@ -1,4 +1,4 @@
-package storage
+package file
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/iubondar/url-shortener/internal/app/storage"
 	"github.com/iubondar/url-shortener/internal/app/storage/testhelpers"
 )
 
@@ -103,9 +104,9 @@ func TestFileRepository_ReadFromFile(t *testing.T) {
 		require.NoError(t, err)
 
 		var want = []URLRecord{
-			{UUID: "1", Record: Record{ShortURL: "4rSPg8ap", OriginalURL: "http://yandex.ru"}},
-			{UUID: "2", Record: Record{ShortURL: "edVPg3ks", OriginalURL: "http://ya.ru"}},
-			{UUID: "3", Record: Record{ShortURL: "dG56Hqxm", OriginalURL: "http://practicum.yandex.ru"}},
+			{UUID: "1", Record: storage.Record{ShortURL: "4rSPg8ap", OriginalURL: "http://yandex.ru"}},
+			{UUID: "2", Record: storage.Record{ShortURL: "edVPg3ks", OriginalURL: "http://ya.ru"}},
+			{UUID: "3", Record: storage.Record{ShortURL: "dG56Hqxm", OriginalURL: "http://practicum.yandex.ru"}},
 		}
 
 		assert.ElementsMatch(t, want, frepo.records)
@@ -157,9 +158,9 @@ func TestFileRepository_SaveURL(t *testing.T) {
 		{
 			name: "Existent",
 			records: []URLRecord{
-				{UUID: "1", Record: Record{ShortURL: "4rSPg8ap", OriginalURL: "http://yandex.ru"}},
-				{UUID: "2", Record: Record{ShortURL: "edVPg3ks", OriginalURL: "http://ya.ru"}},
-				{UUID: "3", Record: Record{ShortURL: "dG56Hqxm", OriginalURL: "http://practicum.yandex.ru"}},
+				{UUID: "1", Record: storage.Record{ShortURL: "4rSPg8ap", OriginalURL: "http://yandex.ru"}},
+				{UUID: "2", Record: storage.Record{ShortURL: "edVPg3ks", OriginalURL: "http://ya.ru"}},
+				{UUID: "3", Record: storage.Record{ShortURL: "dG56Hqxm", OriginalURL: "http://practicum.yandex.ru"}},
 			},
 			args: args{
 				url: "http://yandex.ru",
@@ -219,9 +220,9 @@ func TestFileRepository_RetrieveByShortURL(t *testing.T) {
 		{
 			name: "Existent",
 			records: []URLRecord{
-				{UUID: "1", Record: Record{ShortURL: "4rSPg8ap", OriginalURL: "http://yandex.ru"}},
-				{UUID: "2", Record: Record{ShortURL: "edVPg3ks", OriginalURL: "http://ya.ru"}},
-				{UUID: "3", Record: Record{ShortURL: "dG56Hqxm", OriginalURL: "http://practicum.yandex.ru"}},
+				{UUID: "1", Record: storage.Record{ShortURL: "4rSPg8ap", OriginalURL: "http://yandex.ru"}},
+				{UUID: "2", Record: storage.Record{ShortURL: "edVPg3ks", OriginalURL: "http://ya.ru"}},
+				{UUID: "3", Record: storage.Record{ShortURL: "dG56Hqxm", OriginalURL: "http://practicum.yandex.ru"}},
 			},
 			args: args{
 				id: "dG56Hqxm",
@@ -297,8 +298,8 @@ func TestFileRepository_SaveURLs(t *testing.T) {
 			name: "One new IDs",
 			fields: fields{
 				records: []URLRecord{
-					{UUID: "1", Record: Record{ShortURL: "4rSPg8ap", OriginalURL: "http://yandex.ru"}},
-					{UUID: "2", Record: Record{ShortURL: "edVPg3ks", OriginalURL: "http://ya.ru"}},
+					{UUID: "1", Record: storage.Record{ShortURL: "4rSPg8ap", OriginalURL: "http://yandex.ru"}},
+					{UUID: "2", Record: storage.Record{ShortURL: "edVPg3ks", OriginalURL: "http://ya.ru"}},
 				},
 			},
 			args: args{
@@ -311,9 +312,9 @@ func TestFileRepository_SaveURLs(t *testing.T) {
 			name: "Existing IDs",
 			fields: fields{
 				records: []URLRecord{
-					{UUID: "1", Record: Record{ShortURL: "4rSPg8ap", OriginalURL: "http://yandex.ru"}},
-					{UUID: "2", Record: Record{ShortURL: "edVPg3ks", OriginalURL: "http://ya.ru"}},
-					{UUID: "3", Record: Record{ShortURL: "dG56Hqxm", OriginalURL: "http://practicum.yandex.ru"}},
+					{UUID: "1", Record: storage.Record{ShortURL: "4rSPg8ap", OriginalURL: "http://yandex.ru"}},
+					{UUID: "2", Record: storage.Record{ShortURL: "edVPg3ks", OriginalURL: "http://ya.ru"}},
+					{UUID: "3", Record: storage.Record{ShortURL: "dG56Hqxm", OriginalURL: "http://practicum.yandex.ru"}},
 				},
 			},
 			args: args{
@@ -366,7 +367,7 @@ func TestFileRepository_DeleteByShortURLs(t *testing.T) {
 			name: "One record - deleted successfully",
 			records: []URLRecord{
 				{
-					Record: Record{
+					Record: storage.Record{
 						ShortURL:    "123",
 						OriginalURL: "http://example.com",
 						UserID:      userID,
@@ -379,7 +380,7 @@ func TestFileRepository_DeleteByShortURLs(t *testing.T) {
 			},
 			wantRecords: []URLRecord{
 				{
-					Record: Record{
+					Record: storage.Record{
 						ShortURL:    "123",
 						OriginalURL: "http://example.com",
 						UserID:      userID,
@@ -392,7 +393,7 @@ func TestFileRepository_DeleteByShortURLs(t *testing.T) {
 			name: "UserID not match",
 			records: []URLRecord{
 				{
-					Record: Record{
+					Record: storage.Record{
 						ShortURL:    "123",
 						OriginalURL: "http://example.com",
 						UserID:      userID,
@@ -405,7 +406,7 @@ func TestFileRepository_DeleteByShortURLs(t *testing.T) {
 			},
 			wantRecords: []URLRecord{
 				{
-					Record: Record{
+					Record: storage.Record{
 						ShortURL:    "123",
 						OriginalURL: "http://example.com",
 						UserID:      userID,
@@ -418,7 +419,7 @@ func TestFileRepository_DeleteByShortURLs(t *testing.T) {
 			name: "Delete some",
 			records: []URLRecord{
 				{
-					Record: Record{
+					Record: storage.Record{
 						ShortURL:    "123",
 						OriginalURL: "http://example.com",
 						UserID:      userID,
@@ -426,7 +427,7 @@ func TestFileRepository_DeleteByShortURLs(t *testing.T) {
 					},
 				},
 				{
-					Record: Record{
+					Record: storage.Record{
 						ShortURL:    "456",
 						OriginalURL: "http://ya.ru",
 						UserID:      userID,
@@ -434,7 +435,7 @@ func TestFileRepository_DeleteByShortURLs(t *testing.T) {
 					},
 				},
 				{
-					Record: Record{
+					Record: storage.Record{
 						ShortURL:    "789",
 						OriginalURL: "http://avito.ru",
 						UserID:      userID,
@@ -448,7 +449,7 @@ func TestFileRepository_DeleteByShortURLs(t *testing.T) {
 			},
 			wantRecords: []URLRecord{
 				{
-					Record: Record{
+					Record: storage.Record{
 						ShortURL:    "123",
 						OriginalURL: "http://example.com",
 						UserID:      userID,
@@ -456,7 +457,7 @@ func TestFileRepository_DeleteByShortURLs(t *testing.T) {
 					},
 				},
 				{
-					Record: Record{
+					Record: storage.Record{
 						ShortURL:    "456",
 						OriginalURL: "http://ya.ru",
 						UserID:      userID,
@@ -464,7 +465,7 @@ func TestFileRepository_DeleteByShortURLs(t *testing.T) {
 					},
 				},
 				{
-					Record: Record{
+					Record: storage.Record{
 						ShortURL:    "789",
 						OriginalURL: "http://avito.ru",
 						UserID:      userID,
@@ -477,7 +478,7 @@ func TestFileRepository_DeleteByShortURLs(t *testing.T) {
 			name: "Delete all",
 			records: []URLRecord{
 				{
-					Record: Record{
+					Record: storage.Record{
 						ShortURL:    "123",
 						OriginalURL: "http://example.com",
 						UserID:      userID,
@@ -485,7 +486,7 @@ func TestFileRepository_DeleteByShortURLs(t *testing.T) {
 					},
 				},
 				{
-					Record: Record{
+					Record: storage.Record{
 						ShortURL:    "456",
 						OriginalURL: "http://ya.ru",
 						UserID:      userID,
@@ -493,7 +494,7 @@ func TestFileRepository_DeleteByShortURLs(t *testing.T) {
 					},
 				},
 				{
-					Record: Record{
+					Record: storage.Record{
 						ShortURL:    "789",
 						OriginalURL: "http://avito.ru",
 						UserID:      userID,
@@ -507,7 +508,7 @@ func TestFileRepository_DeleteByShortURLs(t *testing.T) {
 			},
 			wantRecords: []URLRecord{
 				{
-					Record: Record{
+					Record: storage.Record{
 						ShortURL:    "123",
 						OriginalURL: "http://example.com",
 						UserID:      userID,
@@ -515,7 +516,7 @@ func TestFileRepository_DeleteByShortURLs(t *testing.T) {
 					},
 				},
 				{
-					Record: Record{
+					Record: storage.Record{
 						ShortURL:    "456",
 						OriginalURL: "http://ya.ru",
 						UserID:      userID,
@@ -523,7 +524,7 @@ func TestFileRepository_DeleteByShortURLs(t *testing.T) {
 					},
 				},
 				{
-					Record: Record{
+					Record: storage.Record{
 						ShortURL:    "789",
 						OriginalURL: "http://avito.ru",
 						UserID:      userID,
@@ -558,7 +559,7 @@ func TestFileRepository_RetrieveUserURLs(t *testing.T) {
 		name        string
 		records     []URLRecord
 		args        args
-		wantRecords []Record
+		wantRecords []storage.Record
 	}{
 		{
 			name:    "Empty repo",
@@ -566,13 +567,13 @@ func TestFileRepository_RetrieveUserURLs(t *testing.T) {
 			args: args{
 				userID: userID,
 			},
-			wantRecords: []Record{},
+			wantRecords: []storage.Record{},
 		},
 		{
 			name: "One record",
 			records: []URLRecord{
 				{
-					Record: Record{
+					Record: storage.Record{
 						ShortURL:    "123",
 						OriginalURL: "http://example.com",
 						UserID:      userID,
@@ -582,7 +583,7 @@ func TestFileRepository_RetrieveUserURLs(t *testing.T) {
 			args: args{
 				userID: userID,
 			},
-			wantRecords: []Record{
+			wantRecords: []storage.Record{
 				{
 					ShortURL:    "123",
 					OriginalURL: "http://example.com",
@@ -594,7 +595,7 @@ func TestFileRepository_RetrieveUserURLs(t *testing.T) {
 			name: "UserID not match",
 			records: []URLRecord{
 				{
-					Record: Record{
+					Record: storage.Record{
 						ShortURL:    "123",
 						OriginalURL: "http://example.com",
 						UserID:      userID,
@@ -604,7 +605,7 @@ func TestFileRepository_RetrieveUserURLs(t *testing.T) {
 			args: args{
 				userID: uuid.New(),
 			},
-			wantRecords: []Record{},
+			wantRecords: []storage.Record{},
 		},
 	}
 	for _, tt := range tests {

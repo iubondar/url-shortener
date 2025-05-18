@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/iubondar/url-shortener/internal/app/auth"
 	"github.com/iubondar/url-shortener/internal/app/storage"
+	simple_storage "github.com/iubondar/url-shortener/internal/app/storage/simple"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -26,7 +27,7 @@ func ExampleDeleteUrlsHandler_DeleteUserURLs() {
 	w := httptest.NewRecorder()
 
 	// Инициализируем репозиторий и обработчик
-	repo := &storage.SimpleRepository{}
+	repo := &simple_storage.SimpleRepository{}
 	handler := NewDeleteUrlsHandler(repo)
 
 	// Вызываем обработчик
@@ -120,7 +121,7 @@ func TestDeleteUrlsHandler_DeleteUserURLs(t *testing.T) {
 			request.AddCookie(authCookie)
 
 			w := httptest.NewRecorder()
-			repo := storage.SimpleRepository{
+			repo := simple_storage.SimpleRepository{
 				Records: test.records,
 			}
 			handler := NewDeleteUrlsHandler(&repo)

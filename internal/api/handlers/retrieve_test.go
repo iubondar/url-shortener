@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	"github.com/iubondar/url-shortener/internal/app/storage"
+	simple_storage "github.com/iubondar/url-shortener/internal/app/storage/simple"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -33,7 +34,7 @@ func ExampleRetrieveURLHandler_RetrieveURL() {
 	request = withURLParam(request, "id", "123")
 
 	// Создаем репозиторий с тестовыми данными
-	repo := &storage.SimpleRepository{
+	repo := &simple_storage.SimpleRepository{
 		Records: []storage.Record{
 			{
 				ShortURL:    "123",
@@ -122,7 +123,7 @@ func TestRetrieveURLHandler_RetrieveURL(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			repo := storage.SimpleRepository{
+			repo := simple_storage.SimpleRepository{
 				Records: []storage.Record{
 					{
 						ShortURL:    "123",
@@ -162,7 +163,7 @@ func TestRetrieveURLHandler_RetrieveURL(t *testing.T) {
 }
 
 func TestRetrieveURLHandler_WithNoIdParameter(t *testing.T) {
-	repo := storage.SimpleRepository{
+	repo := simple_storage.SimpleRepository{
 		Records: []storage.Record{
 			{
 				ShortURL:    "123",
@@ -186,7 +187,7 @@ func TestRetrieveURLHandler_WithNoIdParameter(t *testing.T) {
 }
 
 func TestRetrieveURLHandler_WithNoURL(t *testing.T) {
-	handler := NewRetrieveURLHandler(storage.NewSimpleRepository())
+	handler := NewRetrieveURLHandler(simple_storage.NewSimpleRepository())
 	request := httptest.NewRequest(http.MethodGet, "/", nil)
 	request.SetPathValue("id", "123")
 

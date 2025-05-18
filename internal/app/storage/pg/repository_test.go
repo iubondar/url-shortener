@@ -1,4 +1,4 @@
-package storage
+package pg
 
 import (
 	"context"
@@ -13,6 +13,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose"
 
+	"github.com/iubondar/url-shortener/internal/app/storage"
 	"github.com/iubondar/url-shortener/internal/app/storage/testhelpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -480,7 +481,7 @@ func (suite *PGRepoTestSuite) TestRetrieveUserURLs() {
 		name          string
 		execStatement string
 		args          args
-		wantRecords   []Record
+		wantRecords   []storage.Record
 	}{
 		{
 			name:          "Empty repo",
@@ -488,7 +489,7 @@ func (suite *PGRepoTestSuite) TestRetrieveUserURLs() {
 			args: args{
 				userID: userID,
 			},
-			wantRecords: []Record{},
+			wantRecords: []storage.Record{},
 		},
 		{
 			name: "One record",
@@ -497,7 +498,7 @@ func (suite *PGRepoTestSuite) TestRetrieveUserURLs() {
 			args: args{
 				userID: userID,
 			},
-			wantRecords: []Record{
+			wantRecords: []storage.Record{
 				{
 					ShortURL:    "4rSPg8ap",
 					OriginalURL: "http://yandex.ru",
@@ -512,7 +513,7 @@ func (suite *PGRepoTestSuite) TestRetrieveUserURLs() {
 			args: args{
 				userID: userID,
 			},
-			wantRecords: []Record{
+			wantRecords: []storage.Record{
 				{
 					ShortURL:    "4rSPg8ap",
 					OriginalURL: "http://yandex.ru",

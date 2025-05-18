@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/iubondar/url-shortener/internal/app/storage"
+	simple_storage "github.com/iubondar/url-shortener/internal/app/storage/simple"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -29,7 +30,7 @@ func ExampleShortenBatchHandler_ShortenBatch() {
 	w := httptest.NewRecorder()
 
 	// Инициализируем репозиторий и обработчик
-	repo := &storage.SimpleRepository{}
+	repo := &simple_storage.SimpleRepository{}
 	handler := NewShortenBatchHandler(repo, "127.0.0.1")
 
 	// Вызываем обработчик
@@ -170,7 +171,7 @@ func TestShortenBatchHandler_ShortenBatch(t *testing.T) {
 			request := httptest.NewRequest(test.method, "/shorten/batch", bytes.NewReader(jsonIn))
 			// создаём новый Recorder
 			w := httptest.NewRecorder()
-			repo := storage.SimpleRepository{
+			repo := simple_storage.SimpleRepository{
 				Records: test.fields.records,
 			}
 			handler := NewShortenBatchHandler(&repo, "127.0.0.1")
