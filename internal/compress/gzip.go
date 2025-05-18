@@ -40,9 +40,10 @@ type gzipWriter struct {
 // newGzipWriter создает новый экземпляр gzipWriter.
 // Оборачивает http.ResponseWriter для сжатия исходящего трафика.
 func newGzipWriter(w http.ResponseWriter) *gzipWriter {
+	zw, _ := gzip.NewWriterLevel(w, gzip.BestSpeed)
 	return &gzipWriter{
 		w:  w,
-		zw: gzip.NewWriter(w),
+		zw: zw,
 	}
 }
 

@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -50,19 +49,11 @@ func (handler ShortenBatchHandler) ShortenBatch(res http.ResponseWriter, req *ht
 	}
 
 	var in []ShortenBatchIn
-	var buf bytes.Buffer
-	// читаем тело запроса
-	_, err := buf.ReadFrom(req.Body)
-	if err != nil {
+	if err := json.NewDecoder(req.Body).Decode(&in); err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// десериализуем JSON
-	if err = json.Unmarshal(buf.Bytes(), &in); err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
-		return
-	}
 	urls := make([]string, 0, len(in))
 	for _, elem := range in {
 		// Проверяем URL
@@ -89,13 +80,10 @@ func (handler ShortenBatchHandler) ShortenBatch(res http.ResponseWriter, req *ht
 		out = append(out, outElem)
 	}
 
-	resp, err := json.Marshal(out)
-	if err != nil {
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(res).Encode(out); err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	res.Header().Set("Content-Type", "application/json")
-	res.WriteHeader(http.StatusCreated)
-	res.Write(resp)
 }

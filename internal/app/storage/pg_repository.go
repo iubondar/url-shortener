@@ -29,6 +29,9 @@ const defaultDeletionInterval = 5 * time.Second
 type PGRepository struct {
 	db          *sql.DB       // соединение с базой данных
 	deleteQueue chan deleteIn // очередь для удаления URL
+	insertStmt  *sql.Stmt     // подготовленный запрос для вставки URL
+	getURLStmt  *sql.Stmt     // подготовленный запрос для получения URL
+	deleteStmt  *sql.Stmt     // подготовленный запрос для удаления URL
 }
 
 // NewPGRepository создает новый экземпляр PGRepository.
@@ -39,9 +42,28 @@ func NewPGRepository(db *sql.DB, deletionInterval time.Duration) (*PGRepository,
 		deletionInterval = defaultDeletionInterval
 	}
 
+	// Подготавливаем запросы
+	insertStmt, err := db.Prepare(queries.InsertURL)
+	if err != nil {
+		return nil, fmt.Errorf("prepare insert statement: %w", err)
+	}
+
+	getURLStmt, err := db.Prepare(queries.GetShortURL)
+	if err != nil {
+		return nil, fmt.Errorf("prepare get URL statement: %w", err)
+	}
+
+	deleteStmt, err := db.Prepare(queries.DeleteUserURL)
+	if err != nil {
+		return nil, fmt.Errorf("prepare delete statement: %w", err)
+	}
+
 	instance := &PGRepository{
 		db:          db,
 		deleteQueue: make(chan deleteIn, 64),
+		insertStmt:  insertStmt,
+		getURLStmt:  getURLStmt,
+		deleteStmt:  deleteStmt,
 	}
 
 	go instance.flushDeletions(deletionInterval)
@@ -55,12 +77,11 @@ func NewPGRepository(db *sql.DB, deletionInterval time.Duration) (*PGRepository,
 func (repo *PGRepository) SaveURL(ctx context.Context, userID uuid.UUID, url string) (id string, exists bool, err error) {
 	// создаём идентификатор и добавляем запись
 	id = strings.RandString(idLength)
-	_, err = repo.db.ExecContext(ctx, queries.InsertURL, id, url, userID)
+	_, err = repo.insertStmt.ExecContext(ctx, id, url, userID)
 	if err != nil {
 		// Если URL уже был сохранён - возвращаем имеющееся значение
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
-
 			shortURL, err := repo.getShortURLByOriginalURL(ctx, url)
 			if err != nil {
 				zap.L().Sugar().Debugln("Error getting short URL:", err.Error())
@@ -83,9 +104,7 @@ func (repo *PGRepository) SaveURL(ctx context.Context, userID uuid.UUID, url str
 // getShortURLByOriginalURL получает короткий идентификатор по оригинальному URL.
 // Возвращает короткий идентификатор и ошибку. Если URL не найден, возвращает пустую строку и nil.
 func (repo *PGRepository) getShortURLByOriginalURL(ctx context.Context, url string) (shortURL string, err error) {
-	row := repo.db.QueryRowContext(ctx, queries.GetShortURL, url)
-
-	err = row.Scan(&shortURL)
+	err = repo.getURLStmt.QueryRowContext(ctx, url).Scan(&shortURL)
 
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", nil
@@ -231,10 +250,7 @@ func (repo *PGRepository) markAsDeleted(ctx context.Context, deletions ...delete
 	// если Commit будет раньше, то откат проигнорируется
 	defer tx.Rollback()
 
-	stmt, err := tx.PrepareContext(ctx, queries.DeleteUserURL)
-	if err != nil {
-		return err
-	}
+	stmt := tx.Stmt(repo.deleteStmt)
 	defer stmt.Close()
 
 	for _, deleteIn := range deletions {

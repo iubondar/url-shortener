@@ -11,6 +11,16 @@ import (
 	"go.uber.org/zap"
 )
 
+var globalLogger *zap.Logger
+
+func init() {
+	var err error
+	globalLogger, err = zap.NewDevelopment()
+	if err != nil {
+		log.Fatalf("can't initialize zap logger: %v", err)
+	}
+}
+
 type (
 	// responseData хранит информацию об ответе сервера
 	responseData struct {
@@ -52,15 +62,9 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 //
 // Использует zap для структурированного логирования в режиме разработки.
 func WithLogging(h http.Handler) http.Handler {
+	sugar := globalLogger.Sugar()
+
 	logFn := func(w http.ResponseWriter, r *http.Request) {
-		logger, err := zap.NewDevelopment()
-		if err != nil {
-			log.Fatalf("can't initialize zap logger: %v", err)
-		}
-		defer logger.Sync()
-
-		sugar := *logger.Sugar()
-
 		start := time.Now()
 
 		responseData := &responseData{
