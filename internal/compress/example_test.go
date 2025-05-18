@@ -8,10 +8,10 @@ import (
 	"net/http/httptest"
 )
 
-// ExampleWithGzipCompression демонстрирует базовое использование middleware для сжатия.
+// Example демонстрирует базовое использование middleware для сжатия.
 // Пример показывает, как middleware автоматически сжимает ответ сервера,
 // если клиент поддерживает gzip-сжатие.
-func ExampleWithGzipCompression() {
+func Example() {
 	// Создаем простой обработчик, который возвращает JSON
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(contentType, "application/json")
@@ -63,10 +63,10 @@ func ExampleWithGzipCompression() {
 	// Output:
 }
 
-// ExampleWithGzipCompression_compressedRequest демонстрирует обработку сжатых запросов.
+// Example_compressedRequest демонстрирует обработку сжатых запросов.
 // Пример показывает, как middleware автоматически распаковывает входящие запросы,
 // если они сжаты с помощью gzip.
-func ExampleWithGzipCompression_compressedRequest() {
+func Example_compressedRequest() {
 	// Создаем простой обработчик, который читает тело запроса
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
