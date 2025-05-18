@@ -1,3 +1,6 @@
+// Package config предоставляет функциональность для загрузки и управления конфигурацией приложения.
+// Поддерживает загрузку конфигурации из переменных окружения и флагов командной строки.
+// Приоритет: переменные окружения > флаги командной строки > значения по умолчанию.
 package config
 
 import (
@@ -7,11 +10,13 @@ import (
 	"github.com/caarlos0/env"
 )
 
+// Config представляет структуру конфигурации приложения.
+// Все поля могут быть установлены через переменные окружения или флаги командной строки.
 type Config struct {
-	ServerAddress   string `env:"SERVER_ADDRESS"`
-	BaseURLAddress  string `env:"BASE_URL"`
-	FileStoragePath string `env:"FILE_STORAGE_PATH"`
-	DatabaseDSN     string `env:"DATABASE_DSN"`
+	ServerAddress   string `env:"SERVER_ADDRESS"`    // адрес, на котором будет запущен сервер
+	BaseURLAddress  string `env:"BASE_URL"`          // базовый URL для формирования коротких ссылок
+	FileStoragePath string `env:"FILE_STORAGE_PATH"` // путь к файлу хранилища
+	DatabaseDSN     string `env:"DATABASE_DSN"`      // строка подключения к базе данных
 }
 
 const (
@@ -20,6 +25,10 @@ const (
 	localDatabaseDSN   = "host=localhost user=newuser password=password dbname=url_shortener sslmode=disable" // для локальной разработки
 )
 
+// NewConfig создает новую конфигурацию приложения.
+// Загружает значения из флагов командной строки и переменных окружения.
+// Приоритет: переменные окружения > флаги командной строки > значения по умолчанию.
+// Возвращает указатель на Config и ошибку, если она возникла.
 func NewConfig(progname string, args []string) (*Config, error) {
 	var c Config
 
@@ -46,6 +55,9 @@ func NewConfig(progname string, args []string) (*Config, error) {
 	return &c, nil
 }
 
+// defaultDatabaseDSN возвращает строку подключения к базе данных по умолчанию.
+// Для локальной разработки возвращает предустановленное значение,
+// иначе возвращает пустую строку.
 func defaultDatabaseDSN() string {
 	if isRunningLocally() {
 		return localDatabaseDSN
@@ -54,11 +66,15 @@ func defaultDatabaseDSN() string {
 	return ""
 }
 
+// isRunningInDocker проверяет, запущено ли приложение в контейнере Docker.
+// Возвращает true, если приложение запущено в Docker.
 func isRunningInDocker() bool {
 	_, err := os.Stat("/.dockerenv")
 	return err == nil
 }
 
+// isRunningLocally проверяет, запущено ли приложение локально.
+// Возвращает true, если приложение запущено не в Docker.
 func isRunningLocally() bool {
 	return !isRunningInDocker()
 }
