@@ -1,3 +1,4 @@
+// Package storage предоставляет интерфейсы и реализации для хранения и управления URL-ссылками.
 package storage
 
 import (
@@ -12,11 +13,16 @@ import (
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
 
+// DB представляет соединение с базой данных и репозиторий для работы с URL.
 type DB struct {
-	SQLDB *sql.DB
-	Repo  Repository
+	SQLDB *sql.DB    // соединение с базой данных
+	Repo  Repository // репозиторий для работы с URL
 }
 
+// NewDB создает новое соединение с базой данных и инициализирует репозиторий.
+// Выполняет миграции базы данных при первом запуске.
+// Принимает строку подключения к базе данных.
+// Возвращает указатель на DB и ошибку, если она возникла.
 func NewDB(dsn string) (db *DB, err error) {
 	pgx, err := sql.Open("pgx", dsn)
 	if err != nil {

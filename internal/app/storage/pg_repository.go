@@ -1,3 +1,4 @@
+// Package storage предоставляет интерфейсы и реализации для хранения и управления URL-ссылками.
 package storage
 
 import (
@@ -15,18 +16,24 @@ import (
 	"go.uber.org/zap"
 )
 
+// deleteIn представляет структуру для удаления URL.
 type deleteIn struct {
-	shortURL string
-	userID   uuid.UUID
+	shortURL string    // короткий идентификатор URL
+	userID   uuid.UUID // идентификатор пользователя
 }
 
 const defaultDeletionInterval = 5 * time.Second
 
+// PGRepository реализует хранилище URL на базе PostgreSQL.
+// Поддерживает асинхронное удаление URL через очередь.
 type PGRepository struct {
-	db          *sql.DB
-	deleteQueue chan deleteIn
+	db          *sql.DB       // соединение с базой данных
+	deleteQueue chan deleteIn // очередь для удаления URL
 }
 
+// NewPGRepository создает новый экземпляр PGRepository.
+// Принимает соединение с базой данных и интервал для асинхронного удаления. Если интервал не указан, используется значение по умолчанию.
+// Возвращает указатель на PGRepository и ошибку, если она возникла.
 func NewPGRepository(db *sql.DB, deletionInterval time.Duration) (*PGRepository, error) {
 	if deletionInterval == 0 {
 		deletionInterval = defaultDeletionInterval
@@ -42,6 +49,9 @@ func NewPGRepository(db *sql.DB, deletionInterval time.Duration) (*PGRepository,
 	return instance, nil
 }
 
+// SaveURL сохраняет URL в базе данных.
+// Если URL уже существует, возвращает его короткий идентификатор.
+// Возвращает короткий идентификатор, флаг существования и ошибку.
 func (repo *PGRepository) SaveURL(ctx context.Context, userID uuid.UUID, url string) (id string, exists bool, err error) {
 	// создаём идентификатор и добавляем запись
 	id = strings.RandString(idLength)
@@ -70,7 +80,8 @@ func (repo *PGRepository) SaveURL(ctx context.Context, userID uuid.UUID, url str
 	return id, false, nil
 }
 
-// Возвращает короткий URL если он уже есть в БД, иначе пустую строку
+// getShortURLByOriginalURL получает короткий идентификатор по оригинальному URL.
+// Возвращает короткий идентификатор и ошибку. Если URL не найден, возвращает пустую строку и nil.
 func (repo *PGRepository) getShortURLByOriginalURL(ctx context.Context, url string) (shortURL string, err error) {
 	row := repo.db.QueryRowContext(ctx, queries.GetShortURL, url)
 
@@ -83,6 +94,8 @@ func (repo *PGRepository) getShortURLByOriginalURL(ctx context.Context, url stri
 	return shortURL, err
 }
 
+// RetrieveByShortURL получает запись по короткому идентификатору.
+// Возвращает запись и ошибку. Если запись не найдена, возвращает ошибку ErrorNotFound.
 func (repo *PGRepository) RetrieveByShortURL(ctx context.Context, shortURL string) (record Record, err error) {
 	row := repo.db.QueryRowContext(ctx, queries.GetByShortURL, shortURL)
 
@@ -95,12 +108,15 @@ func (repo *PGRepository) RetrieveByShortURL(ctx context.Context, shortURL strin
 	return
 }
 
+// CheckStatus проверяет состояние хранилища.
+// Возвращает ошибку, если база данных недоступна.
 func (repo *PGRepository) CheckStatus(ctx context.Context) error {
 	return repo.db.PingContext(ctx)
 }
 
-// Сохраняем массив URL в одной транзакции
-// Если хотя бы один из URL не валиден - откатываем транзакцию и возвращаем ошибку
+// SaveURLs сохраняет массив URL в базе данных в одной транзакции.
+// Если хотя бы один URL невалиден, откатывает транзакцию.
+// Возвращает массив коротких идентификаторов и ошибку.
 func (repo *PGRepository) SaveURLs(ctx context.Context, urls []string) (ids []string, err error) {
 	tx, err := repo.db.Begin()
 	if err != nil {
@@ -139,6 +155,8 @@ func (repo *PGRepository) SaveURLs(ctx context.Context, urls []string) (ids []st
 	return ids, tx.Commit()
 }
 
+// RetrieveUserURLs получает все URL пользователя.
+// Возвращает массив записей и ошибку.
 func (repo *PGRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID) (records []Record, err error) {
 	rows, err := repo.db.QueryContext(ctx, queries.GetUserUrls, userID.String())
 	if err != nil {
@@ -167,13 +185,16 @@ func (repo *PGRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID
 	return records, nil
 }
 
+// DeleteByShortURLs помечает URL как удаленные.
+// Добавляет URL в очередь для асинхронного удаления.
 func (repo *PGRepository) DeleteByShortURLs(ctx context.Context, userID uuid.UUID, shortURLs []string) {
 	for _, shortURL := range shortURLs {
 		repo.deleteQueue <- deleteIn{shortURL: shortURL, userID: userID}
 	}
 }
 
-// flushDeletions периодически сохраняет накопленные в очереди удаления в БД
+// flushDeletions периодически сохраняет накопленные в очереди удаления в базе данных.
+// Запускается в отдельной горутине при создании репозитория.
 func (repo *PGRepository) flushDeletions(deletionInterval time.Duration) {
 	ticker := time.NewTicker(deletionInterval)
 
@@ -200,6 +221,8 @@ func (repo *PGRepository) flushDeletions(deletionInterval time.Duration) {
 	}
 }
 
+// markAsDeleted помечает URL как удаленные в базе данных.
+// Выполняется в рамках транзакции.
 func (repo *PGRepository) markAsDeleted(ctx context.Context, deletions ...deleteIn) error {
 	tx, err := repo.db.Begin()
 	if err != nil {

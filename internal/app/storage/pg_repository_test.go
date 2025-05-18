@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"slices"
 	"testing"
@@ -17,6 +18,151 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
+
+// ExamplePGRepository_SaveURL демонстрирует сохранение URL в PostgreSQL хранилище.
+func ExamplePGRepository_SaveURL() {
+	// Создаем тестовый контейнер с PostgreSQL
+	ctx := context.Background()
+	pgContainer, err := testhelpers.CreatePostgresContainer(ctx)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	defer pgContainer.Terminate(ctx)
+
+	// Подключаемся к базе данных
+	db, err := sql.Open("pgx", pgContainer.ConnectionString)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	defer db.Close()
+
+	// Выполняем миграции
+	goose.SetDialect("postgres")
+	err = goose.Up(db, "./migrations")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	// Создаем репозиторий
+	repo, err := NewPGRepository(db, 30*time.Millisecond)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	// Сохраняем URL
+	id, exists, err := repo.SaveURL(ctx, testhelpers.TestUUID, "http://example.com")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	// Выводим результат
+	fmt.Printf("ID length: %d, Exists: %v\n", len(id), exists)
+	// Output: ID length: 8, Exists: false
+}
+
+// ExamplePGRepository_RetrieveByShortURL демонстрирует получение URL по короткому идентификатору.
+func ExamplePGRepository_RetrieveByShortURL() {
+	// Создаем тестовый контейнер с PostgreSQL
+	ctx := context.Background()
+	pgContainer, err := testhelpers.CreatePostgresContainer(ctx)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	defer pgContainer.Terminate(ctx)
+
+	// Подключаемся к базе данных
+	db, err := sql.Open("pgx", pgContainer.ConnectionString)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	defer db.Close()
+
+	// Выполняем миграции
+	goose.SetDialect("postgres")
+	err = goose.Up(db, "./migrations")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	// Создаем репозиторий
+	repo, err := NewPGRepository(db, 30*time.Millisecond)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	// Сохраняем URL
+	id, _, _ := repo.SaveURL(ctx, testhelpers.TestUUID, "http://example.com")
+
+	// Получаем запись по короткому идентификатору
+	record, err := repo.RetrieveByShortURL(ctx, id)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	// Выводим результат
+	fmt.Printf("Original URL: %s\n", record.OriginalURL)
+	// Output: Original URL: http://example.com
+}
+
+// ExamplePGRepository_RetrieveUserURLs демонстрирует получение всех URL пользователя.
+func ExamplePGRepository_RetrieveUserURLs() {
+	// Создаем тестовый контейнер с PostgreSQL
+	ctx := context.Background()
+	pgContainer, err := testhelpers.CreatePostgresContainer(ctx)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	defer pgContainer.Terminate(ctx)
+
+	// Подключаемся к базе данных
+	db, err := sql.Open("pgx", pgContainer.ConnectionString)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	defer db.Close()
+
+	// Выполняем миграции
+	goose.SetDialect("postgres")
+	err = goose.Up(db, "./migrations")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	// Создаем репозиторий
+	repo, err := NewPGRepository(db, 30*time.Millisecond)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	// Сохраняем несколько URL
+	repo.SaveURL(ctx, testhelpers.TestUUID, "http://example.com")
+	repo.SaveURL(ctx, testhelpers.TestUUID, "http://example.org")
+
+	// Получаем все URL пользователя
+	records, err := repo.RetrieveUserURLs(ctx, testhelpers.TestUUID)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	// Выводим количество найденных URL
+	fmt.Printf("Found %d URLs\n", len(records))
+	// Output: Found 2 URLs
+}
 
 type PGRepoTestSuite struct {
 	suite.Suite
