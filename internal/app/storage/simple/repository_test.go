@@ -650,7 +650,7 @@ func BenchmarkSimpleRepository_DeleteByShortURLs(b *testing.B) {
 
 	// Подготовка данных
 	var shortURLs []string
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		id, _, _ := repo.SaveURL(ctx, userID, "http://example.com")
 		shortURLs = append(shortURLs, id)
 	}
@@ -667,7 +667,7 @@ func BenchmarkSimpleRepository_SaveURLs(b *testing.B) {
 	ctx := context.Background()
 
 	urls := make([]string, 100)
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		urls[i] = "http://example.com"
 	}
 
