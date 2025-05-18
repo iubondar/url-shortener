@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 	"slices"
 	"testing"
 	"time"
@@ -17,45 +18,70 @@ import (
 	"github.com/iubondar/url-shortener/internal/app/storage/testhelpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
 )
 
-// ExamplePGRepository_SaveURL демонстрирует сохранение URL в PostgreSQL хранилище.
-func ExamplePGRepository_SaveURL() {
-	// Создаем тестовый контейнер с PostgreSQL
+var (
+	repo        *PGRepository
+	cleanup     func()
+	pgContainer *testhelpers.PostgresContainer
+)
+
+func init() {
 	ctx := context.Background()
 	pgContainer, err := testhelpers.CreatePostgresContainer(ctx)
 	if err != nil {
-		fmt.Println("Error:", err)
-		return
+		log.Fatalf("Failed to create postgres container: %v", err)
 	}
-	defer pgContainer.Terminate(ctx)
 
-	// Подключаемся к базе данных
 	db, err := sql.Open("pgx", pgContainer.ConnectionString)
 	if err != nil {
-		fmt.Println("Error:", err)
-		return
+		pgContainer.Terminate(ctx)
+		log.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
 
-	// Выполняем миграции
 	goose.SetDialect("postgres")
 	err = goose.Up(db, "./migrations")
 	if err != nil {
-		fmt.Println("Error:", err)
-		return
+		db.Close()
+		pgContainer.Terminate(ctx)
+		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
-	// Создаем репозиторий
-	repo, err := NewPGRepository(db, 30*time.Millisecond)
+	repo, err = NewPGRepository(db, 30*time.Millisecond)
 	if err != nil {
-		fmt.Println("Error:", err)
-		return
+		db.Close()
+		pgContainer.Terminate(ctx)
+		log.Fatalf("Failed to create repository: %v", err)
 	}
+
+	cleanup = func() {
+		_, err := repo.db.ExecContext(context.Background(), "TRUNCATE TABLE urls;")
+		if err != nil {
+			log.Printf("Failed to clear urls table: %v", err)
+		}
+	}
+}
+
+func TestMain(m *testing.M) {
+	// Запускаем все тесты и примеры
+	code := m.Run()
+
+	// Очищаем ресурсы после завершения всех тестов
+	if pgContainer != nil {
+		if err := pgContainer.Terminate(context.Background()); err != nil {
+			log.Printf("Failed to terminate postgres container: %v", err)
+		}
+	}
+
+	os.Exit(code)
+}
+
+// ExamplePGRepository_SaveURL демонстрирует сохранение URL в PostgreSQL хранилище.
+func ExamplePGRepository_SaveURL() {
+	cleanup()
 
 	// Сохраняем URL
-	id, exists, err := repo.SaveURL(ctx, testhelpers.TestUUID, "http://example.com")
+	id, exists, err := repo.SaveURL(context.Background(), testhelpers.TestUUID, "http://example.com")
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
@@ -68,43 +94,13 @@ func ExamplePGRepository_SaveURL() {
 
 // ExamplePGRepository_RetrieveByShortURL демонстрирует получение URL по короткому идентификатору.
 func ExamplePGRepository_RetrieveByShortURL() {
-	// Создаем тестовый контейнер с PostgreSQL
-	ctx := context.Background()
-	pgContainer, err := testhelpers.CreatePostgresContainer(ctx)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-	defer pgContainer.Terminate(ctx)
-
-	// Подключаемся к базе данных
-	db, err := sql.Open("pgx", pgContainer.ConnectionString)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-	defer db.Close()
-
-	// Выполняем миграции
-	goose.SetDialect("postgres")
-	err = goose.Up(db, "./migrations")
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-
-	// Создаем репозиторий
-	repo, err := NewPGRepository(db, 30*time.Millisecond)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
+	cleanup()
 
 	// Сохраняем URL
-	id, _, _ := repo.SaveURL(ctx, testhelpers.TestUUID, "http://example.com")
+	id, _, _ := repo.SaveURL(context.Background(), testhelpers.TestUUID, "http://example.com")
 
 	// Получаем запись по короткому идентификатору
-	record, err := repo.RetrieveByShortURL(ctx, id)
+	record, err := repo.RetrieveByShortURL(context.Background(), id)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
@@ -117,44 +113,14 @@ func ExamplePGRepository_RetrieveByShortURL() {
 
 // ExamplePGRepository_RetrieveUserURLs демонстрирует получение всех URL пользователя.
 func ExamplePGRepository_RetrieveUserURLs() {
-	// Создаем тестовый контейнер с PostgreSQL
-	ctx := context.Background()
-	pgContainer, err := testhelpers.CreatePostgresContainer(ctx)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-	defer pgContainer.Terminate(ctx)
-
-	// Подключаемся к базе данных
-	db, err := sql.Open("pgx", pgContainer.ConnectionString)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-	defer db.Close()
-
-	// Выполняем миграции
-	goose.SetDialect("postgres")
-	err = goose.Up(db, "./migrations")
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-
-	// Создаем репозиторий
-	repo, err := NewPGRepository(db, 30*time.Millisecond)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
+	cleanup()
 
 	// Сохраняем несколько URL
-	repo.SaveURL(ctx, testhelpers.TestUUID, "http://example.com")
-	repo.SaveURL(ctx, testhelpers.TestUUID, "http://example.org")
+	repo.SaveURL(context.Background(), testhelpers.TestUUID, "http://example.com")
+	repo.SaveURL(context.Background(), testhelpers.TestUUID, "http://example.org")
 
 	// Получаем все URL пользователя
-	records, err := repo.RetrieveUserURLs(ctx, testhelpers.TestUUID)
+	records, err := repo.RetrieveUserURLs(context.Background(), testhelpers.TestUUID)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
@@ -165,69 +131,17 @@ func ExamplePGRepository_RetrieveUserURLs() {
 	// Output: Found 2 URLs
 }
 
-type PGRepoTestSuite struct {
-	suite.Suite
-	pgContainer *testhelpers.PostgresContainer
-	repo        *PGRepository
-	ctx         context.Context
-}
-
-func (suite *PGRepoTestSuite) SetupSuite() {
-	suite.ctx = context.Background()
-	pgContainer, err := testhelpers.CreatePostgresContainer(suite.ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-	suite.pgContainer = pgContainer
-
-	db, err := sql.Open("pgx", suite.pgContainer.ConnectionString)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	goose.SetDialect("postgres")
-	err = goose.Up(db, "./migrations")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	pgRepo, err := NewPGRepository(db, 30*time.Millisecond)
-	if err != nil {
-		log.Fatal(err)
-	}
-	suite.repo = pgRepo
-}
-
-func (suite *PGRepoTestSuite) TearDownSuite() {
-	if err := suite.pgContainer.Terminate(suite.ctx); err != nil {
-		log.Fatalf("error terminating postgres container: %s", err)
-	}
-}
-
-func (suite *PGRepoTestSuite) SetupTest() {
-	err := suite.clearUrlsTable()
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func (suite *PGRepoTestSuite) clearUrlsTable() error {
-	_, err := suite.repo.db.ExecContext(suite.ctx, "TRUNCATE TABLE urls;")
-	return err
-}
-
-func setupSeparateTest(t *testing.T, suite *PGRepoTestSuite, execStatement string) {
-	err := suite.clearUrlsTable()
-	require.NoError(t, err)
+func setupSeparateTest(t *testing.T, execStatement string) {
+	cleanup()
 
 	if len(execStatement) > 0 {
-		_, err := suite.repo.db.ExecContext(suite.ctx, execStatement)
+		_, err := repo.db.ExecContext(context.Background(), execStatement)
 		require.NoError(t, err)
 	}
 }
 
 // Tests are here
-func (suite *PGRepoTestSuite) TestSaveURL() {
+func TestSaveURL(t *testing.T) {
 	userID := uuid.New()
 	type args struct {
 		url string
@@ -262,12 +176,11 @@ func (suite *PGRepoTestSuite) TestSaveURL() {
 			wantErr:    false,
 		},
 	}
-	t := suite.T()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			setupSeparateTest(t, suite, tt.execStatement)
+			setupSeparateTest(t, tt.execStatement)
 
-			gotID, gotExists, err := suite.repo.SaveURL(suite.ctx, userID, tt.args.url)
+			gotID, gotExists, err := repo.SaveURL(context.Background(), userID, tt.args.url)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("PGRepoTestSuite.TestSaveURL error = %v, wantErr %v", err, tt.wantErr)
@@ -286,7 +199,7 @@ func (suite *PGRepoTestSuite) TestSaveURL() {
 	}
 }
 
-func (suite *PGRepoTestSuite) TestRetrieveByShortURL() {
+func TestRetrieveByShortURL(t *testing.T) {
 	type args struct {
 		id string
 	}
@@ -316,12 +229,11 @@ func (suite *PGRepoTestSuite) TestRetrieveByShortURL() {
 			wantErr: false,
 		},
 	}
-	t := suite.T()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			setupSeparateTest(t, suite, tt.execStatement)
+			setupSeparateTest(t, tt.execStatement)
 
-			record, err := suite.repo.RetrieveByShortURL(context.Background(), tt.args.id)
+			record, err := repo.RetrieveByShortURL(context.Background(), tt.args.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("PGRepoTestSuite.RetrieveURL error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -333,22 +245,20 @@ func (suite *PGRepoTestSuite) TestRetrieveByShortURL() {
 	}
 }
 
-func (suite *PGRepoTestSuite) TestSaveAndRetrieve() {
-	t := suite.T()
-	err := suite.clearUrlsTable()
-	require.NoError(t, err)
+func TestSaveAndRetrieve(t *testing.T) {
+	cleanup()
 
 	testURL := "http://example.com"
-	id, exists, err := suite.repo.SaveURL(suite.ctx, uuid.New(), testURL)
+	id, exists, err := repo.SaveURL(context.Background(), uuid.New(), testURL)
 	require.NoError(t, err)
 	assert.False(t, exists, "URL should not exists in DB yet")
 
-	record, err := suite.repo.RetrieveByShortURL(suite.ctx, id)
+	record, err := repo.RetrieveByShortURL(context.Background(), id)
 	require.NoError(t, err)
 	assert.Equal(t, record.OriginalURL, testURL)
 }
 
-func (suite *PGRepoTestSuite) TestSaveURLs() {
+func TestSaveURLs(t *testing.T) {
 	type args struct {
 		urls []string
 	}
@@ -388,12 +298,11 @@ func (suite *PGRepoTestSuite) TestSaveURLs() {
 			wantErr:      false,
 		},
 	}
-	t := suite.T()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			setupSeparateTest(t, suite, tt.execStatement)
+			setupSeparateTest(t, tt.execStatement)
 
-			gotIDs, err := suite.repo.SaveURLs(context.Background(), tt.args.urls)
+			gotIDs, err := repo.SaveURLs(context.Background(), tt.args.urls)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("FileRepository.SaveURLs() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -403,7 +312,7 @@ func (suite *PGRepoTestSuite) TestSaveURLs() {
 	}
 }
 
-func (suite *PGRepoTestSuite) TestDeleteByShortURLs() {
+func TestDeleteByShortURLs(t *testing.T) {
 	userID := uuid.New()
 	type args struct {
 		userID    uuid.UUID
@@ -450,17 +359,16 @@ func (suite *PGRepoTestSuite) TestDeleteByShortURLs() {
 			wantShortURLsDeleted: []string{"4rSPg8ap"},
 		},
 	}
-	t := suite.T()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			setupSeparateTest(t, suite, tt.execStatement)
+			setupSeparateTest(t, tt.execStatement)
 
-			suite.repo.DeleteByShortURLs(context.Background(), tt.args.userID, tt.args.shortURLs)
+			repo.DeleteByShortURLs(context.Background(), tt.args.userID, tt.args.shortURLs)
 
 			time.Sleep(50 * time.Millisecond)
 
 			for _, shortURL := range tt.allShortURLs {
-				record, err := suite.repo.RetrieveByShortURL(context.TODO(), shortURL)
+				record, err := repo.RetrieveByShortURL(context.TODO(), shortURL)
 				require.NoError(t, err)
 				if slices.Contains(tt.wantShortURLsDeleted, shortURL) {
 					assert.True(t, record.IsDeleted)
@@ -472,7 +380,7 @@ func (suite *PGRepoTestSuite) TestDeleteByShortURLs() {
 	}
 }
 
-func (suite *PGRepoTestSuite) TestRetrieveUserURLs() {
+func TestRetrieveUserURLs(t *testing.T) {
 	userID := uuid.New()
 	type args struct {
 		userID uuid.UUID
@@ -522,20 +430,14 @@ func (suite *PGRepoTestSuite) TestRetrieveUserURLs() {
 			},
 		},
 	}
-	t := suite.T()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			setupSeparateTest(t, suite, tt.execStatement)
+			setupSeparateTest(t, tt.execStatement)
 
-			records, err := suite.repo.RetrieveUserURLs(context.TODO(), tt.args.userID)
+			records, err := repo.RetrieveUserURLs(context.TODO(), tt.args.userID)
 
 			require.NoError(t, err)
 			assert.ElementsMatch(t, tt.wantRecords, records)
 		})
 	}
-}
-
-// Запуск сьюта тестов
-func TestPGRepositoryTestSuite(t *testing.T) {
-	suite.Run(t, new(PGRepoTestSuite))
 }
