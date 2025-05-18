@@ -12,6 +12,79 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// ExampleWithGzipCompression демонстрирует базовое использование middleware для сжатия.
+// Пример показывает, как middleware автоматически сжимает ответ сервера,
+// если клиент поддерживает gzip-сжатие.
+func ExampleWithGzipCompression() {
+	// Создаем простой обработчик, который возвращает JSON
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set(contentType, "application/json")
+		io.WriteString(w, `{"message": "Hello, World!"}`)
+	})
+
+	// Оборачиваем обработчик в middleware для сжатия
+	compressedHandler := WithGzipCompression(handler)
+
+	// Создаем тестовый сервер
+	server := httptest.NewServer(compressedHandler)
+	defer server.Close()
+
+	// Создаем запрос с поддержкой gzip
+	req, _ := http.NewRequest("GET", server.URL, nil)
+	req.Header.Set(acceptEncoding, "gzip")
+
+	// Выполняем запрос
+	resp, _ := http.DefaultClient.Do(req)
+	defer resp.Body.Close()
+
+	// Проверяем, что ответ сжат
+	encoding := resp.Header.Get(contentEncoding)
+	if encoding == "gzip" {
+		// Распаковываем ответ
+		reader, _ := gzip.NewReader(resp.Body)
+		defer reader.Close()
+		body, _ := io.ReadAll(reader)
+		io.WriteString(io.Discard, string(body))
+	}
+}
+
+// ExampleWithGzipCompression_compressedRequest демонстрирует обработку сжатых запросов.
+// Пример показывает, как middleware автоматически распаковывает входящие запросы,
+// если они сжаты с помощью gzip.
+func ExampleWithGzipCompression_compressedRequest() {
+	// Создаем простой обработчик, который читает тело запроса
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		w.Header().Set(contentType, "application/json")
+		io.WriteString(w, string(body))
+	})
+
+	// Оборачиваем обработчик в middleware для сжатия
+	compressedHandler := WithGzipCompression(handler)
+
+	// Создаем тестовый сервер
+	server := httptest.NewServer(compressedHandler)
+	defer server.Close()
+
+	// Создаем сжатые данные
+	var buf bytes.Buffer
+	zw := gzip.NewWriter(&buf)
+	zw.Write([]byte(`{"message": "Compressed Request"}`))
+	zw.Close()
+
+	// Создаем запрос со сжатым телом
+	req, _ := http.NewRequest("POST", server.URL, &buf)
+	req.Header.Set(contentEncoding, "gzip")
+
+	// Выполняем запрос
+	resp, _ := http.DefaultClient.Do(req)
+	defer resp.Body.Close()
+
+	// Читаем ответ
+	body, _ := io.ReadAll(resp.Body)
+	io.WriteString(io.Discard, string(body))
+}
+
 func TestGzipCompression(t *testing.T) {
 	requestBody := `
 		<html><body><h1>Hello world!</h1></body></html>
