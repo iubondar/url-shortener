@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"slices"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/iubondar/url-shortener/internal/app/storage"
+	simple_storage "github.com/iubondar/url-shortener/internal/app/storage/simple"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,6 +19,33 @@ import (
 const testURL string = "https://practicum.yandex.ru"
 
 var validResultCodes = []int{http.StatusCreated, http.StatusOK, http.StatusConflict, http.StatusAccepted}
+
+// ExampleShortenHandler_Shorten демонстрирует пример использования эндпоинта создания сокращенного URL.
+// Пример показывает, как создать сокращенную ссылку для одного URL.
+func ExampleShortenHandler_Shorten() {
+	// Создаем тестовые данные
+	input := ShortenIn{URL: "https://example.com"}
+	jsonIn, _ := json.Marshal(input)
+
+	// Создаем тестовый HTTP запрос
+	request := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(jsonIn))
+	w := httptest.NewRecorder()
+
+	// Инициализируем репозиторий и обработчик
+	repo := &simple_storage.SimpleRepository{}
+	handler := NewShortenHandler(repo, "127.0.0.1")
+
+	// Вызываем обработчик
+	handler.Shorten(w, request)
+
+	// Получаем ответ
+	res := w.Result()
+	defer res.Body.Close()
+
+	// Выводим статус ответа
+	fmt.Println(res.Status)
+	// Output: 201 Created
+}
 
 func TestShortenHandler_Shorten(t *testing.T) {
 	userID := uuid.New()
@@ -138,7 +167,7 @@ func TestShortenHandler_Shorten(t *testing.T) {
 			request := httptest.NewRequest(test.method, "/", bytes.NewReader([]byte(test.body)))
 			// создаём новый Recorder
 			w := httptest.NewRecorder()
-			repo := storage.SimpleRepository{
+			repo := simple_storage.SimpleRepository{
 				Records: test.fields.records,
 			}
 			handler := NewShortenHandler(&repo, "127.0.0.1")

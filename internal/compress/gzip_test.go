@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,7 +24,10 @@ func TestGzipCompression(t *testing.T) {
 
 	withoutGzip := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(contentType, "application/json")
-		io.WriteString(w, successBody)
+		_, err := io.WriteString(w, successBody)
+		if err != nil {
+			panic(err)
+		}
 	})
 	handler := WithGzipCompression(withoutGzip)
 
@@ -75,4 +79,71 @@ func TestGzipCompression(t *testing.T) {
 
 		assert.JSONEq(t, successBody, string(b))
 	})
+}
+
+func BenchmarkGzipCompression(b *testing.B) {
+	// Тестовые данные разной длины и типов
+	testCases := []struct {
+		name        string
+		contentType string
+		content     string
+	}{
+		{
+			name:        "small_json",
+			contentType: "application/json",
+			content:     `{"message": "Hello, World!"}`,
+		},
+		{
+			name:        "medium_json",
+			contentType: "application/json",
+			content:     `{"items": [` + strings.Repeat(`{"id": 1, "name": "test"},`, 100) + `]}`,
+		},
+		{
+			name:        "small_html",
+			contentType: "text/html",
+			content:     `<html><body><h1>Hello world!</h1></body></html>`,
+		},
+		{
+			name:        "medium_html",
+			contentType: "text/html",
+			content:     `<html><body>` + strings.Repeat(`<p>Test paragraph</p>`, 100) + `</body></html>`,
+		},
+	}
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set(contentType, r.Header.Get(contentType))
+		_, err := io.WriteString(w, r.Header.Get("X-Test-Content"))
+		if err != nil {
+			b.Fatal(err)
+		}
+	})
+
+	compressedHandler := WithGzipCompression(handler)
+	srv := httptest.NewServer(compressedHandler)
+	defer srv.Close()
+
+	for _, tc := range testCases {
+		b.Run(tc.name, func(b *testing.B) {
+			req, err := http.NewRequest("GET", srv.URL, nil)
+			if err != nil {
+				b.Fatal(err)
+			}
+			req.Header.Set(acceptEncoding, "gzip")
+			req.Header.Set(contentType, tc.contentType)
+			req.Header.Set("X-Test-Content", tc.content)
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				resp, err := http.DefaultClient.Do(req)
+				if err != nil {
+					b.Fatal(err)
+				}
+				_, err = io.ReadAll(resp.Body)
+				if err != nil {
+					b.Fatal(err)
+				}
+				resp.Body.Close()
+			}
+		})
+	}
 }

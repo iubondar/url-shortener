@@ -11,11 +11,14 @@ import (
 	"github.com/iubondar/url-shortener/internal/app/storage"
 )
 
+// CreateIDHandler обрабатывает запросы на создание сокращенных URL.
 type CreateIDHandler struct {
-	repo    storage.Repository
-	baseURL string
+	repo    storage.Repository // репозиторий для хранения URL
+	baseURL string             // базовый URL для формирования сокращенных ссылок
 }
 
+// NewCreateIDHandler создает новый экземпляр CreateIDHandler.
+// Принимает репозиторий для хранения URL и базовый URL для формирования сокращенных ссылок.
 func NewCreateIDHandler(repo storage.Repository, baseURL string) CreateIDHandler {
 	return CreateIDHandler{
 		repo:    repo,
@@ -23,6 +26,10 @@ func NewCreateIDHandler(repo storage.Repository, baseURL string) CreateIDHandler
 	}
 }
 
+// CreateID обрабатывает HTTP POST запрос для создания сокращенного URL.
+// Принимает URL в теле запроса, проверяет его валидность и сохраняет в репозитории.
+// Возвращает сокращенный URL в формате "http://{baseURL}/{id}".
+// В случае успеха возвращает статус 201 Created, если URL уже существует - 409 Conflict.
 func (handler CreateIDHandler) CreateID(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		http.Error(res, "Only POST requests are allowed!", http.StatusMethodNotAllowed)

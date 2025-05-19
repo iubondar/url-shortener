@@ -1,3 +1,5 @@
+// Пакет compress предоставляет middleware для сжатия HTTP-трафика с использованием gzip.
+// Поддерживает как сжатие ответов сервера, так и распаковку запросов от клиента.
 package compress
 
 import (
@@ -7,6 +9,8 @@ import (
 	"strings"
 )
 
+// compressingContentTypes содержит список типов контента, которые должны сжиматься.
+// По умолчанию сжимаются JSON и HTML.
 var compressingContentTypes []string = []string{"application/json", "text/html"}
 
 const (
@@ -15,8 +19,9 @@ const (
 	contentType     = "Content-Type"
 )
 
+// shouldCompress проверяет, нужно ли сжимать контент указанного типа.
+// Возвращает true, если тип контента входит в список compressingContentTypes.
 func shouldCompress(ct string) bool {
-	// return true
 	for _, contentType := range compressingContentTypes {
 		if strings.Contains(ct, contentType) {
 			return true
@@ -26,34 +31,40 @@ func shouldCompress(ct string) bool {
 }
 
 // gzipWriter реализует интерфейс http.ResponseWriter и позволяет прозрачно для сервера
-// сжимать передаваемые данные и выставлять правильные HTTP-заголовки
+// сжимать передаваемые данные и выставлять правильные HTTP-заголовки.
 type gzipWriter struct {
 	w  http.ResponseWriter
 	zw *gzip.Writer
 }
 
+// newGzipWriter создает новый экземпляр gzipWriter.
+// Оборачивает http.ResponseWriter для сжатия исходящего трафика.
 func newGzipWriter(w http.ResponseWriter) *gzipWriter {
+	zw, _ := gzip.NewWriterLevel(w, gzip.BestSpeed)
 	return &gzipWriter{
 		w:  w,
-		zw: gzip.NewWriter(w),
+		zw: zw,
 	}
 }
 
-// http.ResponseWriter implementation
+// Header возвращает HTTP-заголовки ответа.
 func (c *gzipWriter) Header() http.Header {
 	return c.w.Header()
 }
 
+// Write записывает данные в ответ, сжимая их если необходимо.
+// Сжатие применяется только к определенным типам контента.
 func (c *gzipWriter) Write(p []byte) (int, error) {
 	ct := c.w.Header().Get(contentType)
 	if shouldCompress(ct) {
-		// Сжимаем только если контент нужного типа
 		c.w.Header().Set(contentEncoding, "gzip")
 		return c.zw.Write(p)
 	}
 	return c.w.Write(p)
 }
 
+// WriteHeader отправляет HTTP-заголовки ответа.
+// Устанавливает заголовок Content-Encoding: gzip если контент должен быть сжат.
 func (c *gzipWriter) WriteHeader(statusCode int) {
 	ct := c.w.Header().Get(contentType)
 	if shouldCompress(ct) && (statusCode < 300 || statusCode == http.StatusConflict) {
@@ -72,12 +83,14 @@ func (c *gzipWriter) Close() error {
 }
 
 // gzipReader реализует интерфейс io.ReadCloser и позволяет прозрачно для сервера
-// декомпрессировать получаемые от клиента данные
+// декомпрессировать получаемые от клиента данные.
 type gzipReader struct {
 	r  io.ReadCloser
 	zr *gzip.Reader
 }
 
+// newGzipReader создает новый экземпляр gzipReader.
+// Оборачивает io.ReadCloser для распаковки входящего трафика.
 func newGzipReader(r io.ReadCloser) (*gzipReader, error) {
 	zr, err := gzip.NewReader(r)
 	if err != nil {
@@ -90,11 +103,12 @@ func newGzipReader(r io.ReadCloser) (*gzipReader, error) {
 	}, nil
 }
 
-// io.ReadCloser implementation
+// Read читает и распаковывает данные из запроса.
 func (c gzipReader) Read(p []byte) (n int, err error) {
 	return c.zr.Read(p)
 }
 
+// Close закрывает gzip.Reader и оригинальный io.ReadCloser.
 func (c *gzipReader) Close() error {
 	if err := c.r.Close(); err != nil {
 		return err
@@ -102,7 +116,12 @@ func (c *gzipReader) Close() error {
 	return c.zr.Close()
 }
 
-// Middleware для поддержки gzip
+// WithGzipCompression создает middleware для поддержки gzip-сжатия.
+// Middleware автоматически сжимает ответы сервера и распаковывает запросы клиента,
+// если они используют gzip-сжатие.
+//
+// Middleware проверяет заголовки Accept-Encoding и Content-Encoding
+// для определения необходимости сжатия/распаковки.
 func WithGzipCompression(h http.Handler) http.Handler {
 	compressFn := func(w http.ResponseWriter, r *http.Request) {
 		// по умолчанию устанавливаем оригинальный http.ResponseWriter как тот,

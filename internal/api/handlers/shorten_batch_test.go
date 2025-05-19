@@ -3,15 +3,47 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/iubondar/url-shortener/internal/app/storage"
+	simple_storage "github.com/iubondar/url-shortener/internal/app/storage/simple"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// ExampleShortenBatchHandler_ShortenBatch демонстрирует пример использования эндпоинта пакетного создания сокращенных URL.
+// Пример показывает, как создать несколько сокращенных URL за один запрос.
+func ExampleShortenBatchHandler_ShortenBatch() {
+	// Создаем тестовые данные
+	input := []ShortenBatchIn{
+		{CorrelationID: "1", OriginalURL: "https://example1.com"},
+		{CorrelationID: "2", OriginalURL: "https://example2.com"},
+	}
+	jsonIn, _ := json.Marshal(input)
+
+	// Создаем тестовый HTTP запрос
+	request := httptest.NewRequest(http.MethodPost, "/api/shorten/batch", bytes.NewReader(jsonIn))
+	w := httptest.NewRecorder()
+
+	// Инициализируем репозиторий и обработчик
+	repo := &simple_storage.SimpleRepository{}
+	handler := NewShortenBatchHandler(repo, "127.0.0.1")
+
+	// Вызываем обработчик
+	handler.ShortenBatch(w, request)
+
+	// Получаем ответ
+	res := w.Result()
+	defer res.Body.Close()
+
+	// Выводим статус ответа
+	fmt.Println(res.Status)
+	// Output: 201 Created
+}
 
 func TestShortenBatchHandler_ShortenBatch(t *testing.T) {
 	userID := uuid.New()
@@ -139,7 +171,7 @@ func TestShortenBatchHandler_ShortenBatch(t *testing.T) {
 			request := httptest.NewRequest(test.method, "/shorten/batch", bytes.NewReader(jsonIn))
 			// создаём новый Recorder
 			w := httptest.NewRecorder()
-			repo := storage.SimpleRepository{
+			repo := simple_storage.SimpleRepository{
 				Records: test.fields.records,
 			}
 			handler := NewShortenBatchHandler(&repo, "127.0.0.1")

@@ -1,0 +1,2140 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>client: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/iubondar/url-shortener/cmd/client/main.go (0.0%)</option>
+				
+				<option value="file1">github.com/iubondar/url-shortener/cmd/shortener/main.go (0.0%)</option>
+				
+				<option value="file2">github.com/iubondar/url-shortener/internal/api/handlers/create.go (77.8%)</option>
+				
+				<option value="file3">github.com/iubondar/url-shortener/internal/api/handlers/delete_urls.go (78.9%)</option>
+				
+				<option value="file4">github.com/iubondar/url-shortener/internal/api/handlers/ping.go (100.0%)</option>
+				
+				<option value="file5">github.com/iubondar/url-shortener/internal/api/handlers/retrieve.go (87.5%)</option>
+				
+				<option value="file6">github.com/iubondar/url-shortener/internal/api/handlers/shorten.go (77.8%)</option>
+				
+				<option value="file7">github.com/iubondar/url-shortener/internal/api/handlers/shorten_batch.go (79.3%)</option>
+				
+				<option value="file8">github.com/iubondar/url-shortener/internal/api/handlers/user_urls.go (73.1%)</option>
+				
+				<option value="file9">github.com/iubondar/url-shortener/internal/app/auth/auth.go (75.0%)</option>
+				
+				<option value="file10">github.com/iubondar/url-shortener/internal/app/config/config.go (84.2%)</option>
+				
+				<option value="file11">github.com/iubondar/url-shortener/internal/app/router/router.go (0.0%)</option>
+				
+				<option value="file12">github.com/iubondar/url-shortener/internal/app/storage/file/repository.go (84.4%)</option>
+				
+				<option value="file13">github.com/iubondar/url-shortener/internal/app/storage/mocks/mock_status_checker.go (0.0%)</option>
+				
+				<option value="file14">github.com/iubondar/url-shortener/internal/app/storage/pg/db.go (0.0%)</option>
+				
+				<option value="file15">github.com/iubondar/url-shortener/internal/app/storage/pg/repository.go (78.8%)</option>
+				
+				<option value="file16">github.com/iubondar/url-shortener/internal/app/storage/simple/repository.go (93.8%)</option>
+				
+				<option value="file17">github.com/iubondar/url-shortener/internal/app/storage/testhelpers/container.go (0.0%)</option>
+				
+				<option value="file18">github.com/iubondar/url-shortener/internal/app/strings/random.go (100.0%)</option>
+				
+				<option value="file19">github.com/iubondar/url-shortener/internal/compress/gzip.go (76.6%)</option>
+				
+				<option value="file20">github.com/iubondar/url-shortener/internal/logging/logging.go (94.4%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">// Package main предоставляет клиентское приложение для сервиса сокращения URL.
+// Клиент принимает длинный URL от пользователя и отправляет его на сервер
+// для получения сокращенной версии.
+package main
+
+import (
+        "bufio"
+        "fmt"
+        "io"
+        "net/http"
+        "net/url"
+        "os"
+        "strings"
+)
+
+// main является точкой входа в клиентское приложение.
+// Функция запрашивает у пользователя длинный URL, отправляет его на сервер
+// и выводит полученный сокращенный URL.
+func main() <span class="cov0" title="0">{
+        endpoint := "http://localhost:8080/"
+        // контейнер данных для запроса
+        data := url.Values{}
+        // приглашение в консоли
+        fmt.Println("Введите длинный URL")
+        // открываем потоковое чтение из консоли
+        reader := bufio.NewReader(os.Stdin)
+        // читаем строку из консоли
+        long, err := reader.ReadString('\n')
+        if err != nil </span><span class="cov0" title="0">{
+                panic(err)</span>
+        }
+        <span class="cov0" title="0">long = strings.TrimSuffix(long, "\n")
+        // заполняем контейнер данными
+        data.Set("url", long)
+        // добавляем HTTP-клиент
+        client := &amp;http.Client{}
+        // пишем запрос
+        // запрос методом POST должен, помимо заголовков, содержать тело
+        // тело должно быть источником потокового чтения io.Reader
+        request, err := http.NewRequest(http.MethodPost, endpoint, strings.NewReader(data.Encode()))
+        if err != nil </span><span class="cov0" title="0">{
+                panic(err)</span>
+        }
+        // в заголовках запроса указываем кодировку
+        <span class="cov0" title="0">request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+        // отправляем запрос и получаем ответ
+        response, err := client.Do(request)
+        if err != nil </span><span class="cov0" title="0">{
+                panic(err)</span>
+        }
+        // выводим код ответа
+        <span class="cov0" title="0">fmt.Println("Статус-код ", response.Status)
+        defer response.Body.Close()
+        // читаем поток из тела ответа
+        body, err := io.ReadAll(response.Body)
+        if err != nil </span><span class="cov0" title="0">{
+                panic(err)</span>
+        }
+        // и печатаем его
+        <span class="cov0" title="0">fmt.Println(string(body))</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">// Package main предоставляет серверную часть сервиса сокращения URL.
+// Сервер принимает длинные URL, генерирует для них короткие идентификаторы
+// и сохраняет соответствия в выбранном хранилище (память, файл или база данных).
+package main
+
+import (
+        "log"
+        "net/http"
+        "os"
+
+        _ "github.com/jackc/pgx/v5/stdlib"
+        "go.uber.org/zap"
+
+        "github.com/iubondar/url-shortener/internal/app/config"
+        "github.com/iubondar/url-shortener/internal/app/router"
+        "github.com/iubondar/url-shortener/internal/app/storage"
+        filestorage "github.com/iubondar/url-shortener/internal/app/storage/file"
+        pg_storage "github.com/iubondar/url-shortener/internal/app/storage/pg"
+        simple_storage "github.com/iubondar/url-shortener/internal/app/storage/simple"
+
+        _ "net/http/pprof" // подключаем пакет pprof
+)
+
+func init() <span class="cov0" title="0">{
+        zap.ReplaceGlobals(zap.Must(zap.NewDevelopment()))
+}</span>
+
+// main является точкой входа в серверное приложение.
+// Функция инициализирует конфигурацию, подключает выбранное хранилище данных,
+// настраивает маршрутизацию и запускает HTTP-сервер.
+func main() <span class="cov0" title="0">{
+        config, err := config.NewConfig(os.Args[0], os.Args[1:])
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatal(err)
+        }</span>
+        <span class="cov0" title="0">zap.L().Sugar().Debugln(
+                "Config: ",
+                "ServerAddress", config.ServerAddress,
+                "BaseURLAddress", config.BaseURLAddress,
+                "FileStoragePath", config.FileStoragePath,
+                "DatabaseDSN", config.DatabaseDSN,
+        )
+
+        var repo storage.Repository
+
+        if len(config.DatabaseDSN) &gt; 0 </span><span class="cov0" title="0">{
+                db, err := pg_storage.NewDB(config.DatabaseDSN)
+                if err != nil </span><span class="cov0" title="0">{
+                        log.Fatal(err)
+                }</span>
+
+                <span class="cov0" title="0">defer db.SQLDB.Close()
+
+                repo = db.Repo</span>
+        } else<span class="cov0" title="0"> if len(config.FileStoragePath) &gt; 0 </span><span class="cov0" title="0">{
+                repo, err = filestorage.NewFileRepository(config.FileStoragePath)
+                if err != nil </span><span class="cov0" title="0">{
+                        log.Fatal(err)
+                }</span>
+        } else<span class="cov0" title="0"> {
+                repo = simple_storage.NewSimpleRepository()
+        }</span>
+
+        <span class="cov0" title="0">router, err := router.NewRouter(config.BaseURLAddress, repo)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatal(err)
+        }</span>
+
+        <span class="cov0" title="0">zap.L().Sugar().Debugln("Starting serving requests: ", config.ServerAddress)
+        log.Fatal(
+                http.ListenAndServe(config.ServerAddress, router),
+        )</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package handlers
+
+import (
+        "fmt"
+        "io"
+        "net/http"
+        "net/url"
+        "strings"
+
+        "github.com/iubondar/url-shortener/internal/app/auth"
+        "github.com/iubondar/url-shortener/internal/app/storage"
+)
+
+// CreateIDHandler обрабатывает запросы на создание сокращенных URL.
+type CreateIDHandler struct {
+        repo    storage.Repository // репозиторий для хранения URL
+        baseURL string             // базовый URL для формирования сокращенных ссылок
+}
+
+// NewCreateIDHandler создает новый экземпляр CreateIDHandler.
+// Принимает репозиторий для хранения URL и базовый URL для формирования сокращенных ссылок.
+func NewCreateIDHandler(repo storage.Repository, baseURL string) CreateIDHandler <span class="cov8" title="1">{
+        return CreateIDHandler{
+                repo:    repo,
+                baseURL: baseURL,
+        }
+}</span>
+
+// CreateID обрабатывает HTTP POST запрос для создания сокращенного URL.
+// Принимает URL в теле запроса, проверяет его валидность и сохраняет в репозитории.
+// Возвращает сокращенный URL в формате "http://{baseURL}/{id}".
+// В случае успеха возвращает статус 201 Created, если URL уже существует - 409 Conflict.
+func (handler CreateIDHandler) CreateID(res http.ResponseWriter, req *http.Request) <span class="cov8" title="1">{
+        if req.Method != http.MethodPost </span><span class="cov8" title="1">{
+                http.Error(res, "Only POST requests are allowed!", http.StatusMethodNotAllowed)
+                return
+        }</span>
+
+        <span class="cov8" title="1">body, err := io.ReadAll(req.Body)
+        if err != nil </span><span class="cov0" title="0">{
+                http.Error(res, err.Error(), 500)
+                return
+        }</span>
+
+        <span class="cov8" title="1">url, err := url.ParseRequestURI(string(body))
+        if err != nil </span><span class="cov8" title="1">{
+                http.Error(res, "URL is not valid", http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">userID, err := auth.GetUserIDFromAuthCookieOrSetNew(res, req)
+        if err != nil </span><span class="cov0" title="0">{
+                http.Error(res, "Error setting userID "+err.Error(), http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">id, exists, err := handler.repo.SaveURL(req.Context(), userID, url.String())
+        if err != nil </span><span class="cov0" title="0">{
+                http.Error(res, "Can't save URL", http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">res.Header().Add("Content-Type", "text/plain")
+
+        if exists </span><span class="cov8" title="1">{
+                res.WriteHeader(http.StatusConflict)
+        }</span> else<span class="cov8" title="1"> {
+                res.WriteHeader(http.StatusCreated)
+        }</span>
+
+        <span class="cov8" title="1">baseURL := strings.TrimSuffix(strings.TrimPrefix(handler.baseURL, "http://"), "/")
+        result := fmt.Sprintf("http://%s/%s", baseURL, id)
+
+        res.Write([]byte(result))</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package handlers
+
+import (
+        "bytes"
+        "encoding/json"
+        "net/http"
+
+        "github.com/iubondar/url-shortener/internal/app/auth"
+        "github.com/iubondar/url-shortener/internal/app/storage"
+)
+
+// DeleteUrlsHandler обрабатывает запросы на удаление сокращенных URL.
+// Позволяет пользователю удалить свои сокращенные ссылки.
+type DeleteUrlsHandler struct {
+        repo storage.Repository // репозиторий для хранения URL
+}
+
+// NewDeleteUrlsHandler создает новый экземпляр DeleteUrlsHandler.
+// Принимает репозиторий для хранения URL.
+func NewDeleteUrlsHandler(repo storage.Repository) DeleteUrlsHandler <span class="cov8" title="1">{
+        return DeleteUrlsHandler{
+                repo: repo,
+        }
+}</span>
+
+// DeleteUserURLs обрабатывает HTTP DELETE запрос для удаления сокращенных URL.
+// Принимает массив сокращенных URL в теле запроса в формате JSON.
+// Удаляет только те URL, которые принадлежат текущему пользователю.
+// Возвращает статус 202 Accepted в случае успеха.
+func (handler DeleteUrlsHandler) DeleteUserURLs(res http.ResponseWriter, req *http.Request) <span class="cov8" title="1">{
+        if req.Method != http.MethodDelete </span><span class="cov8" title="1">{
+                http.Error(res, "Only DELETE requests are allowed!", http.StatusMethodNotAllowed)
+                return
+        }</span>
+
+        <span class="cov8" title="1">userID, err := auth.GetUserIDFromAuthCookieOrSetNew(res, req)
+        if err != nil </span><span class="cov0" title="0">{
+                http.Error(res, "Error setting userID "+err.Error(), http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">var buf bytes.Buffer
+        // читаем тело запроса
+        _, err = buf.ReadFrom(req.Body)
+        if err != nil </span><span class="cov0" title="0">{
+                http.Error(res, err.Error(), http.StatusBadRequest)
+                return
+        }</span>
+
+        // десериализуем JSON
+        <span class="cov8" title="1">var shortURLs []string
+        if err = json.Unmarshal(buf.Bytes(), &amp;shortURLs); err != nil </span><span class="cov8" title="1">{
+                http.Error(res, err.Error(), http.StatusBadRequest)
+                return
+        }</span>
+
+        // запрос на удаление
+        <span class="cov8" title="1">handler.repo.DeleteByShortURLs(req.Context(), userID, shortURLs)
+
+        // сразу возвращаем статус
+        res.WriteHeader(http.StatusAccepted)</span>
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package handlers
+
+import (
+        "net/http"
+
+        "github.com/iubondar/url-shortener/internal/app/storage"
+)
+
+// PingHandler обрабатывает запросы для проверки доступности сервиса.
+// Используется для проверки работоспособности сервера и его подключения к хранилищу.
+type PingHandler struct {
+        checker storage.StatusChecker // интерфейс для проверки статуса хранилища
+}
+
+// NewPingHandler создает новый экземпляр PingHandler.
+// Принимает интерфейс для проверки статуса хранилища.
+func NewPingHandler(checker storage.StatusChecker) PingHandler <span class="cov8" title="1">{
+        return PingHandler{
+                checker: checker,
+        }
+}</span>
+
+// Ping обрабатывает HTTP GET запрос для проверки доступности сервиса.
+// Проверяет подключение к хранилищу данных.
+// Возвращает статус 200 OK в случае успеха или 500 Internal Server Error при ошибке.
+func (handler PingHandler) Ping(res http.ResponseWriter, req *http.Request) <span class="cov8" title="1">{
+        if req.Method != http.MethodGet </span><span class="cov8" title="1">{
+                http.Error(res, "Only GET requests are allowed!", http.StatusMethodNotAllowed)
+                return
+        }</span>
+
+        <span class="cov8" title="1">err := handler.checker.CheckStatus(req.Context())
+        if err != nil </span><span class="cov8" title="1">{
+                http.Error(res, err.Error(), http.StatusInternalServerError)
+                return
+        }</span>
+
+        <span class="cov8" title="1">res.WriteHeader(http.StatusOK)</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package handlers
+
+import (
+        "net/http"
+
+        "github.com/go-chi/chi"
+        "github.com/iubondar/url-shortener/internal/app/storage"
+)
+
+// RetrieveURLHandler обрабатывает запросы на получение оригинального URL по сокращенному идентификатору.
+// Выполняет перенаправление на оригинальный URL или возвращает ошибку, если URL не найден или удален.
+type RetrieveURLHandler struct {
+        repo storage.Repository // репозиторий для хранения URL
+}
+
+// NewRetrieveURLHandler создает новый экземпляр RetrieveURLHandler.
+// Принимает репозиторий для хранения URL.
+func NewRetrieveURLHandler(repo storage.Repository) RetrieveURLHandler <span class="cov8" title="1">{
+        return RetrieveURLHandler{
+                repo: repo,
+        }
+}</span>
+
+// RetrieveURL обрабатывает HTTP GET запрос для получения оригинального URL.
+// Принимает сокращенный идентификатор в параметре пути.
+// Возвращает:
+// - 307 Temporary Redirect с оригинальным URL в заголовке Location при успехе
+// - 410 Gone если URL был удален
+// - 400 Bad Request если URL не найден или параметр id отсутствует
+func (handler RetrieveURLHandler) RetrieveURL(res http.ResponseWriter, req *http.Request) <span class="cov8" title="1">{
+        if req.Method != http.MethodGet </span><span class="cov8" title="1">{
+                http.Error(res, "Only GET requests are allowed!", http.StatusMethodNotAllowed)
+                return
+        }</span>
+
+        <span class="cov8" title="1">id := chi.URLParam(req, "id")
+        if len(id) == 0 </span><span class="cov8" title="1">{
+                http.Error(res, "Can't find id parameter in query path", http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">record, err := handler.repo.RetrieveByShortURL(req.Context(), id)
+        if err != nil </span><span class="cov0" title="0">{
+                http.Error(res, err.Error(), http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">if record.IsDeleted </span><span class="cov8" title="1">{
+                res.WriteHeader(http.StatusGone)
+        }</span> else<span class="cov8" title="1"> {
+                res.Header().Add("Location", record.OriginalURL)
+                res.WriteHeader(http.StatusTemporaryRedirect)
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package handlers
+
+import (
+        "bytes"
+        "encoding/json"
+        "fmt"
+        "net/http"
+        "net/url"
+        "strings"
+
+        "github.com/iubondar/url-shortener/internal/app/auth"
+        "github.com/iubondar/url-shortener/internal/app/storage"
+)
+
+// ShortenIn представляет входные данные для создания сокращенного URL.
+type ShortenIn struct {
+        URL string `json:"url"` // оригинальный URL для сокращения
+}
+
+// ShortenOut представляет выходные данные создания сокращенного URL.
+type ShortenOut struct {
+        Result string `json:"result"` // сокращенный URL
+}
+
+// ShortenHandler обрабатывает запросы на создание сокращенного URL.
+// Позволяет создать сокращенную ссылку для одного URL.
+type ShortenHandler struct {
+        repo    storage.Repository // репозиторий для хранения URL
+        baseURL string             // базовый URL для формирования сокращенных ссылок
+}
+
+// NewShortenHandler создает новый экземпляр ShortenHandler.
+// Принимает репозиторий для хранения URL и базовый URL для формирования сокращенных ссылок.
+func NewShortenHandler(repo storage.Repository, baseURL string) ShortenHandler <span class="cov8" title="1">{
+        return ShortenHandler{
+                repo:    repo,
+                baseURL: baseURL,
+        }
+}</span>
+
+// Shorten обрабатывает HTTP POST запрос для создания сокращенного URL.
+// Принимает URL в теле запроса в формате JSON.
+// Возвращает сокращенный URL в формате JSON.
+// Возвращает статус 201 Created для нового URL или 409 Conflict если URL уже существует.
+func (handler ShortenHandler) Shorten(res http.ResponseWriter, req *http.Request) <span class="cov8" title="1">{
+        if req.Method != http.MethodPost </span><span class="cov8" title="1">{
+                http.Error(res, "Only POST requests are allowed!", http.StatusMethodNotAllowed)
+                return
+        }</span>
+
+        <span class="cov8" title="1">var in ShortenIn
+        var buf bytes.Buffer
+        // читаем тело запроса
+        _, err := buf.ReadFrom(req.Body)
+        if err != nil </span><span class="cov0" title="0">{
+                http.Error(res, err.Error(), http.StatusBadRequest)
+                return
+        }</span>
+
+        // десериализуем JSON
+        <span class="cov8" title="1">if err = json.Unmarshal(buf.Bytes(), &amp;in); err != nil </span><span class="cov8" title="1">{
+                http.Error(res, err.Error(), http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">url, err := url.ParseRequestURI(in.URL)
+        if err != nil </span><span class="cov8" title="1">{
+                http.Error(res, "URL is not valid", http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">userID, err := auth.GetUserIDFromAuthCookieOrSetNew(res, req)
+        if err != nil </span><span class="cov0" title="0">{
+                http.Error(res, "Error setting userID "+err.Error(), http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">id, exists, err := handler.repo.SaveURL(req.Context(), userID, url.String())
+        if err != nil </span><span class="cov0" title="0">{
+                http.Error(res, "Can't save URL", http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">baseURL := strings.TrimSuffix(strings.TrimPrefix(handler.baseURL, "http://"), "/")
+        out := ShortenOut{
+                Result: fmt.Sprintf("http://%s/%s", baseURL, id),
+        }
+
+        resp, err := json.Marshal(out)
+        if err != nil </span><span class="cov0" title="0">{
+                http.Error(res, err.Error(), http.StatusInternalServerError)
+                return
+        }</span>
+
+        <span class="cov8" title="1">res.Header().Set("Content-Type", "application/json")
+        if exists </span><span class="cov8" title="1">{
+                res.WriteHeader(http.StatusConflict)
+        }</span> else<span class="cov8" title="1"> {
+                res.WriteHeader(http.StatusCreated)
+        }</span>
+
+        <span class="cov8" title="1">res.Write(resp)</span>
+}
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">package handlers
+
+import (
+        "encoding/json"
+        "fmt"
+        "net/http"
+        "net/url"
+        "strings"
+
+        "github.com/iubondar/url-shortener/internal/app/storage"
+)
+
+// ShortenBatchIn представляет входные данные для пакетного создания сокращенных URL.
+type ShortenBatchIn struct {
+        CorrelationID string `json:"correlation_id"` // идентификатор для связи с оригинальным URL
+        OriginalURL   string `json:"original_url"`   // оригинальный URL для сокращения
+}
+
+// ShortenBatchOut представляет выходные данные пакетного создания сокращенных URL.
+type ShortenBatchOut struct {
+        CorrelationID string `json:"correlation_id"` // идентификатор для связи с оригинальным URL
+        ShortURL      string `json:"short_url"`      // сокращенный URL
+}
+
+// ShortenBatchHandler обрабатывает запросы на пакетное создание сокращенных URL.
+// Позволяет создать несколько сокращенных URL за один запрос.
+type ShortenBatchHandler struct {
+        repo    storage.Repository // репозиторий для хранения URL
+        baseURL string             // базовый URL для формирования сокращенных ссылок
+}
+
+// NewShortenBatchHandler создает новый экземпляр ShortenBatchHandler.
+// Принимает репозиторий для хранения URL и базовый URL для формирования сокращенных ссылок.
+func NewShortenBatchHandler(repo storage.Repository, baseURL string) ShortenBatchHandler <span class="cov8" title="1">{
+        return ShortenBatchHandler{
+                repo:    repo,
+                baseURL: baseURL,
+        }
+}</span>
+
+// ShortenBatch обрабатывает HTTP POST запрос для пакетного создания сокращенных URL.
+// Принимает массив URL в теле запроса в формате JSON.
+// Возвращает массив созданных сокращенных URL в формате JSON.
+// Возвращает статус 201 Created в случае успеха.
+func (handler ShortenBatchHandler) ShortenBatch(res http.ResponseWriter, req *http.Request) <span class="cov8" title="1">{
+        if req.Method != http.MethodPost </span><span class="cov8" title="1">{
+                http.Error(res, "Only POST requests are allowed!", http.StatusMethodNotAllowed)
+                return
+        }</span>
+
+        <span class="cov8" title="1">var in []ShortenBatchIn
+        if err := json.NewDecoder(req.Body).Decode(&amp;in); err != nil </span><span class="cov0" title="0">{
+                http.Error(res, err.Error(), http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">urls := make([]string, 0, len(in))
+        for _, elem := range in </span><span class="cov8" title="1">{
+                // Проверяем URL
+                URL, err := url.ParseRequestURI(elem.OriginalURL)
+                if err != nil </span><span class="cov8" title="1">{
+                        http.Error(res, err.Error(), http.StatusBadRequest)
+                        return
+                }</span>
+                <span class="cov8" title="1">urls = append(urls, URL.String())</span>
+        }
+
+        <span class="cov8" title="1">ids, err := handler.repo.SaveURLs(req.Context(), urls)
+        if err != nil </span><span class="cov0" title="0">{
+                http.Error(res, err.Error(), http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">out := make([]ShortenBatchOut, 0, len(in))
+        baseURL := strings.TrimSuffix(strings.TrimPrefix(handler.baseURL, "http://"), "/")
+        for i := 0; i &lt; len(in); i++ </span><span class="cov8" title="1">{
+                outElem := ShortenBatchOut{
+                        CorrelationID: in[i].CorrelationID,
+                        ShortURL:      fmt.Sprintf("http://%s/%s", baseURL, ids[i])}
+                out = append(out, outElem)
+        }</span>
+
+        <span class="cov8" title="1">res.Header().Set("Content-Type", "application/json")
+        res.WriteHeader(http.StatusCreated)
+        if err := json.NewEncoder(res).Encode(out); err != nil </span><span class="cov0" title="0">{
+                http.Error(res, err.Error(), http.StatusInternalServerError)
+                return
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">package handlers
+
+import (
+        "encoding/json"
+        "fmt"
+        "net/http"
+        "strings"
+
+        "github.com/iubondar/url-shortener/internal/app/auth"
+        "github.com/iubondar/url-shortener/internal/app/storage"
+)
+
+// UserUrlsHandler обрабатывает запросы на получение списка сокращенных URL пользователя.
+// Позволяет пользователю получить список всех своих сокращенных URL.
+type UserUrlsHandler struct {
+        repo    storage.Repository // репозиторий для хранения URL
+        baseURL string             // базовый URL для формирования сокращенных ссылок
+}
+
+// NewUserUrlsHandler создает новый экземпляр UserUrlsHandler.
+// Принимает репозиторий для хранения URL и базовый URL для формирования сокращенных ссылок.
+func NewUserUrlsHandler(repo storage.Repository, baseURL string) UserUrlsHandler <span class="cov8" title="1">{
+        return UserUrlsHandler{
+                repo:    repo,
+                baseURL: baseURL,
+        }
+}</span>
+
+// UserUrlsOut представляет выходные данные для списка URL пользователя.
+type UserUrlsOut struct {
+        ShortURL    string `json:"short_url"`    // сокращенный URL
+        OriginalURL string `json:"original_url"` // оригинальный URL
+}
+
+// RetrieveUserURLs обрабатывает HTTP GET запрос для получения списка сокращенных URL пользователя.
+// Возвращает список сокращенных URL в формате JSON.
+// Возвращает статус 200 OK если есть URL, 204 No Content если список пуст.
+func (handler UserUrlsHandler) RetrieveUserURLs(res http.ResponseWriter, req *http.Request) <span class="cov8" title="1">{
+        if req.Method != http.MethodGet </span><span class="cov8" title="1">{
+                http.Error(res, "Only GET requests are allowed!", http.StatusMethodNotAllowed)
+                return
+        }</span>
+
+        <span class="cov8" title="1">userID, err := auth.GetUserIDFromAuthCookieOrSetNew(res, req)
+        if err != nil </span><span class="cov0" title="0">{
+                http.Error(res, "Error setting userID "+err.Error(), http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">records, err := handler.repo.RetrieveUserURLs(req.Context(), userID)
+        if err != nil </span><span class="cov0" title="0">{
+                http.Error(res, err.Error(), http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">out := make([]UserUrlsOut, 0, len(records))
+        baseURL := strings.TrimSuffix(strings.TrimPrefix(handler.baseURL, "http://"), "/")
+        for i := 0; i &lt; len(records); i++ </span><span class="cov8" title="1">{
+                outElem := UserUrlsOut{
+                        ShortURL:    fmt.Sprintf("http://%s/%s", baseURL, records[i].ShortURL),
+                        OriginalURL: records[i].OriginalURL,
+                }
+                out = append(out, outElem)
+        }</span>
+        <span class="cov8" title="1">resp, err := json.Marshal(out)
+        if err != nil </span><span class="cov0" title="0">{
+                http.Error(res, err.Error(), http.StatusInternalServerError)
+                return
+        }</span>
+
+        <span class="cov8" title="1">res.Header().Set("Content-Type", "application/json")
+        if len(out) == 0 </span><span class="cov0" title="0">{
+                res.WriteHeader(http.StatusNoContent)
+        }</span> else<span class="cov8" title="1"> {
+                res.WriteHeader(http.StatusOK)
+        }</span>
+
+        <span class="cov8" title="1">res.Write(resp)</span>
+}
+</pre>
+		
+		<pre class="file" id="file9" style="display: none">// Package auth предоставляет функциональность для аутентификации пользователей.
+// Использует JWT токены для хранения идентификатора пользователя в cookie.
+package auth
+
+import (
+        "fmt"
+        "net/http"
+
+        "github.com/golang-jwt/jwt/v4"
+        "github.com/google/uuid"
+        "go.uber.org/zap"
+)
+
+const secretKey = "supersecretkey"
+
+// AuthCookieName - имя cookie для хранения токена аутентификации
+const AuthCookieName = "Authorization"
+
+// claims представляет структуру JWT токена.
+// Включает стандартные поля JWT и идентификатор пользователя.
+type claims struct {
+        jwt.RegisteredClaims
+        UserID uuid.UUID // идентификатор пользователя
+}
+
+// GetUserIDFromAuthCookieOrSetNew получает идентификатор пользователя из cookie или создает новый.
+// Если cookie не существует или содержит невалидный токен, создает новый токен.
+// Возвращает идентификатор пользователя и ошибку, если она возникла.
+func GetUserIDFromAuthCookieOrSetNew(res http.ResponseWriter, req *http.Request) (userID uuid.UUID, err error) <span class="cov8" title="1">{
+        authCookie, err := req.Cookie(AuthCookieName)
+        if err != nil </span><span class="cov8" title="1">{
+                zap.L().Sugar().Debugln("No auth cookie found, set new")
+                return setNewAuthCookie(res)
+        }</span>
+
+        <span class="cov8" title="1">userID, err = GetUserID(authCookie.Value)
+        if err != nil </span><span class="cov0" title="0">{
+                zap.L().Sugar().Debugln("Error getting user id from cookie, will set new. Message: ", err.Error())
+                return setNewAuthCookie(res)
+        }</span>
+
+        <span class="cov8" title="1">return userID, nil</span>
+}
+
+// setNewAuthCookie создает новый токен аутентификации и устанавливает его в cookie.
+// Возвращает новый идентификатор пользователя и ошибку, если она возникла.
+func setNewAuthCookie(res http.ResponseWriter) (userID uuid.UUID, err error) <span class="cov8" title="1">{
+        userID = uuid.New()
+
+        authCookie, err := NewAuthCookie(userID)
+        if err != nil </span><span class="cov0" title="0">{
+                return uuid.Nil, err
+        }</span>
+
+        <span class="cov8" title="1">http.SetCookie(res, authCookie)
+
+        return userID, nil</span>
+}
+
+// NewAuthCookie создает новую cookie с JWT токеном для указанного пользователя.
+// Возвращает cookie и ошибку, если она возникла.
+func NewAuthCookie(userID uuid.UUID) (authCookie *http.Cookie, err error) <span class="cov8" title="1">{
+        jwtString, err := buildJWTString(userID)
+        if err != nil </span><span class="cov0" title="0">{
+                zap.L().Sugar().Debugln("Error building jwtString", err.Error())
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">authCookie = &amp;http.Cookie{
+                Name:     AuthCookieName,
+                Value:    jwtString,
+                HttpOnly: true, // Prevents JavaScript access
+                SameSite: http.SameSiteLaxMode,
+        }
+
+        return authCookie, nil</span>
+}
+
+// buildJWTString создает JWT токен для указанного пользователя и возвращает его в виде строки.
+// Использует алгоритм подписи HS256.
+// Возвращает строку токена и ошибку, если она возникла.
+func buildJWTString(userID uuid.UUID) (string, error) <span class="cov8" title="1">{
+        // создаём новый токен с алгоритмом подписи HS256 и утверждениями — Claims
+        token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims{
+                RegisteredClaims: jwt.RegisteredClaims{},
+                // собственное утверждение
+                UserID: userID,
+        })
+
+        // создаём строку токена
+        tokenString, err := token.SignedString([]byte(secretKey))
+        if err != nil </span><span class="cov0" title="0">{
+                return "", err
+        }</span>
+
+        // возвращаем строку токена
+        <span class="cov8" title="1">return tokenString, nil</span>
+}
+
+// GetUserID извлекает идентификатор пользователя из JWT токена.
+// Проверяет валидность токена и его подпись.
+// Возвращает идентификатор пользователя и ошибку, если она возникла.
+func GetUserID(tokenString string) (userID uuid.UUID, err error) <span class="cov8" title="1">{
+        claims := &amp;claims{}
+        token, err := jwt.ParseWithClaims(tokenString, claims,
+                func(t *jwt.Token) (interface{}, error) </span><span class="cov8" title="1">{
+                        if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok </span><span class="cov0" title="0">{
+                                return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+                        }</span>
+                        <span class="cov8" title="1">return []byte(secretKey), nil</span>
+                })
+        <span class="cov8" title="1">if err != nil </span><span class="cov0" title="0">{
+                return uuid.Nil, err
+        }</span>
+
+        <span class="cov8" title="1">if !token.Valid </span><span class="cov0" title="0">{
+                return uuid.Nil, fmt.Errorf("token is not valid")
+        }</span>
+
+        <span class="cov8" title="1">return claims.UserID, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file10" style="display: none">// Package config предоставляет функциональность для загрузки и управления конфигурацией приложения.
+// Поддерживает загрузку конфигурации из переменных окружения и флагов командной строки.
+// Приоритет: переменные окружения &gt; флаги командной строки &gt; значения по умолчанию.
+package config
+
+import (
+        "flag"
+        "os"
+
+        "github.com/caarlos0/env"
+)
+
+// Config представляет структуру конфигурации приложения.
+// Все поля могут быть установлены через переменные окружения или флаги командной строки.
+type Config struct {
+        ServerAddress   string `env:"SERVER_ADDRESS"`    // адрес, на котором будет запущен сервер
+        BaseURLAddress  string `env:"BASE_URL"`          // базовый URL для формирования коротких ссылок
+        FileStoragePath string `env:"FILE_STORAGE_PATH"` // путь к файлу хранилища
+        DatabaseDSN     string `env:"DATABASE_DSN"`      // строка подключения к базе данных
+}
+
+const (
+        defaultAddress     = "localhost:8080"
+        defaultStoragePath = "./storage/storage.txt"
+        localDatabaseDSN   = "host=localhost user=newuser password=password dbname=url_shortener sslmode=disable" // для локальной разработки
+)
+
+// NewConfig создает новую конфигурацию приложения.
+// Загружает значения из флагов командной строки и переменных окружения.
+// Приоритет: переменные окружения &gt; флаги командной строки &gt; значения по умолчанию.
+// Возвращает указатель на Config и ошибку, если она возникла.
+func NewConfig(progname string, args []string) (*Config, error) <span class="cov8" title="1">{
+        var c Config
+
+        // https://eli.thegreenplace.net/2020/testing-flag-parsing-in-go-programs/
+        // Загружаем значения из переданных аргументов командной строки
+        flags := flag.NewFlagSet(progname, flag.ContinueOnError)
+
+        flags.StringVar(&amp;c.ServerAddress, "a", defaultAddress, "address to run server")
+        flags.StringVar(&amp;c.BaseURLAddress, "b", defaultAddress, "base address to construct short URL")
+        flags.StringVar(&amp;c.FileStoragePath, "f", defaultStoragePath, "path to storage file")
+        flags.StringVar(&amp;c.DatabaseDSN, "d", defaultDatabaseDSN(), "database DSN")
+
+        err := flags.Parse(args)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        // Переписываем значения из переменных окружения
+        <span class="cov8" title="1">err = env.Parse(&amp;c)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return &amp;c, nil</span>
+}
+
+// defaultDatabaseDSN возвращает строку подключения к базе данных по умолчанию.
+// Для локальной разработки возвращает предустановленное значение,
+// иначе возвращает пустую строку.
+func defaultDatabaseDSN() string <span class="cov8" title="1">{
+        if isRunningLocally() </span><span class="cov8" title="1">{
+                return localDatabaseDSN
+        }</span>
+
+        <span class="cov0" title="0">return ""</span>
+}
+
+// isRunningInDocker проверяет, запущено ли приложение в контейнере Docker.
+// Возвращает true, если приложение запущено в Docker.
+func isRunningInDocker() bool <span class="cov8" title="1">{
+        _, err := os.Stat("/.dockerenv")
+        return err == nil
+}</span>
+
+// isRunningLocally проверяет, запущено ли приложение локально.
+// Возвращает true, если приложение запущено не в Docker.
+func isRunningLocally() bool <span class="cov8" title="1">{
+        return !isRunningInDocker()
+}</span>
+</pre>
+		
+		<pre class="file" id="file11" style="display: none">// Package router предоставляет функциональность для настройки маршрутизации HTTP-запросов.
+// Использует библиотеку chi для создания маршрутизатора и настройки middleware.
+package router
+
+import (
+        "net/http"
+        "net/http/pprof"
+
+        "github.com/go-chi/chi"
+        "github.com/iubondar/url-shortener/internal/api/handlers"
+        "github.com/iubondar/url-shortener/internal/app/storage"
+        "github.com/iubondar/url-shortener/internal/compress"
+        "github.com/iubondar/url-shortener/internal/logging"
+)
+
+// NewRouter создает и настраивает маршрутизатор для обработки HTTP-запросов.
+// Принимает базовый URL для формирования коротких ссылок и репозиторий для работы с хранилищем.
+// Настраивает все необходимые маршруты и middleware:
+//   - Логирование запросов
+//   - Сжатие ответов
+//   - Обработка создания коротких ссылок
+//   - Обработка пакетного создания ссылок
+//   - Получение списка ссылок пользователя
+//   - Получение оригинального URL по короткому идентификатору
+//   - Проверка доступности хранилища
+//   - Удаление ссылок пользователя
+//
+// Возвращает настроенный маршрутизатор и ошибку, если она возникла.
+func NewRouter(baseURL string, repo storage.Repository) (chi.Router, error) <span class="cov0" title="0">{
+        createIDHandler := handlers.NewCreateIDHandler(repo, baseURL)
+        shortenHandler := handlers.NewShortenHandler(repo, baseURL)
+        shortenBatchHandler := handlers.NewShortenBatchHandler(repo, baseURL)
+        userURLsHandler := handlers.NewUserUrlsHandler(repo, baseURL)
+        retrieveURLHandler := handlers.NewRetrieveURLHandler(repo)
+        pingHandler := handlers.NewPingHandler(repo)
+        deleteURLsHandler := handlers.NewDeleteUrlsHandler(repo)
+
+        r := chi.NewRouter()
+
+        r.Use(logging.WithLogging, compress.WithGzipCompression)
+        r.Post("/", createIDHandler.CreateID)
+        r.Post("/api/shorten", shortenHandler.Shorten)
+        r.Post("/api/shorten/batch", shortenBatchHandler.ShortenBatch)
+        r.Get("/api/user/urls", userURLsHandler.RetrieveUserURLs)
+        r.Get("/{id}", retrieveURLHandler.RetrieveURL)
+        r.Get("/ping", pingHandler.Ping)
+        r.Delete("/api/user/urls", deleteURLsHandler.DeleteUserURLs)
+
+        // Подключаем pprof
+        r.Mount("/debug/pprof", pprofRouter())
+
+        return r, nil
+}</span>
+
+// pprofRouter возвращает роутер с pprof-эндпоинтами
+func pprofRouter() http.Handler <span class="cov0" title="0">{
+        r := chi.NewRouter()
+
+        // Регистрируем стандартные обработчики pprof
+        r.Get("/", pprof.Index)
+        r.Get("/cmdline", pprof.Cmdline)
+        r.Get("/profile", pprof.Profile)
+        r.Post("/symbol", pprof.Symbol)
+        r.Get("/symbol", pprof.Symbol)
+        r.Get("/trace", pprof.Trace)
+        r.Get("/allocs", pprof.Handler("allocs").ServeHTTP)
+        r.Get("/block", pprof.Handler("block").ServeHTTP)
+        r.Get("/goroutine", pprof.Handler("goroutine").ServeHTTP)
+        r.Get("/heap", pprof.Handler("heap").ServeHTTP)
+        r.Get("/mutex", pprof.Handler("mutex").ServeHTTP)
+        r.Get("/threadcreate", pprof.Handler("threadcreate").ServeHTTP)
+
+        return r
+}</span>
+</pre>
+		
+		<pre class="file" id="file12" style="display: none">package file
+
+import (
+        "bufio"
+        "context"
+        "encoding/json"
+        "log"
+        "os"
+        "path/filepath"
+        "slices"
+        "strconv"
+
+        "github.com/google/uuid"
+        "github.com/iubondar/url-shortener/internal/app/storage"
+        "github.com/iubondar/url-shortener/internal/app/strings"
+)
+
+// URLRecord представляет запись URL в файловом хранилище.
+// Содержит основную информацию о URL и дополнительное поле UUID для внутренней идентификации.
+type URLRecord struct {
+        storage.Record
+        UUID string `json:"uuid"` // внутренний идентификатор записи
+}
+
+// FileRepository реализует файловое хранилище URL.
+// Сохраняет все записи в JSON-файле и поддерживает их загрузку при инициализации.
+type FileRepository struct {
+        fPath   string      // путь к файлу хранилища
+        records []URLRecord // массив записей URL
+}
+
+// NewFileRepository создает новый экземпляр FileRepository.
+// Создает файл хранилища, если он не существует, и загружает существующие записи.
+// Принимает путь к файлу хранилища.
+// Возвращает указатель на FileRepository и ошибку, если она возникла.
+func NewFileRepository(fPath string) (*FileRepository, error) <span class="cov8" title="1">{
+        // Создаём папки по указанному пути, если их ещё нет
+        folderPath, _ := filepath.Split(fPath)
+        if _, err := os.Stat(folderPath); os.IsNotExist(err) </span><span class="cov0" title="0">{
+                os.MkdirAll(folderPath, os.ModePerm)
+        }</span>
+        // Создаём файл, если его нет, или открываем на чтение
+        <span class="cov8" title="1">file, err := os.OpenFile(fPath, os.O_RDONLY|os.O_CREATE, 0666)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">defer file.Close()
+
+        var records = []URLRecord{}
+        scanner := bufio.NewScanner(file)
+        for scanner.Scan() </span><span class="cov8" title="1">{
+                var record URLRecord
+                err := json.Unmarshal(scanner.Bytes(), &amp;record)
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+                <span class="cov8" title="1">records = append(records, record)</span>
+        }
+
+        <span class="cov8" title="1">if err := scanner.Err(); err != nil </span><span class="cov0" title="0">{
+                log.Fatal(err)
+        }</span>
+
+        <span class="cov8" title="1">return &amp;FileRepository{
+                fPath:   fPath,
+                records: records,
+        }, nil</span>
+}
+
+// SaveURL сохраняет URL в файловом хранилище.
+// Если URL уже существует, возвращает его короткий идентификатор.
+// Возвращает короткий идентификатор, флаг существования и ошибку.
+func (frepo *FileRepository) SaveURL(ctx context.Context, userID uuid.UUID, url string) (id string, exists bool, err error) <span class="cov8" title="1">{
+        // Если URL уже был сохранён - возвращаем имеющееся значение
+        record := frepo.getRecordByOriginalURL(url)
+        if record != nil </span><span class="cov8" title="1">{
+                return record.ShortURL, true, nil
+        }</span>
+
+        // сохраняем изменения на диск
+        <span class="cov8" title="1">record = frepo.addRecordForURL(url, userID)
+
+        frepo.appendToFile([]URLRecord{*record})
+
+        return record.ShortURL, false, nil</span>
+}
+
+// getRecordByOriginalURL ищет запись по оригинальному URL.
+// Возвращает указатель на найденную запись или nil, если запись не найдена.
+func (frepo *FileRepository) getRecordByOriginalURL(originalURL string) *URLRecord <span class="cov8" title="1">{
+        for _, rec := range frepo.records </span><span class="cov8" title="1">{
+                if rec.OriginalURL == originalURL </span><span class="cov8" title="1">{
+                        return &amp;rec
+                }</span>
+        }
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// addRecordForURL создает новую запись для URL и добавляет её в хранилище.
+// Генерирует короткий идентификатор и внутренний UUID.
+// Возвращает указатель на созданную запись.
+func (frepo *FileRepository) addRecordForURL(url string, userID uuid.UUID) *URLRecord <span class="cov8" title="1">{
+        // создаём идентификатор и добавляем запись
+        id := strings.RandString(8)
+        uuid := strconv.Itoa(frepo.nextID())
+        record := URLRecord{
+                UUID: uuid,
+                Record: storage.Record{
+                        ShortURL:    id,
+                        OriginalURL: url,
+                        UserID:      userID,
+                },
+        }
+        frepo.records = append(frepo.records, record)
+
+        return &amp;record
+}</span>
+
+// RetrieveByShortURL получает запись по короткому идентификатору.
+// Возвращает запись и ошибку. Если запись не найдена, возвращает ошибку ErrorNotFound.
+func (frepo FileRepository) RetrieveByShortURL(ctx context.Context, shortURL string) (record storage.Record, err error) <span class="cov8" title="1">{
+        for _, rec := range frepo.records </span><span class="cov8" title="1">{
+                if rec.ShortURL == shortURL </span><span class="cov8" title="1">{
+                        return rec.Record, nil
+                }</span>
+        }
+
+        <span class="cov8" title="1">return storage.Record{}, storage.ErrorNotFound</span>
+}
+
+// CheckStatus проверяет состояние файлового хранилища.
+// Проверяет доступность файла для чтения.
+// Возвращает ошибку, если файл недоступен.
+func (frepo FileRepository) CheckStatus(ctx context.Context) error <span class="cov0" title="0">{
+        file, err := os.OpenFile(frepo.fPath, os.O_RDONLY|os.O_CREATE, 0666)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        <span class="cov0" title="0">defer file.Close()
+
+        return nil</span>
+}
+
+// SaveURLs сохраняет массив URL в файловом хранилище.
+// Возвращает массив коротких идентификаторов и ошибку.
+func (frepo *FileRepository) SaveURLs(ctx context.Context, urls []string) (ids []string, err error) <span class="cov8" title="1">{
+        ids = make([]string, 0)
+        newRecords := make([]URLRecord, 0)
+        for _, url := range urls </span><span class="cov8" title="1">{
+                record := frepo.getRecordByOriginalURL(url)
+                if record != nil </span><span class="cov8" title="1">{
+                        ids = append(ids, record.ShortURL)
+                        continue</span>
+                }
+
+                <span class="cov8" title="1">record = frepo.addRecordForURL(url, uuid.Nil)
+                newRecords = append(newRecords, *record)
+                ids = append(ids, record.ShortURL)</span>
+        }
+
+        // сохраняем изменения на диск
+        <span class="cov8" title="1">frepo.appendToFile(newRecords)
+
+        return ids, nil</span>
+}
+
+// nextID генерирует следующий внутренний идентификатор записи.
+// Возвращает целочисленный идентификатор.
+func (frepo FileRepository) nextID() int <span class="cov8" title="1">{
+        if len(frepo.records) &gt; 0 </span><span class="cov8" title="1">{
+                last, err := strconv.Atoi(frepo.records[len(frepo.records)-1].UUID)
+                if err != nil </span><span class="cov0" title="0">{
+                        log.Fatal(err)
+                }</span>
+                <span class="cov8" title="1">return last + 1</span>
+        }
+        <span class="cov8" title="1">return 1</span>
+}
+
+// appendToFile добавляет записи в конец файла хранилища.
+// Записи сериализуются в JSON и записываются построчно.
+// Возвращает ошибку, если запись в файл не удалась.
+func (frepo FileRepository) appendToFile(records []URLRecord) error <span class="cov8" title="1">{
+        file, err := os.OpenFile(frepo.fPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">encoder := json.NewEncoder(file)
+        for _, record := range records </span><span class="cov8" title="1">{
+                err = encoder.Encode(record)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+        }
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// RetrieveUserURLs получает все URL пользователя.
+// Возвращает массив записей и ошибку.
+func (frepo FileRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID) (records []storage.Record, err error) <span class="cov8" title="1">{
+        for _, r := range frepo.records </span><span class="cov8" title="1">{
+                if r.UserID == userID </span><span class="cov8" title="1">{
+                        records = append(records, r.Record)
+                }</span>
+        }
+        <span class="cov8" title="1">return records, nil</span>
+}
+
+// DeleteByShortURLs помечает URL как удаленные.
+// Принимает идентификатор пользователя и массив коротких идентификаторов.
+// Обновляет записи в памяти, но не сохраняет изменения на диск.
+func (frepo FileRepository) DeleteByShortURLs(ctx context.Context, userID uuid.UUID, shortURLs []string) <span class="cov8" title="1">{
+        for i, r := range frepo.records </span><span class="cov8" title="1">{
+                if r.UserID == userID &amp;&amp; slices.Contains(shortURLs, r.ShortURL) </span><span class="cov8" title="1">{
+                        r.IsDeleted = true
+                        frepo.records[i] = r
+                }</span>
+        }
+}
+</pre>
+		
+		<pre class="file" id="file13" style="display: none">// Code generated by MockGen. DO NOT EDIT.
+// Source: status_checker.go
+
+// Package mocks is a generated GoMock package.
+package mocks
+
+import (
+        context "context"
+        reflect "reflect"
+
+        gomock "github.com/golang/mock/gomock"
+)
+
+// MockStatusChecker is a mock of StatusChecker interface.
+type MockStatusChecker struct {
+        ctrl     *gomock.Controller
+        recorder *MockStatusCheckerMockRecorder
+}
+
+// MockStatusCheckerMockRecorder is the mock recorder for MockStatusChecker.
+type MockStatusCheckerMockRecorder struct {
+        mock *MockStatusChecker
+}
+
+// NewMockStatusChecker creates a new mock instance.
+func NewMockStatusChecker(ctrl *gomock.Controller) *MockStatusChecker <span class="cov0" title="0">{
+        mock := &amp;MockStatusChecker{ctrl: ctrl}
+        mock.recorder = &amp;MockStatusCheckerMockRecorder{mock}
+        return mock
+}</span>
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockStatusChecker) EXPECT() *MockStatusCheckerMockRecorder <span class="cov0" title="0">{
+        return m.recorder
+}</span>
+
+// CheckStatus mocks base method.
+func (m *MockStatusChecker) CheckStatus(ctx context.Context) error <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "CheckStatus", ctx)
+        ret0, _ := ret[0].(error)
+        return ret0
+}</span>
+
+// CheckStatus indicates an expected call of CheckStatus.
+func (mr *MockStatusCheckerMockRecorder) CheckStatus(ctx interface{}) *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckStatus", reflect.TypeOf((*MockStatusChecker)(nil).CheckStatus), ctx)
+}</span>
+</pre>
+		
+		<pre class="file" id="file14" style="display: none">// Package storage предоставляет интерфейсы и реализации для хранения и управления URL-ссылками.
+package pg
+
+import (
+        "database/sql"
+
+        "embed"
+
+        "github.com/iubondar/url-shortener/internal/app/storage"
+        _ "github.com/jackc/pgx/v5/stdlib"
+        "github.com/pressly/goose/v3"
+)
+
+//go:embed migrations/*.sql
+var embedMigrations embed.FS
+
+// DB представляет соединение с базой данных и репозиторий для работы с URL.
+type DB struct {
+        SQLDB *sql.DB            // соединение с базой данных
+        Repo  storage.Repository // репозиторий для работы с URL
+}
+
+// NewDB создает новое соединение с базой данных и инициализирует репозиторий.
+// Выполняет миграции базы данных при первом запуске.
+// Принимает строку подключения к базе данных.
+// Возвращает указатель на DB и ошибку, если она возникла.
+func NewDB(dsn string) (db *DB, err error) <span class="cov0" title="0">{
+        pgx, err := sql.Open("pgx", dsn)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">goose.SetBaseFS(embedMigrations)
+
+        if err := goose.SetDialect("postgres"); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">if err := goose.Up(pgx, "migrations"); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">repo, err := NewPGRepository(pgx, 0)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">return &amp;DB{
+                SQLDB: pgx,
+                Repo:  repo,
+        }, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file15" style="display: none">// Package storage предоставляет интерфейсы и реализации для хранения и управления URL-ссылками.
+package pg
+
+import (
+        "context"
+        "database/sql"
+        "errors"
+        "fmt"
+        "time"
+
+        "github.com/google/uuid"
+        "github.com/iubondar/url-shortener/internal/app/storage"
+        "github.com/iubondar/url-shortener/internal/app/storage/queries"
+        "github.com/iubondar/url-shortener/internal/app/strings"
+        "github.com/jackc/pgerrcode"
+        "github.com/jackc/pgx/v5/pgconn"
+        "go.uber.org/zap"
+)
+
+// deleteIn представляет структуру для удаления URL.
+type deleteIn struct {
+        shortURL string    // короткий идентификатор URL
+        userID   uuid.UUID // идентификатор пользователя
+}
+
+const defaultDeletionInterval = 5 * time.Second
+
+// PGRepository реализует хранилище URL на базе PostgreSQL.
+// Поддерживает асинхронное удаление URL через очередь.
+type PGRepository struct {
+        db          *sql.DB       // соединение с базой данных
+        deleteQueue chan deleteIn // очередь для удаления URL
+        insertStmt  *sql.Stmt     // подготовленный запрос для вставки URL
+        getURLStmt  *sql.Stmt     // подготовленный запрос для получения URL
+        deleteStmt  *sql.Stmt     // подготовленный запрос для удаления URL
+}
+
+// NewPGRepository создает новый экземпляр PGRepository.
+// Принимает соединение с базой данных и интервал для асинхронного удаления. Если интервал не указан, используется значение по умолчанию.
+// Возвращает указатель на PGRepository и ошибку, если она возникла.
+func NewPGRepository(db *sql.DB, deletionInterval time.Duration) (*PGRepository, error) <span class="cov8" title="1">{
+        if deletionInterval == 0 </span><span class="cov0" title="0">{
+                deletionInterval = defaultDeletionInterval
+        }</span>
+
+        // Подготавливаем запросы
+        <span class="cov8" title="1">insertStmt, err := db.Prepare(queries.InsertURL)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("prepare insert statement: %w", err)
+        }</span>
+
+        <span class="cov8" title="1">getURLStmt, err := db.Prepare(queries.GetShortURL)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("prepare get URL statement: %w", err)
+        }</span>
+
+        <span class="cov8" title="1">deleteStmt, err := db.Prepare(queries.DeleteUserURL)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("prepare delete statement: %w", err)
+        }</span>
+
+        <span class="cov8" title="1">instance := &amp;PGRepository{
+                db:          db,
+                deleteQueue: make(chan deleteIn, 64),
+                insertStmt:  insertStmt,
+                getURLStmt:  getURLStmt,
+                deleteStmt:  deleteStmt,
+        }
+
+        go instance.flushDeletions(deletionInterval)
+
+        return instance, nil</span>
+}
+
+// SaveURL сохраняет URL в базе данных.
+// Если URL уже существует, возвращает его короткий идентификатор.
+// Возвращает короткий идентификатор, флаг существования и ошибку.
+func (repo *PGRepository) SaveURL(ctx context.Context, userID uuid.UUID, url string) (id string, exists bool, err error) <span class="cov8" title="1">{
+        // создаём идентификатор и добавляем запись
+        id = strings.RandString(8)
+        _, err = repo.insertStmt.ExecContext(ctx, id, url, userID)
+        if err != nil </span><span class="cov8" title="1">{
+                // Если URL уже был сохранён - возвращаем имеющееся значение
+                var pgErr *pgconn.PgError
+                if errors.As(err, &amp;pgErr) &amp;&amp; pgErr.Code == pgerrcode.UniqueViolation </span><span class="cov8" title="1">{
+                        shortURL, err := repo.getShortURLByOriginalURL(ctx, url)
+                        if err != nil </span><span class="cov0" title="0">{
+                                zap.L().Sugar().Debugln("Error getting short URL:", err.Error())
+                                return "", false, err
+                        }</span>
+
+                        <span class="cov8" title="1">if len(shortURL) &gt; 0 </span><span class="cov8" title="1">{
+                                return shortURL, true, nil
+                        }</span>
+                }
+
+                // Другая ошибка
+                <span class="cov0" title="0">zap.L().Sugar().Debugln("Error insert new URL:", err.Error())
+                return "", false, err</span>
+        }
+
+        <span class="cov8" title="1">return id, false, nil</span>
+}
+
+// getShortURLByOriginalURL получает короткий идентификатор по оригинальному URL.
+// Возвращает короткий идентификатор и ошибку. Если URL не найден, возвращает пустую строку и nil.
+func (repo *PGRepository) getShortURLByOriginalURL(ctx context.Context, url string) (shortURL string, err error) <span class="cov8" title="1">{
+        err = repo.getURLStmt.QueryRowContext(ctx, url).Scan(&amp;shortURL)
+
+        if errors.Is(err, sql.ErrNoRows) </span><span class="cov8" title="1">{
+                return "", nil
+        }</span>
+
+        <span class="cov8" title="1">return shortURL, err</span>
+}
+
+// RetrieveByShortURL получает запись по короткому идентификатору.
+// Возвращает запись и ошибку. Если запись не найдена, возвращает ошибку ErrorNotFound.
+func (repo *PGRepository) RetrieveByShortURL(ctx context.Context, shortURL string) (record storage.Record, err error) <span class="cov8" title="1">{
+        row := repo.db.QueryRowContext(ctx, queries.GetByShortURL, shortURL)
+
+        err = row.Scan(&amp;record.UserID, &amp;record.ShortURL, &amp;record.OriginalURL, &amp;record.IsDeleted)
+
+        if errors.Is(err, sql.ErrNoRows) </span><span class="cov8" title="1">{
+                return storage.Record{}, storage.ErrorNotFound
+        }</span>
+
+        <span class="cov8" title="1">return</span>
+}
+
+// CheckStatus проверяет состояние хранилища.
+// Возвращает ошибку, если база данных недоступна.
+func (repo *PGRepository) CheckStatus(ctx context.Context) error <span class="cov0" title="0">{
+        return repo.db.PingContext(ctx)
+}</span>
+
+// SaveURLs сохраняет массив URL в базе данных в одной транзакции.
+// Если хотя бы один URL невалиден, откатывает транзакцию.
+// Возвращает массив коротких идентификаторов и ошибку.
+func (repo *PGRepository) SaveURLs(ctx context.Context, urls []string) (ids []string, err error) <span class="cov8" title="1">{
+        tx, err := repo.db.Begin()
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        // если Commit будет раньше, то откат проигнорируется
+        <span class="cov8" title="1">defer tx.Rollback()
+
+        stmt, err := tx.PrepareContext(ctx, queries.InsertURL)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">defer stmt.Close()
+
+        ids = make([]string, 0)
+        for _, url := range urls </span><span class="cov8" title="1">{
+                // Ищем в БД сохранённый URL
+                existedURL, err := repo.getShortURLByOriginalURL(ctx, url)
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+                <span class="cov8" title="1">if len(existedURL) &gt; 0 </span><span class="cov8" title="1">{
+                        ids = append(ids, existedURL)
+                        continue</span>
+                }
+
+                // Сохраняем URL
+                <span class="cov8" title="1">id := strings.RandString(8)
+                ids = append(ids, id)
+                _, err = stmt.ExecContext(ctx, id, url, uuid.Nil)
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+        }
+
+        <span class="cov8" title="1">return ids, tx.Commit()</span>
+}
+
+// RetrieveUserURLs получает все URL пользователя.
+// Возвращает массив записей и ошибку.
+func (repo *PGRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID) (records []storage.Record, err error) <span class="cov8" title="1">{
+        rows, err := repo.db.QueryContext(ctx, queries.GetUserUrls, userID.String())
+        if err != nil </span><span class="cov0" title="0">{
+                if errors.Is(err, sql.ErrNoRows) </span><span class="cov0" title="0">{
+                        return []storage.Record{}, nil
+                }</span> else<span class="cov0" title="0"> {
+                        return nil, err
+                }</span>
+        }
+
+        <span class="cov8" title="1">defer rows.Close()
+
+        for rows.Next() </span><span class="cov8" title="1">{
+                var record storage.Record
+                err = rows.Scan(&amp;record.UserID, &amp;record.ShortURL, &amp;record.OriginalURL, &amp;record.IsDeleted)
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+                <span class="cov8" title="1">records = append(records, record)</span>
+        }
+
+        <span class="cov8" title="1">if err := rows.Err(); err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("error processing rows: %s", err.Error())
+        }</span>
+
+        <span class="cov8" title="1">return records, nil</span>
+}
+
+// DeleteByShortURLs помечает URL как удаленные.
+// Добавляет URL в очередь для асинхронного удаления.
+func (repo *PGRepository) DeleteByShortURLs(ctx context.Context, userID uuid.UUID, shortURLs []string) <span class="cov8" title="1">{
+        for _, shortURL := range shortURLs </span><span class="cov8" title="1">{
+                repo.deleteQueue &lt;- deleteIn{shortURL: shortURL, userID: userID}
+        }</span>
+}
+
+// flushDeletions периодически сохраняет накопленные в очереди удаления в базе данных.
+// Запускается в отдельной горутине при создании репозитория.
+func (repo *PGRepository) flushDeletions(deletionInterval time.Duration) <span class="cov8" title="1">{
+        ticker := time.NewTicker(deletionInterval)
+
+        var deletions []deleteIn
+
+        for </span><span class="cov8" title="1">{
+                select </span>{
+                case deleteIn := &lt;-repo.deleteQueue:<span class="cov8" title="1">
+                        // добавим сообщение в слайс для последующего удаления
+                        deletions = append(deletions, deleteIn)</span>
+                case &lt;-ticker.C:<span class="cov8" title="1">
+                        // подождём, пока придёт хотя бы одно сообщение
+                        if len(deletions) == 0 </span><span class="cov8" title="1">{
+                                continue</span>
+                        }
+                        // сохраним все пришедшие сообщения одновременно
+                        <span class="cov8" title="1">err := repo.markAsDeleted(context.Background(), deletions...)
+                        if err != nil </span><span class="cov0" title="0">{
+                                zap.L().Sugar().Debugln("cannot mark deletions:", err.Error())
+                        }</span>
+                        // сотрём успешно отосланные сообщения
+                        <span class="cov8" title="1">deletions = nil</span>
+                }
+        }
+}
+
+// markAsDeleted помечает URL как удаленные в базе данных.
+// Выполняется в рамках транзакции.
+func (repo *PGRepository) markAsDeleted(ctx context.Context, deletions ...deleteIn) error <span class="cov8" title="1">{
+        tx, err := repo.db.Begin()
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        // если Commit будет раньше, то откат проигнорируется
+        <span class="cov8" title="1">defer tx.Rollback()
+
+        stmt := tx.Stmt(repo.deleteStmt)
+        defer stmt.Close()
+
+        for _, deleteIn := range deletions </span><span class="cov8" title="1">{
+                _, err = stmt.ExecContext(ctx, deleteIn.userID, deleteIn.shortURL)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+        }
+
+        <span class="cov8" title="1">return tx.Commit()</span>
+}
+</pre>
+		
+		<pre class="file" id="file16" style="display: none">// Package storage предоставляет интерфейсы и реализации для хранения и управления URL-ссылками.
+package simple
+
+import (
+        "context"
+        "slices"
+
+        "github.com/google/uuid"
+        "github.com/iubondar/url-shortener/internal/app/storage"
+        "github.com/iubondar/url-shortener/internal/app/strings"
+)
+
+const idLength int = 8
+
+// SimpleRepository реализует in-memory хранилище URL.
+// Хранит все записи в памяти и не сохраняет их между запусками приложения.
+type SimpleRepository struct {
+        Records []storage.Record // массив записей URL
+}
+
+// NewSimpleRepository создает новый экземпляр SimpleRepository.
+// Возвращает указатель на инициализированное хранилище.
+func NewSimpleRepository() *SimpleRepository <span class="cov8" title="1">{
+        return &amp;SimpleRepository{
+                Records: []storage.Record{},
+        }
+}</span>
+
+// SaveURL сохраняет URL в хранилище.
+// Если URL уже существует, возвращает его короткий идентификатор.
+// Возвращает короткий идентификатор, флаг существования и ошибку.
+func (repo *SimpleRepository) SaveURL(ctx context.Context, userID uuid.UUID, url string) (id string, exists bool, err error) <span class="cov8" title="1">{
+        id, err = repo.RetrieveID(url)
+        if err == nil &amp;&amp; len(id) &gt; 0 </span><span class="cov8" title="1">{
+                return id, true, nil
+        }</span>
+
+        // создаём идентификатор и сохраняем URL
+        <span class="cov8" title="1">id = strings.RandString(idLength)
+        repo.Records = append(
+                repo.Records,
+                storage.Record{
+                        ShortURL:    id,
+                        OriginalURL: url,
+                        UserID:      userID,
+                },
+        )
+
+        return id, false, nil</span>
+}
+
+// CheckStatus проверяет состояние хранилища.
+// Для in-memory хранилища всегда возвращает nil.
+func (repo SimpleRepository) CheckStatus(ctx context.Context) error <span class="cov0" title="0">{
+        // Статус всегда ок
+        return nil
+}</span>
+
+// SaveURLs сохраняет массив URL в хранилище.
+// Возвращает массив коротких идентификаторов и ошибку.
+func (repo *SimpleRepository) SaveURLs(ctx context.Context, urls []string) (ids []string, err error) <span class="cov8" title="1">{
+        ids = make([]string, 0)
+        for _, url := range urls </span><span class="cov8" title="1">{
+                id, _, err := repo.SaveURL(ctx, uuid.Nil, url)
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+                <span class="cov8" title="1">ids = append(ids, id)</span>
+        }
+        <span class="cov8" title="1">return ids, nil</span>
+}
+
+// RetrieveByShortURL получает запись по короткому идентификатору.
+// Возвращает запись и ошибку.
+func (repo SimpleRepository) RetrieveByShortURL(ctx context.Context, shortURL string) (record storage.Record, err error) <span class="cov8" title="1">{
+        for _, r := range repo.Records </span><span class="cov8" title="1">{
+                if r.ShortURL == shortURL </span><span class="cov8" title="1">{
+                        return r, nil
+                }</span>
+        }
+
+        <span class="cov8" title="1">return storage.Record{}, storage.ErrorNotFound</span>
+}
+
+// RetrieveID получает короткий идентификатор по оригинальному URL.
+// Возвращает короткий идентификатор и ошибку.
+func (repo SimpleRepository) RetrieveID(url string) (id string, err error) <span class="cov8" title="1">{
+        for _, r := range repo.Records </span><span class="cov8" title="1">{
+                if r.OriginalURL == url </span><span class="cov8" title="1">{
+                        return r.ShortURL, nil
+                }</span>
+        }
+
+        <span class="cov8" title="1">return "", storage.ErrorNotFound</span>
+}
+
+// RetrieveUserURLs получает все URL пользователя.
+// Возвращает массив записей и ошибку.
+func (repo SimpleRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID) (records []storage.Record, err error) <span class="cov8" title="1">{
+        records = make([]storage.Record, 0)
+        for _, r := range repo.Records </span><span class="cov8" title="1">{
+                if r.UserID == userID </span><span class="cov8" title="1">{
+                        records = append(records, r)
+                }</span>
+        }
+        <span class="cov8" title="1">return records, nil</span>
+}
+
+// DeleteByShortURLs помечает URL как удаленные.
+// Принимает идентификатор пользователя и массив коротких идентификаторов.
+func (repo *SimpleRepository) DeleteByShortURLs(ctx context.Context, userID uuid.UUID, shortURLs []string) <span class="cov8" title="1">{
+        for i, r := range repo.Records </span><span class="cov8" title="1">{
+                if r.UserID == userID &amp;&amp; slices.Contains(shortURLs, r.ShortURL) </span><span class="cov8" title="1">{
+                        r.IsDeleted = true
+                        repo.Records[i] = r
+                }</span>
+        }
+}
+</pre>
+		
+		<pre class="file" id="file17" style="display: none">// Пакет testhelpers предоставляет утилиты для тестирования, включая управление контейнерами
+// для интеграционных тестов. Использует testcontainers-go для управления тестовыми зависимостями,
+// такими как базы данных PostgreSQL.
+package testhelpers
+
+import (
+        "context"
+        "time"
+
+        "github.com/testcontainers/testcontainers-go"
+        "github.com/testcontainers/testcontainers-go/modules/postgres"
+        "github.com/testcontainers/testcontainers-go/wait"
+)
+
+// PostgresContainer оборачивает PostgreSQL контейнер из testcontainers-go
+// и предоставляет дополнительную функциональность для целей тестирования.
+type PostgresContainer struct {
+        *postgres.PostgresContainer
+        ConnectionString string
+}
+
+// CreatePostgresContainer создает и запускает новый контейнер PostgreSQL для тестирования.
+// Использует образ PostgreSQL 15.3 Alpine и настраивает его с учетными данными по умолчанию для тестов.
+//
+// Контейнер настроен со следующими параметрами:
+// - Имя базы данных: test-db
+// - Имя пользователя: postgres
+// - Пароль: postgres
+// - Режим SSL: отключен
+//
+// Функция ожидает готовности базы данных к приему соединений перед возвратом.
+//
+// Параметры:
+//   - ctx: Контекст для управления жизненным циклом контейнера
+//
+// Возвращает:
+//   - *PostgresContainer: Экземпляр контейнера с деталями подключения
+//   - error: Любая ошибка, возникшая при создании контейнера
+func CreatePostgresContainer(ctx context.Context) (*PostgresContainer, error) <span class="cov0" title="0">{
+        pgContainer, err := postgres.Run(ctx,
+                "postgres:15.3-alpine",
+                postgres.WithDatabase("test-db"),
+                postgres.WithUsername("postgres"),
+                postgres.WithPassword("postgres"),
+                testcontainers.WithWaitStrategy(
+                        wait.ForLog("database system is ready to accept connections").
+                                WithOccurrence(2).WithStartupTimeout(5*time.Second)),
+        )
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov0" title="0">connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">return &amp;PostgresContainer{
+                PostgresContainer: pgContainer,
+                ConnectionString:  connStr,
+        }, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file18" style="display: none">// Пакет strings предоставляет утилиты для работы со строками.
+// Включает функции для генерации случайных строк заданной длины.
+package strings
+
+import (
+        "math/rand"
+)
+
+// symbols содержит набор символов, используемых для генерации случайных строк.
+// Включает латинские буквы в обоих регистрах и цифры.
+var symbols = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
+
+// RandString генерирует случайную строку заданной длины.
+// Строка состоит из символов, определенных в переменной symbols.
+//
+// Параметры:
+//   - n: длина генерируемой строки
+//
+// Возвращает:
+//   - string: случайная строка заданной длины
+func RandString(n int) string <span class="cov8" title="1">{
+        b := make([]rune, n)
+        for i := range b </span><span class="cov8" title="1">{
+                b[i] = symbols[rand.Intn(len(symbols))]
+        }</span>
+        <span class="cov8" title="1">return string(b)</span>
+}
+</pre>
+		
+		<pre class="file" id="file19" style="display: none">// Пакет compress предоставляет middleware для сжатия HTTP-трафика с использованием gzip.
+// Поддерживает как сжатие ответов сервера, так и распаковку запросов от клиента.
+package compress
+
+import (
+        "compress/gzip"
+        "io"
+        "net/http"
+        "strings"
+)
+
+// compressingContentTypes содержит список типов контента, которые должны сжиматься.
+// По умолчанию сжимаются JSON и HTML.
+var compressingContentTypes []string = []string{"application/json", "text/html"}
+
+const (
+        acceptEncoding  = "Accept-Encoding"
+        contentEncoding = "Content-Encoding"
+        contentType     = "Content-Type"
+)
+
+// shouldCompress проверяет, нужно ли сжимать контент указанного типа.
+// Возвращает true, если тип контента входит в список compressingContentTypes.
+func shouldCompress(ct string) bool <span class="cov8" title="1">{
+        for _, contentType := range compressingContentTypes </span><span class="cov8" title="1">{
+                if strings.Contains(ct, contentType) </span><span class="cov8" title="1">{
+                        return true
+                }</span>
+        }
+        <span class="cov0" title="0">return false</span>
+}
+
+// gzipWriter реализует интерфейс http.ResponseWriter и позволяет прозрачно для сервера
+// сжимать передаваемые данные и выставлять правильные HTTP-заголовки.
+type gzipWriter struct {
+        w  http.ResponseWriter
+        zw *gzip.Writer
+}
+
+// newGzipWriter создает новый экземпляр gzipWriter.
+// Оборачивает http.ResponseWriter для сжатия исходящего трафика.
+func newGzipWriter(w http.ResponseWriter) *gzipWriter <span class="cov8" title="1">{
+        zw, _ := gzip.NewWriterLevel(w, gzip.BestSpeed)
+        return &amp;gzipWriter{
+                w:  w,
+                zw: zw,
+        }
+}</span>
+
+// Header возвращает HTTP-заголовки ответа.
+func (c *gzipWriter) Header() http.Header <span class="cov8" title="1">{
+        return c.w.Header()
+}</span>
+
+// Write записывает данные в ответ, сжимая их если необходимо.
+// Сжатие применяется только к определенным типам контента.
+func (c *gzipWriter) Write(p []byte) (int, error) <span class="cov8" title="1">{
+        ct := c.w.Header().Get(contentType)
+        if shouldCompress(ct) </span><span class="cov8" title="1">{
+                c.w.Header().Set(contentEncoding, "gzip")
+                return c.zw.Write(p)
+        }</span>
+        <span class="cov0" title="0">return c.w.Write(p)</span>
+}
+
+// WriteHeader отправляет HTTP-заголовки ответа.
+// Устанавливает заголовок Content-Encoding: gzip если контент должен быть сжат.
+func (c *gzipWriter) WriteHeader(statusCode int) <span class="cov0" title="0">{
+        ct := c.w.Header().Get(contentType)
+        if shouldCompress(ct) &amp;&amp; (statusCode &lt; 300 || statusCode == http.StatusConflict) </span><span class="cov0" title="0">{
+                c.w.Header().Set(contentEncoding, "gzip")
+        }</span>
+        <span class="cov0" title="0">c.w.WriteHeader(statusCode)</span>
+}
+
+// Close закрывает gzip.Writer и досылает все данные из буфера.
+func (c *gzipWriter) Close() error <span class="cov8" title="1">{
+        ct := c.w.Header().Get(contentType)
+        if shouldCompress(ct) </span><span class="cov8" title="1">{
+                return c.zw.Close()
+        }</span>
+        <span class="cov0" title="0">return nil</span>
+}
+
+// gzipReader реализует интерфейс io.ReadCloser и позволяет прозрачно для сервера
+// декомпрессировать получаемые от клиента данные.
+type gzipReader struct {
+        r  io.ReadCloser
+        zr *gzip.Reader
+}
+
+// newGzipReader создает новый экземпляр gzipReader.
+// Оборачивает io.ReadCloser для распаковки входящего трафика.
+func newGzipReader(r io.ReadCloser) (*gzipReader, error) <span class="cov8" title="1">{
+        zr, err := gzip.NewReader(r)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return &amp;gzipReader{
+                r:  r,
+                zr: zr,
+        }, nil</span>
+}
+
+// Read читает и распаковывает данные из запроса.
+func (c gzipReader) Read(p []byte) (n int, err error) <span class="cov8" title="1">{
+        return c.zr.Read(p)
+}</span>
+
+// Close закрывает gzip.Reader и оригинальный io.ReadCloser.
+func (c *gzipReader) Close() error <span class="cov8" title="1">{
+        if err := c.r.Close(); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        <span class="cov8" title="1">return c.zr.Close()</span>
+}
+
+// WithGzipCompression создает middleware для поддержки gzip-сжатия.
+// Middleware автоматически сжимает ответы сервера и распаковывает запросы клиента,
+// если они используют gzip-сжатие.
+//
+// Middleware проверяет заголовки Accept-Encoding и Content-Encoding
+// для определения необходимости сжатия/распаковки.
+func WithGzipCompression(h http.Handler) http.Handler <span class="cov8" title="1">{
+        compressFn := func(w http.ResponseWriter, r *http.Request) </span><span class="cov8" title="1">{
+                // по умолчанию устанавливаем оригинальный http.ResponseWriter как тот,
+                // который будем передавать следующей функции
+                ow := w
+
+                // проверяем, что клиент умеет получать от сервера сжатые данные в формате gzip
+                acceptEncoding := r.Header.Get(acceptEncoding)
+                supportsGzip := strings.Contains(acceptEncoding, "gzip")
+                if supportsGzip </span><span class="cov8" title="1">{
+                        // оборачиваем оригинальный http.ResponseWriter новым с поддержкой сжатия
+                        cw := newGzipWriter(w)
+                        // меняем оригинальный http.ResponseWriter на новый
+                        ow = cw
+                        // не забываем отправить клиенту все сжатые данные после завершения middleware
+                        defer cw.Close()
+                }</span>
+
+                // проверяем, что клиент отправил серверу сжатые данные в формате gzip
+                <span class="cov8" title="1">contentEncoding := r.Header.Get(contentEncoding)
+                sendsGzip := strings.Contains(contentEncoding, "gzip")
+                if sendsGzip </span><span class="cov8" title="1">{
+                        // оборачиваем тело запроса в io.Reader с поддержкой декомпрессии
+                        cr, err := newGzipReader(r.Body)
+                        if err != nil </span><span class="cov0" title="0">{
+                                w.WriteHeader(http.StatusInternalServerError)
+                                return
+                        }</span>
+                        // меняем тело запроса на новое
+                        <span class="cov8" title="1">r.Body = cr
+                        defer cr.Close()</span>
+                }
+
+                // передаём управление хендлеру
+                <span class="cov8" title="1">h.ServeHTTP(ow, r)</span>
+        }
+        <span class="cov8" title="1">return http.HandlerFunc(compressFn)</span>
+}
+</pre>
+		
+		<pre class="file" id="file20" style="display: none">// Пакет logging предоставляет middleware для логирования HTTP-запросов.
+// Использует zap для структурированного логирования с информацией о запросе,
+// ответе и времени выполнения.
+package logging
+
+import (
+        "log"
+        "net/http"
+        "time"
+
+        "go.uber.org/zap"
+)
+
+var globalLogger *zap.Logger
+
+func init() <span class="cov8" title="1">{
+        var err error
+        globalLogger, err = zap.NewDevelopment()
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatalf("can't initialize zap logger: %v", err)
+        }</span>
+}
+
+type (
+        // responseData хранит информацию об ответе сервера
+        responseData struct {
+                status int // HTTP-код ответа
+                size   int // размер тела ответа в байтах
+        }
+
+        // loggingResponseWriter реализует интерфейс http.ResponseWriter
+        // и перехватывает информацию о записываемом ответе.
+        // Встраивает оригинальный http.ResponseWriter для сохранения его функциональности.
+        loggingResponseWriter struct {
+                http.ResponseWriter               // встраиваем оригинальный http.ResponseWriter
+                responseData        *responseData // данные об ответе
+        }
+)
+
+// Write перехватывает запись тела ответа и сохраняет его размер.
+// Реализует метод интерфейса http.ResponseWriter.
+func (r *loggingResponseWriter) Write(b []byte) (int, error) <span class="cov8" title="1">{
+        size, err := r.ResponseWriter.Write(b)
+        r.responseData.size += size
+        return size, err
+}</span>
+
+// WriteHeader перехватывает установку кода статуса ответа.
+// Реализует метод интерфейса http.ResponseWriter.
+func (r *loggingResponseWriter) WriteHeader(statusCode int) <span class="cov8" title="1">{
+        r.ResponseWriter.WriteHeader(statusCode)
+        r.responseData.status = statusCode
+}</span>
+
+// WithLogging создает middleware для логирования HTTP-запросов.
+// Логирует следующую информацию о каждом запросе:
+// - URI запроса
+// - HTTP метод
+// - Код статуса ответа
+// - Время выполнения запроса
+// - Размер ответа в байтах
+//
+// Использует zap для структурированного логирования в режиме разработки.
+func WithLogging(h http.Handler) http.Handler <span class="cov8" title="1">{
+        sugar := globalLogger.Sugar()
+
+        logFn := func(w http.ResponseWriter, r *http.Request) </span><span class="cov8" title="1">{
+                start := time.Now()
+
+                responseData := &amp;responseData{
+                        status: 0,
+                        size:   0,
+                }
+                lw := loggingResponseWriter{
+                        ResponseWriter: w, // встраиваем оригинальный http.ResponseWriter
+                        responseData:   responseData,
+                }
+                h.ServeHTTP(&amp;lw, r) // внедряем реализацию http.ResponseWriter
+
+                duration := time.Since(start)
+
+                sugar.Infoln(
+                        "uri", r.RequestURI,
+                        "method", r.Method,
+                        "status", responseData.status, // получаем перехваченный код статуса ответа
+                        "duration", duration,
+                        "size", responseData.size, // получаем перехваченный размер ответа
+                )
+        }</span>
+        <span class="cov8" title="1">return http.HandlerFunc(logFn)</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

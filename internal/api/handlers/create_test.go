@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -9,9 +10,33 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/iubondar/url-shortener/internal/app/storage"
+	simple_storage "github.com/iubondar/url-shortener/internal/app/storage/simple"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// ExampleCreateIDHandler_CreateID демонстрирует пример использования эндпоинта создания сокращенной ссылки.
+// Пример показывает, как создать сокращенную ссылку для длинного URL.
+func ExampleCreateIDHandler_CreateID() {
+	// Создаем тестовый HTTP запрос
+	request := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader([]byte("https://practicum.yandex.ru/")))
+	w := httptest.NewRecorder()
+
+	// Инициализируем репозиторий и обработчик
+	repo := &simple_storage.SimpleRepository{}
+	handler := NewCreateIDHandler(repo, "127.0.0.1")
+
+	// Вызываем обработчик
+	handler.CreateID(w, request)
+
+	// Получаем ответ
+	res := w.Result()
+	defer res.Body.Close()
+
+	// Выводим статус ответа
+	fmt.Println(res.Status)
+	// Output: 201 Created
+}
 
 func TestCreateIDHandler_CreateID(t *testing.T) {
 	userID := uuid.New()
@@ -105,7 +130,7 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			request := httptest.NewRequest(test.method, "/", bytes.NewReader([]byte(test.url)))
 			// создаём новый Recorder
 			w := httptest.NewRecorder()
-			repo := storage.SimpleRepository{
+			repo := simple_storage.SimpleRepository{
 				Records: test.records,
 			}
 			handler := NewCreateIDHandler(&repo, "127.0.0.1")

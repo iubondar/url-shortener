@@ -1,4 +1,5 @@
-package storage
+// Package storage предоставляет интерфейсы и реализации для хранения и управления URL-ссылками.
+package pg
 
 import (
 	"context"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/iubondar/url-shortener/internal/app/storage"
 	"github.com/iubondar/url-shortener/internal/app/storage/queries"
 	"github.com/iubondar/url-shortener/internal/app/strings"
 	"github.com/jackc/pgerrcode"
@@ -15,26 +17,54 @@ import (
 	"go.uber.org/zap"
 )
 
+// deleteIn представляет структуру для удаления URL.
 type deleteIn struct {
-	shortURL string
-	userID   uuid.UUID
+	shortURL string    // короткий идентификатор URL
+	userID   uuid.UUID // идентификатор пользователя
 }
 
 const defaultDeletionInterval = 5 * time.Second
 
+// PGRepository реализует хранилище URL на базе PostgreSQL.
+// Поддерживает асинхронное удаление URL через очередь.
 type PGRepository struct {
-	db          *sql.DB
-	deleteQueue chan deleteIn
+	db          *sql.DB       // соединение с базой данных
+	deleteQueue chan deleteIn // очередь для удаления URL
+	insertStmt  *sql.Stmt     // подготовленный запрос для вставки URL
+	getURLStmt  *sql.Stmt     // подготовленный запрос для получения URL
+	deleteStmt  *sql.Stmt     // подготовленный запрос для удаления URL
 }
 
+// NewPGRepository создает новый экземпляр PGRepository.
+// Принимает соединение с базой данных и интервал для асинхронного удаления. Если интервал не указан, используется значение по умолчанию.
+// Возвращает указатель на PGRepository и ошибку, если она возникла.
 func NewPGRepository(db *sql.DB, deletionInterval time.Duration) (*PGRepository, error) {
 	if deletionInterval == 0 {
 		deletionInterval = defaultDeletionInterval
 	}
 
+	// Подготавливаем запросы
+	insertStmt, err := db.Prepare(queries.InsertURL)
+	if err != nil {
+		return nil, fmt.Errorf("prepare insert statement: %w", err)
+	}
+
+	getURLStmt, err := db.Prepare(queries.GetShortURL)
+	if err != nil {
+		return nil, fmt.Errorf("prepare get URL statement: %w", err)
+	}
+
+	deleteStmt, err := db.Prepare(queries.DeleteUserURL)
+	if err != nil {
+		return nil, fmt.Errorf("prepare delete statement: %w", err)
+	}
+
 	instance := &PGRepository{
 		db:          db,
-		deleteQueue: make(chan deleteIn, 1024),
+		deleteQueue: make(chan deleteIn, 64),
+		insertStmt:  insertStmt,
+		getURLStmt:  getURLStmt,
+		deleteStmt:  deleteStmt,
 	}
 
 	go instance.flushDeletions(deletionInterval)
@@ -42,15 +72,17 @@ func NewPGRepository(db *sql.DB, deletionInterval time.Duration) (*PGRepository,
 	return instance, nil
 }
 
+// SaveURL сохраняет URL в базе данных.
+// Если URL уже существует, возвращает его короткий идентификатор.
+// Возвращает короткий идентификатор, флаг существования и ошибку.
 func (repo *PGRepository) SaveURL(ctx context.Context, userID uuid.UUID, url string) (id string, exists bool, err error) {
 	// создаём идентификатор и добавляем запись
-	id = strings.RandString(idLength)
-	_, err = repo.db.ExecContext(ctx, queries.InsertURL, id, url, userID)
+	id = strings.RandString(8)
+	_, err = repo.insertStmt.ExecContext(ctx, id, url, userID)
 	if err != nil {
 		// Если URL уже был сохранён - возвращаем имеющееся значение
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
-
 			shortURL, err := repo.getShortURLByOriginalURL(ctx, url)
 			if err != nil {
 				zap.L().Sugar().Debugln("Error getting short URL:", err.Error())
@@ -70,11 +102,10 @@ func (repo *PGRepository) SaveURL(ctx context.Context, userID uuid.UUID, url str
 	return id, false, nil
 }
 
-// Возвращает короткий URL если он уже есть в БД, иначе пустую строку
+// getShortURLByOriginalURL получает короткий идентификатор по оригинальному URL.
+// Возвращает короткий идентификатор и ошибку. Если URL не найден, возвращает пустую строку и nil.
 func (repo *PGRepository) getShortURLByOriginalURL(ctx context.Context, url string) (shortURL string, err error) {
-	row := repo.db.QueryRowContext(ctx, queries.GetShortURL, url)
-
-	err = row.Scan(&shortURL)
+	err = repo.getURLStmt.QueryRowContext(ctx, url).Scan(&shortURL)
 
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", nil
@@ -83,24 +114,29 @@ func (repo *PGRepository) getShortURLByOriginalURL(ctx context.Context, url stri
 	return shortURL, err
 }
 
-func (repo *PGRepository) RetrieveByShortURL(ctx context.Context, shortURL string) (record Record, err error) {
+// RetrieveByShortURL получает запись по короткому идентификатору.
+// Возвращает запись и ошибку. Если запись не найдена, возвращает ошибку ErrorNotFound.
+func (repo *PGRepository) RetrieveByShortURL(ctx context.Context, shortURL string) (record storage.Record, err error) {
 	row := repo.db.QueryRowContext(ctx, queries.GetByShortURL, shortURL)
 
 	err = row.Scan(&record.UserID, &record.ShortURL, &record.OriginalURL, &record.IsDeleted)
 
 	if errors.Is(err, sql.ErrNoRows) {
-		return Record{}, ErrorNotFound
+		return storage.Record{}, storage.ErrorNotFound
 	}
 
 	return
 }
 
+// CheckStatus проверяет состояние хранилища.
+// Возвращает ошибку, если база данных недоступна.
 func (repo *PGRepository) CheckStatus(ctx context.Context) error {
 	return repo.db.PingContext(ctx)
 }
 
-// Сохраняем массив URL в одной транзакции
-// Если хотя бы один из URL не валиден - откатываем транзакцию и возвращаем ошибку
+// SaveURLs сохраняет массив URL в базе данных в одной транзакции.
+// Если хотя бы один URL невалиден, откатывает транзакцию.
+// Возвращает массив коротких идентификаторов и ошибку.
 func (repo *PGRepository) SaveURLs(ctx context.Context, urls []string) (ids []string, err error) {
 	tx, err := repo.db.Begin()
 	if err != nil {
@@ -128,7 +164,7 @@ func (repo *PGRepository) SaveURLs(ctx context.Context, urls []string) (ids []st
 		}
 
 		// Сохраняем URL
-		id := strings.RandString(idLength)
+		id := strings.RandString(8)
 		ids = append(ids, id)
 		_, err = stmt.ExecContext(ctx, id, url, uuid.Nil)
 		if err != nil {
@@ -139,11 +175,13 @@ func (repo *PGRepository) SaveURLs(ctx context.Context, urls []string) (ids []st
 	return ids, tx.Commit()
 }
 
-func (repo *PGRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID) (records []Record, err error) {
+// RetrieveUserURLs получает все URL пользователя.
+// Возвращает массив записей и ошибку.
+func (repo *PGRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID) (records []storage.Record, err error) {
 	rows, err := repo.db.QueryContext(ctx, queries.GetUserUrls, userID.String())
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return []Record{}, nil
+			return []storage.Record{}, nil
 		} else {
 			return nil, err
 		}
@@ -152,7 +190,7 @@ func (repo *PGRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID
 	defer rows.Close()
 
 	for rows.Next() {
-		var record Record
+		var record storage.Record
 		err = rows.Scan(&record.UserID, &record.ShortURL, &record.OriginalURL, &record.IsDeleted)
 		if err != nil {
 			return nil, err
@@ -167,13 +205,16 @@ func (repo *PGRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID
 	return records, nil
 }
 
+// DeleteByShortURLs помечает URL как удаленные.
+// Добавляет URL в очередь для асинхронного удаления.
 func (repo *PGRepository) DeleteByShortURLs(ctx context.Context, userID uuid.UUID, shortURLs []string) {
 	for _, shortURL := range shortURLs {
 		repo.deleteQueue <- deleteIn{shortURL: shortURL, userID: userID}
 	}
 }
 
-// flushDeletions периодически сохраняет накопленные в очереди удаления в БД
+// flushDeletions периодически сохраняет накопленные в очереди удаления в базе данных.
+// Запускается в отдельной горутине при создании репозитория.
 func (repo *PGRepository) flushDeletions(deletionInterval time.Duration) {
 	ticker := time.NewTicker(deletionInterval)
 
@@ -200,6 +241,8 @@ func (repo *PGRepository) flushDeletions(deletionInterval time.Duration) {
 	}
 }
 
+// markAsDeleted помечает URL как удаленные в базе данных.
+// Выполняется в рамках транзакции.
 func (repo *PGRepository) markAsDeleted(ctx context.Context, deletions ...deleteIn) error {
 	tx, err := repo.db.Begin()
 	if err != nil {
@@ -208,10 +251,7 @@ func (repo *PGRepository) markAsDeleted(ctx context.Context, deletions ...delete
 	// если Commit будет раньше, то откат проигнорируется
 	defer tx.Rollback()
 
-	stmt, err := tx.PrepareContext(ctx, queries.DeleteUserURL)
-	if err != nil {
-		return err
-	}
+	stmt := tx.Stmt(repo.deleteStmt)
 	defer stmt.Close()
 
 	for _, deleteIn := range deletions {

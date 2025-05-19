@@ -1,4 +1,4 @@
-package storage
+package simple
 
 import (
 	"context"
@@ -7,12 +7,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/iubondar/url-shortener/internal/app/storage"
 )
 
 func TestSimpleRepository_SaveURL(t *testing.T) {
 	userID := uuid.New()
 	type fields struct {
-		records []Record
+		records []storage.Record
 	}
 	type args struct {
 		url string
@@ -28,7 +30,7 @@ func TestSimpleRepository_SaveURL(t *testing.T) {
 		{
 			name: "Non-existent",
 			fields: fields{
-				records: []Record{},
+				records: []storage.Record{},
 			},
 			args: args{
 				url: "http://example.com",
@@ -40,7 +42,7 @@ func TestSimpleRepository_SaveURL(t *testing.T) {
 		{
 			name: "Existent",
 			fields: fields{
-				records: []Record{
+				records: []storage.Record{
 					{
 						ShortURL:    "123",
 						OriginalURL: "http://example.com",
@@ -82,7 +84,7 @@ func TestSimpleRepository_SaveURL(t *testing.T) {
 func TestSimpleRepository_RetrieveByShortURL(t *testing.T) {
 	userID := uuid.New()
 	type fields struct {
-		records []Record
+		records []storage.Record
 	}
 	type args struct {
 		id string
@@ -97,7 +99,7 @@ func TestSimpleRepository_RetrieveByShortURL(t *testing.T) {
 		{
 			name: "Non-existent",
 			fields: fields{
-				records: []Record{},
+				records: []storage.Record{},
 			},
 			args: args{
 				id: "123",
@@ -108,7 +110,7 @@ func TestSimpleRepository_RetrieveByShortURL(t *testing.T) {
 		{
 			name: "Existent",
 			fields: fields{
-				records: []Record{
+				records: []storage.Record{
 					{
 						ShortURL:    "123",
 						OriginalURL: "http://example.com",
@@ -159,7 +161,7 @@ func TestSimpleRepository_SaveAndRetrieve(t *testing.T) {
 func TestSimpleRepository_RetrieveID(t *testing.T) {
 	userID := uuid.New()
 	type fields struct {
-		records []Record
+		records []storage.Record
 	}
 	type args struct {
 		url string
@@ -174,7 +176,7 @@ func TestSimpleRepository_RetrieveID(t *testing.T) {
 		{
 			name: "Non-existent",
 			fields: fields{
-				records: []Record{},
+				records: []storage.Record{},
 			},
 			args: args{
 				url: "http://example.com",
@@ -185,7 +187,7 @@ func TestSimpleRepository_RetrieveID(t *testing.T) {
 		{
 			name: "Existent",
 			fields: fields{
-				records: []Record{
+				records: []storage.Record{
 					{
 						ShortURL:    "123",
 						OriginalURL: "http://example.com",
@@ -220,7 +222,7 @@ func TestSimpleRepository_RetrieveID(t *testing.T) {
 func TestSimpleRepository_SaveURLs(t *testing.T) {
 	userID := uuid.New()
 	type fields struct {
-		records []Record
+		records []storage.Record
 	}
 	type args struct {
 		urls []string
@@ -235,7 +237,7 @@ func TestSimpleRepository_SaveURLs(t *testing.T) {
 		{
 			name: "All new IDs",
 			fields: fields{
-				records: []Record{},
+				records: []storage.Record{},
 			},
 			args: args{
 				urls: []string{"http://example.com", "http://ya.ru"},
@@ -246,7 +248,7 @@ func TestSimpleRepository_SaveURLs(t *testing.T) {
 		{
 			name: "One new IDs",
 			fields: fields{
-				records: []Record{
+				records: []storage.Record{
 					{
 						ShortURL:    "123",
 						OriginalURL: "http://example.com",
@@ -263,7 +265,7 @@ func TestSimpleRepository_SaveURLs(t *testing.T) {
 		{
 			name: "Existing IDs",
 			fields: fields{
-				records: []Record{
+				records: []storage.Record{
 					{
 						ShortURL:    "123",
 						OriginalURL: "http://example.com",
@@ -306,22 +308,22 @@ func TestSimpleRepository_DeleteByShortURLs(t *testing.T) {
 	}
 	tests := []struct {
 		name        string
-		records     []Record
+		records     []storage.Record
 		args        args
-		wantRecords []Record
+		wantRecords []storage.Record
 	}{
 		{
 			name:    "Empty repo",
-			records: []Record{},
+			records: []storage.Record{},
 			args: args{
 				userID:    userID,
 				shortURLs: []string{"hsgdbbn"},
 			},
-			wantRecords: []Record{},
+			wantRecords: []storage.Record{},
 		},
 		{
 			name: "One record - deleted successfully",
-			records: []Record{
+			records: []storage.Record{
 				{
 					ShortURL:    "123",
 					OriginalURL: "http://example.com",
@@ -332,7 +334,7 @@ func TestSimpleRepository_DeleteByShortURLs(t *testing.T) {
 				userID:    userID,
 				shortURLs: []string{"123"},
 			},
-			wantRecords: []Record{
+			wantRecords: []storage.Record{
 				{
 					ShortURL:    "123",
 					OriginalURL: "http://example.com",
@@ -343,7 +345,7 @@ func TestSimpleRepository_DeleteByShortURLs(t *testing.T) {
 		},
 		{
 			name: "UserID not match",
-			records: []Record{
+			records: []storage.Record{
 				{
 					ShortURL:    "123",
 					OriginalURL: "http://example.com",
@@ -354,7 +356,7 @@ func TestSimpleRepository_DeleteByShortURLs(t *testing.T) {
 				userID:    uuid.New(),
 				shortURLs: []string{"123"},
 			},
-			wantRecords: []Record{
+			wantRecords: []storage.Record{
 				{
 					ShortURL:    "123",
 					OriginalURL: "http://example.com",
@@ -365,7 +367,7 @@ func TestSimpleRepository_DeleteByShortURLs(t *testing.T) {
 		},
 		{
 			name: "Delete some",
-			records: []Record{
+			records: []storage.Record{
 				{
 					ShortURL:    "123",
 					OriginalURL: "http://example.com",
@@ -389,7 +391,7 @@ func TestSimpleRepository_DeleteByShortURLs(t *testing.T) {
 				userID:    userID,
 				shortURLs: []string{"456"},
 			},
-			wantRecords: []Record{
+			wantRecords: []storage.Record{
 				{
 					ShortURL:    "123",
 					OriginalURL: "http://example.com",
@@ -412,7 +414,7 @@ func TestSimpleRepository_DeleteByShortURLs(t *testing.T) {
 		},
 		{
 			name: "Delete all",
-			records: []Record{
+			records: []storage.Record{
 				{
 					ShortURL:    "123",
 					OriginalURL: "http://example.com",
@@ -436,7 +438,7 @@ func TestSimpleRepository_DeleteByShortURLs(t *testing.T) {
 				userID:    userID,
 				shortURLs: []string{"123", "456", "789"},
 			},
-			wantRecords: []Record{
+			wantRecords: []storage.Record{
 				{
 					ShortURL:    "123",
 					OriginalURL: "http://example.com",
@@ -477,21 +479,21 @@ func TestSimpleRepository_RetrieveUserURLs(t *testing.T) {
 	}
 	tests := []struct {
 		name        string
-		records     []Record
+		records     []storage.Record
 		args        args
-		wantRecords []Record
+		wantRecords []storage.Record
 	}{
 		{
 			name:    "Empty repo",
-			records: []Record{},
+			records: []storage.Record{},
 			args: args{
 				userID: userID,
 			},
-			wantRecords: []Record{},
+			wantRecords: []storage.Record{},
 		},
 		{
 			name: "One record",
-			records: []Record{
+			records: []storage.Record{
 				{
 					ShortURL:    "123",
 					OriginalURL: "http://example.com",
@@ -501,7 +503,7 @@ func TestSimpleRepository_RetrieveUserURLs(t *testing.T) {
 			args: args{
 				userID: userID,
 			},
-			wantRecords: []Record{
+			wantRecords: []storage.Record{
 				{
 					ShortURL:    "123",
 					OriginalURL: "http://example.com",
@@ -511,7 +513,7 @@ func TestSimpleRepository_RetrieveUserURLs(t *testing.T) {
 		},
 		{
 			name: "UserID not match",
-			records: []Record{
+			records: []storage.Record{
 				{
 					ShortURL:    "123",
 					OriginalURL: "http://example.com",
@@ -521,7 +523,7 @@ func TestSimpleRepository_RetrieveUserURLs(t *testing.T) {
 			args: args{
 				userID: uuid.New(),
 			},
-			wantRecords: []Record{},
+			wantRecords: []storage.Record{},
 		},
 	}
 	for _, tt := range tests {
@@ -533,5 +535,84 @@ func TestSimpleRepository_RetrieveUserURLs(t *testing.T) {
 			require.NoError(t, err)
 			assert.ElementsMatch(t, tt.wantRecords, records)
 		})
+	}
+}
+
+// BenchmarkSimpleRepository_SaveURL измеряет производительность сохранения URL
+func BenchmarkSimpleRepository_SaveURL(b *testing.B) {
+	repo := NewSimpleRepository()
+	userID := uuid.New()
+	ctx := context.Background()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _, _ = repo.SaveURL(ctx, userID, "http://example.com")
+	}
+}
+
+// BenchmarkSimpleRepository_RetrieveByShortURL измеряет производительность получения URL по короткому идентификатору
+func BenchmarkSimpleRepository_RetrieveByShortURL(b *testing.B) {
+	repo := NewSimpleRepository()
+	userID := uuid.New()
+	ctx := context.Background()
+
+	// Подготовка данных
+	id, _, _ := repo.SaveURL(ctx, userID, "http://example.com")
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = repo.RetrieveByShortURL(ctx, id)
+	}
+}
+
+// BenchmarkSimpleRepository_RetrieveUserURLs измеряет производительность получения всех URL пользователя
+func BenchmarkSimpleRepository_RetrieveUserURLs(b *testing.B) {
+	repo := NewSimpleRepository()
+	userID := uuid.New()
+	ctx := context.Background()
+
+	// Подготовка данных
+	for range 100 {
+		_, _, _ = repo.SaveURL(ctx, userID, "http://example.com")
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = repo.RetrieveUserURLs(ctx, userID)
+	}
+}
+
+// BenchmarkSimpleRepository_DeleteByShortURLs измеряет производительность удаления URL
+func BenchmarkSimpleRepository_DeleteByShortURLs(b *testing.B) {
+	repo := NewSimpleRepository()
+	userID := uuid.New()
+	ctx := context.Background()
+
+	// Подготовка данных
+	var shortURLs []string
+	for range 100 {
+		id, _, _ := repo.SaveURL(ctx, userID, "http://example.com")
+		shortURLs = append(shortURLs, id)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		repo.DeleteByShortURLs(ctx, userID, shortURLs)
+	}
+}
+
+// BenchmarkSimpleRepository_SaveURLs измеряет производительность пакетного сохранения URL
+func BenchmarkSimpleRepository_SaveURLs(b *testing.B) {
+	repo := NewSimpleRepository()
+	ctx := context.Background()
+
+	urls := make([]string, 100)
+	for i := range 100 {
+		urls[i] = "http://example.com"
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = repo.SaveURLs(ctx, urls)
 	}
 }

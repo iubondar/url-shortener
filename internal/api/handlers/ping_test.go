@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -10,6 +11,34 @@ import (
 	"github.com/iubondar/url-shortener/internal/app/storage/mocks"
 	"github.com/stretchr/testify/assert"
 )
+
+// ExamplePingHandler_Ping демонстрирует пример использования эндпоинта проверки доступности сервиса.
+// Пример показывает, как проверить работоспособность сервера.
+func ExamplePingHandler_Ping() {
+	// Создаем тестовый HTTP запрос
+	request := httptest.NewRequest(http.MethodGet, "/ping", nil)
+	w := httptest.NewRecorder()
+
+	// Создаем мок для проверки статуса
+	ctrl := gomock.NewController(nil)
+	defer ctrl.Finish()
+	mockChecker := mocks.NewMockStatusChecker(ctrl)
+	mockChecker.EXPECT().CheckStatus(gomock.Any()).Return(nil)
+
+	// Инициализируем обработчик
+	handler := NewPingHandler(mockChecker)
+
+	// Вызываем обработчик
+	handler.Ping(w, request)
+
+	// Получаем ответ
+	res := w.Result()
+	defer res.Body.Close()
+
+	// Выводим статус ответа
+	fmt.Println(res.Status)
+	// Output: 200 OK
+}
 
 func TestPingHandler_Ping(t *testing.T) {
 	tests := []struct {

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -9,6 +10,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	"github.com/iubondar/url-shortener/internal/app/storage"
+	simple_storage "github.com/iubondar/url-shortener/internal/app/storage/simple"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -22,6 +24,43 @@ func withURLParam(r *http.Request, key, value string) *http.Request {
 	req := r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, chiCtx))
 	chiCtx.URLParams.Add(key, value)
 	return req
+}
+
+// ExampleRetrieveURLHandler_RetrieveURL демонстрирует пример использования эндпоинта получения оригинального URL.
+// Пример показывает, как получить оригинальный URL по сокращенному идентификатору.
+func ExampleRetrieveURLHandler_RetrieveURL() {
+	// Создаем тестовый HTTP запрос
+	request := httptest.NewRequest(http.MethodGet, "/", nil)
+	request = withURLParam(request, "id", "123")
+
+	// Создаем репозиторий с тестовыми данными
+	repo := &simple_storage.SimpleRepository{
+		Records: []storage.Record{
+			{
+				ShortURL:    "123",
+				OriginalURL: "https://example.com",
+				UserID:      uuid.New(),
+			},
+		},
+	}
+
+	// Инициализируем обработчик
+	handler := NewRetrieveURLHandler(repo)
+
+	// Вызываем обработчик
+	w := httptest.NewRecorder()
+	handler.RetrieveURL(w, request)
+
+	// Получаем ответ
+	res := w.Result()
+	defer res.Body.Close()
+
+	// Выводим статус ответа и заголовок Location
+	fmt.Println(res.Status)
+	fmt.Println(res.Header.Get("Location"))
+	// Output:
+	// 307 Temporary Redirect
+	// https://example.com
 }
 
 func TestRetrieveURLHandler_RetrieveURL(t *testing.T) {
@@ -84,7 +123,7 @@ func TestRetrieveURLHandler_RetrieveURL(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			repo := storage.SimpleRepository{
+			repo := simple_storage.SimpleRepository{
 				Records: []storage.Record{
 					{
 						ShortURL:    "123",
@@ -124,7 +163,7 @@ func TestRetrieveURLHandler_RetrieveURL(t *testing.T) {
 }
 
 func TestRetrieveURLHandler_WithNoIdParameter(t *testing.T) {
-	repo := storage.SimpleRepository{
+	repo := simple_storage.SimpleRepository{
 		Records: []storage.Record{
 			{
 				ShortURL:    "123",
@@ -148,7 +187,7 @@ func TestRetrieveURLHandler_WithNoIdParameter(t *testing.T) {
 }
 
 func TestRetrieveURLHandler_WithNoURL(t *testing.T) {
-	handler := NewRetrieveURLHandler(storage.NewSimpleRepository())
+	handler := NewRetrieveURLHandler(simple_storage.NewSimpleRepository())
 	request := httptest.NewRequest(http.MethodGet, "/", nil)
 	request.SetPathValue("id", "123")
 

@@ -1,3 +1,6 @@
+// Package main предоставляет серверную часть сервиса сокращения URL.
+// Сервер принимает длинные URL, генерирует для них короткие идентификаторы
+// и сохраняет соответствия в выбранном хранилище (память, файл или база данных).
 package main
 
 import (
@@ -11,12 +14,20 @@ import (
 	"github.com/iubondar/url-shortener/internal/app/config"
 	"github.com/iubondar/url-shortener/internal/app/router"
 	"github.com/iubondar/url-shortener/internal/app/storage"
+	filestorage "github.com/iubondar/url-shortener/internal/app/storage/file"
+	pg_storage "github.com/iubondar/url-shortener/internal/app/storage/pg"
+	simple_storage "github.com/iubondar/url-shortener/internal/app/storage/simple"
+
+	_ "net/http/pprof" // подключаем пакет pprof
 )
 
 func init() {
 	zap.ReplaceGlobals(zap.Must(zap.NewDevelopment()))
 }
 
+// main является точкой входа в серверное приложение.
+// Функция инициализирует конфигурацию, подключает выбранное хранилище данных,
+// настраивает маршрутизацию и запускает HTTP-сервер.
 func main() {
 	config, err := config.NewConfig(os.Args[0], os.Args[1:])
 	if err != nil {
@@ -33,7 +44,7 @@ func main() {
 	var repo storage.Repository
 
 	if len(config.DatabaseDSN) > 0 {
-		db, err := storage.NewDB(config.DatabaseDSN)
+		db, err := pg_storage.NewDB(config.DatabaseDSN)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -42,12 +53,12 @@ func main() {
 
 		repo = db.Repo
 	} else if len(config.FileStoragePath) > 0 {
-		repo, err = storage.NewFileRepository(config.FileStoragePath)
+		repo, err = filestorage.NewFileRepository(config.FileStoragePath)
 		if err != nil {
 			log.Fatal(err)
 		}
 	} else {
-		repo = storage.NewSimpleRepository()
+		repo = simple_storage.NewSimpleRepository()
 	}
 
 	router, err := router.NewRouter(config.BaseURLAddress, repo)

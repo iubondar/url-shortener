@@ -12,19 +12,25 @@ import (
 	"github.com/iubondar/url-shortener/internal/app/storage"
 )
 
+// ShortenIn представляет входные данные для создания сокращенного URL.
 type ShortenIn struct {
-	URL string `json:"url"`
+	URL string `json:"url"` // оригинальный URL для сокращения
 }
 
+// ShortenOut представляет выходные данные создания сокращенного URL.
 type ShortenOut struct {
-	Result string `json:"result"`
+	Result string `json:"result"` // сокращенный URL
 }
 
+// ShortenHandler обрабатывает запросы на создание сокращенного URL.
+// Позволяет создать сокращенную ссылку для одного URL.
 type ShortenHandler struct {
-	repo    storage.Repository
-	baseURL string
+	repo    storage.Repository // репозиторий для хранения URL
+	baseURL string             // базовый URL для формирования сокращенных ссылок
 }
 
+// NewShortenHandler создает новый экземпляр ShortenHandler.
+// Принимает репозиторий для хранения URL и базовый URL для формирования сокращенных ссылок.
 func NewShortenHandler(repo storage.Repository, baseURL string) ShortenHandler {
 	return ShortenHandler{
 		repo:    repo,
@@ -32,6 +38,10 @@ func NewShortenHandler(repo storage.Repository, baseURL string) ShortenHandler {
 	}
 }
 
+// Shorten обрабатывает HTTP POST запрос для создания сокращенного URL.
+// Принимает URL в теле запроса в формате JSON.
+// Возвращает сокращенный URL в формате JSON.
+// Возвращает статус 201 Created для нового URL или 409 Conflict если URL уже существует.
 func (handler ShortenHandler) Shorten(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		http.Error(res, "Only POST requests are allowed!", http.StatusMethodNotAllowed)

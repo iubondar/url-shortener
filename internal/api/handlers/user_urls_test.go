@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -10,9 +11,51 @@ import (
 	"github.com/google/uuid"
 	"github.com/iubondar/url-shortener/internal/app/auth"
 	"github.com/iubondar/url-shortener/internal/app/storage"
+	simple_storage "github.com/iubondar/url-shortener/internal/app/storage/simple"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// ExampleUserUrlsHandler_RetrieveUserURLs демонстрирует пример использования эндпоинта получения списка URL пользователя.
+// Пример показывает, как получить список всех сокращенных URL пользователя.
+func ExampleUserUrlsHandler_RetrieveUserURLs() {
+	// Создаем тестовый HTTP запрос
+	request := httptest.NewRequest(http.MethodGet, "/api/user/urls", nil)
+	userID := uuid.New()
+	authCookie, _ := auth.NewAuthCookie(userID)
+	request.AddCookie(authCookie)
+
+	// Создаем репозиторий с тестовыми данными
+	repo := &simple_storage.SimpleRepository{
+		Records: []storage.Record{
+			{
+				ShortURL:    "123",
+				OriginalURL: "https://example1.com",
+				UserID:      userID,
+			},
+			{
+				ShortURL:    "456",
+				OriginalURL: "https://example2.com",
+				UserID:      userID,
+			},
+		},
+	}
+
+	// Инициализируем обработчик
+	handler := NewUserUrlsHandler(repo, "127.0.0.1")
+
+	// Вызываем обработчик
+	w := httptest.NewRecorder()
+	handler.RetrieveUserURLs(w, request)
+
+	// Получаем ответ
+	res := w.Result()
+	defer res.Body.Close()
+
+	// Выводим статус ответа
+	fmt.Println(res.Status)
+	// Output: 200 OK
+}
 
 func TestUserUrlsHandler_RetrieveUserURLs(t *testing.T) {
 	userID := uuid.New()
@@ -111,7 +154,7 @@ func TestUserUrlsHandler_RetrieveUserURLs(t *testing.T) {
 			request.AddCookie(authCookie)
 
 			w := httptest.NewRecorder()
-			repo := storage.SimpleRepository{
+			repo := simple_storage.SimpleRepository{
 				Records: test.records,
 			}
 			handler := NewUserUrlsHandler(&repo, baseURL)

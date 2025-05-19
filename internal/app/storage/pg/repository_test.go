@@ -1,9 +1,11 @@
-package storage
+package pg
 
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
+	"os"
 	"slices"
 	"testing"
 	"time"
@@ -12,75 +14,134 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose"
 
+	"github.com/iubondar/url-shortener/internal/app/storage"
 	"github.com/iubondar/url-shortener/internal/app/storage/testhelpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
 )
 
-type PGRepoTestSuite struct {
-	suite.Suite
-	pgContainer *testhelpers.PostgresContainer
+var (
 	repo        *PGRepository
-	ctx         context.Context
-}
+	cleanup     func()
+	pgContainer *testhelpers.PostgresContainer
+)
 
-func (suite *PGRepoTestSuite) SetupSuite() {
-	suite.ctx = context.Background()
-	pgContainer, err := testhelpers.CreatePostgresContainer(suite.ctx)
+func init() {
+	ctx := context.Background()
+	pgContainer, err := testhelpers.CreatePostgresContainer(ctx)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to create postgres container: %v", err)
 	}
-	suite.pgContainer = pgContainer
 
-	db, err := sql.Open("pgx", suite.pgContainer.ConnectionString)
+	db, err := sql.Open("pgx", pgContainer.ConnectionString)
 	if err != nil {
-		log.Fatal(err)
+		pgContainer.Terminate(ctx)
+		log.Fatalf("Failed to open database: %v", err)
 	}
 
 	goose.SetDialect("postgres")
 	err = goose.Up(db, "./migrations")
 	if err != nil {
-		log.Fatal(err)
+		db.Close()
+		pgContainer.Terminate(ctx)
+		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
-	pgRepo, err := NewPGRepository(db, 30*time.Millisecond)
+	repo, err = NewPGRepository(db, 30*time.Millisecond)
 	if err != nil {
-		log.Fatal(err)
+		db.Close()
+		pgContainer.Terminate(ctx)
+		log.Fatalf("Failed to create repository: %v", err)
 	}
-	suite.repo = pgRepo
+
+	cleanup = func() {
+		_, err := repo.db.ExecContext(context.Background(), "TRUNCATE TABLE urls;")
+		if err != nil {
+			log.Printf("Failed to clear urls table: %v", err)
+		}
+	}
 }
 
-func (suite *PGRepoTestSuite) TearDownSuite() {
-	if err := suite.pgContainer.Terminate(suite.ctx); err != nil {
-		log.Fatalf("error terminating postgres container: %s", err)
+func TestMain(m *testing.M) {
+	// Запускаем все тесты и примеры
+	code := m.Run()
+
+	// Очищаем ресурсы после завершения всех тестов
+	if pgContainer != nil {
+		if err := pgContainer.Terminate(context.Background()); err != nil {
+			log.Printf("Failed to terminate postgres container: %v", err)
+		}
 	}
+
+	os.Exit(code)
 }
 
-func (suite *PGRepoTestSuite) SetupTest() {
-	err := suite.clearUrlsTable()
+// ExamplePGRepository_SaveURL демонстрирует сохранение URL в PostgreSQL хранилище.
+func ExamplePGRepository_SaveURL() {
+	cleanup()
+
+	// Сохраняем URL
+	id, exists, err := repo.SaveURL(context.Background(), testhelpers.TestUUID, "http://example.com")
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("Error:", err)
+		return
 	}
+
+	// Выводим результат
+	fmt.Printf("ID length: %d, Exists: %v\n", len(id), exists)
+	// Output: ID length: 8, Exists: false
 }
 
-func (suite *PGRepoTestSuite) clearUrlsTable() error {
-	_, err := suite.repo.db.ExecContext(suite.ctx, "TRUNCATE TABLE urls;")
-	return err
+// ExamplePGRepository_RetrieveByShortURL демонстрирует получение URL по короткому идентификатору.
+func ExamplePGRepository_RetrieveByShortURL() {
+	cleanup()
+
+	// Сохраняем URL
+	id, _, _ := repo.SaveURL(context.Background(), testhelpers.TestUUID, "http://example.com")
+
+	// Получаем запись по короткому идентификатору
+	record, err := repo.RetrieveByShortURL(context.Background(), id)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	// Выводим результат
+	fmt.Printf("Original URL: %s\n", record.OriginalURL)
+	// Output: Original URL: http://example.com
 }
 
-func setupSeparateTest(t *testing.T, suite *PGRepoTestSuite, execStatement string) {
-	err := suite.clearUrlsTable()
-	require.NoError(t, err)
+// ExamplePGRepository_RetrieveUserURLs демонстрирует получение всех URL пользователя.
+func ExamplePGRepository_RetrieveUserURLs() {
+	cleanup()
+
+	// Сохраняем несколько URL
+	repo.SaveURL(context.Background(), testhelpers.TestUUID, "http://example.com")
+	repo.SaveURL(context.Background(), testhelpers.TestUUID, "http://example.org")
+
+	// Получаем все URL пользователя
+	records, err := repo.RetrieveUserURLs(context.Background(), testhelpers.TestUUID)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	// Выводим количество найденных URL
+	fmt.Printf("Found %d URLs\n", len(records))
+	// Output: Found 2 URLs
+}
+
+func setupSeparateTest(t *testing.T, execStatement string) {
+	cleanup()
 
 	if len(execStatement) > 0 {
-		_, err := suite.repo.db.ExecContext(suite.ctx, execStatement)
+		_, err := repo.db.ExecContext(context.Background(), execStatement)
 		require.NoError(t, err)
 	}
 }
 
 // Tests are here
-func (suite *PGRepoTestSuite) TestSaveURL() {
+func TestSaveURL(t *testing.T) {
 	userID := uuid.New()
 	type args struct {
 		url string
@@ -115,12 +176,11 @@ func (suite *PGRepoTestSuite) TestSaveURL() {
 			wantErr:    false,
 		},
 	}
-	t := suite.T()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			setupSeparateTest(t, suite, tt.execStatement)
+			setupSeparateTest(t, tt.execStatement)
 
-			gotID, gotExists, err := suite.repo.SaveURL(suite.ctx, userID, tt.args.url)
+			gotID, gotExists, err := repo.SaveURL(context.Background(), userID, tt.args.url)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("PGRepoTestSuite.TestSaveURL error = %v, wantErr %v", err, tt.wantErr)
@@ -139,7 +199,7 @@ func (suite *PGRepoTestSuite) TestSaveURL() {
 	}
 }
 
-func (suite *PGRepoTestSuite) TestRetrieveByShortURL() {
+func TestRetrieveByShortURL(t *testing.T) {
 	type args struct {
 		id string
 	}
@@ -169,12 +229,11 @@ func (suite *PGRepoTestSuite) TestRetrieveByShortURL() {
 			wantErr: false,
 		},
 	}
-	t := suite.T()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			setupSeparateTest(t, suite, tt.execStatement)
+			setupSeparateTest(t, tt.execStatement)
 
-			record, err := suite.repo.RetrieveByShortURL(context.Background(), tt.args.id)
+			record, err := repo.RetrieveByShortURL(context.Background(), tt.args.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("PGRepoTestSuite.RetrieveURL error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -186,22 +245,20 @@ func (suite *PGRepoTestSuite) TestRetrieveByShortURL() {
 	}
 }
 
-func (suite *PGRepoTestSuite) TestSaveAndRetrieve() {
-	t := suite.T()
-	err := suite.clearUrlsTable()
-	require.NoError(t, err)
+func TestSaveAndRetrieve(t *testing.T) {
+	cleanup()
 
 	testURL := "http://example.com"
-	id, exists, err := suite.repo.SaveURL(suite.ctx, uuid.New(), testURL)
+	id, exists, err := repo.SaveURL(context.Background(), uuid.New(), testURL)
 	require.NoError(t, err)
 	assert.False(t, exists, "URL should not exists in DB yet")
 
-	record, err := suite.repo.RetrieveByShortURL(suite.ctx, id)
+	record, err := repo.RetrieveByShortURL(context.Background(), id)
 	require.NoError(t, err)
 	assert.Equal(t, record.OriginalURL, testURL)
 }
 
-func (suite *PGRepoTestSuite) TestSaveURLs() {
+func TestSaveURLs(t *testing.T) {
 	type args struct {
 		urls []string
 	}
@@ -241,12 +298,11 @@ func (suite *PGRepoTestSuite) TestSaveURLs() {
 			wantErr:      false,
 		},
 	}
-	t := suite.T()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			setupSeparateTest(t, suite, tt.execStatement)
+			setupSeparateTest(t, tt.execStatement)
 
-			gotIDs, err := suite.repo.SaveURLs(context.Background(), tt.args.urls)
+			gotIDs, err := repo.SaveURLs(context.Background(), tt.args.urls)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("FileRepository.SaveURLs() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -256,7 +312,7 @@ func (suite *PGRepoTestSuite) TestSaveURLs() {
 	}
 }
 
-func (suite *PGRepoTestSuite) TestDeleteByShortURLs() {
+func TestDeleteByShortURLs(t *testing.T) {
 	userID := uuid.New()
 	type args struct {
 		userID    uuid.UUID
@@ -303,17 +359,16 @@ func (suite *PGRepoTestSuite) TestDeleteByShortURLs() {
 			wantShortURLsDeleted: []string{"4rSPg8ap"},
 		},
 	}
-	t := suite.T()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			setupSeparateTest(t, suite, tt.execStatement)
+			setupSeparateTest(t, tt.execStatement)
 
-			suite.repo.DeleteByShortURLs(context.Background(), tt.args.userID, tt.args.shortURLs)
+			repo.DeleteByShortURLs(context.Background(), tt.args.userID, tt.args.shortURLs)
 
 			time.Sleep(50 * time.Millisecond)
 
 			for _, shortURL := range tt.allShortURLs {
-				record, err := suite.repo.RetrieveByShortURL(context.TODO(), shortURL)
+				record, err := repo.RetrieveByShortURL(context.TODO(), shortURL)
 				require.NoError(t, err)
 				if slices.Contains(tt.wantShortURLsDeleted, shortURL) {
 					assert.True(t, record.IsDeleted)
@@ -325,7 +380,7 @@ func (suite *PGRepoTestSuite) TestDeleteByShortURLs() {
 	}
 }
 
-func (suite *PGRepoTestSuite) TestRetrieveUserURLs() {
+func TestRetrieveUserURLs(t *testing.T) {
 	userID := uuid.New()
 	type args struct {
 		userID uuid.UUID
@@ -334,7 +389,7 @@ func (suite *PGRepoTestSuite) TestRetrieveUserURLs() {
 		name          string
 		execStatement string
 		args          args
-		wantRecords   []Record
+		wantRecords   []storage.Record
 	}{
 		{
 			name:          "Empty repo",
@@ -342,7 +397,7 @@ func (suite *PGRepoTestSuite) TestRetrieveUserURLs() {
 			args: args{
 				userID: userID,
 			},
-			wantRecords: []Record{},
+			wantRecords: []storage.Record{},
 		},
 		{
 			name: "One record",
@@ -351,7 +406,7 @@ func (suite *PGRepoTestSuite) TestRetrieveUserURLs() {
 			args: args{
 				userID: userID,
 			},
-			wantRecords: []Record{
+			wantRecords: []storage.Record{
 				{
 					ShortURL:    "4rSPg8ap",
 					OriginalURL: "http://yandex.ru",
@@ -366,7 +421,7 @@ func (suite *PGRepoTestSuite) TestRetrieveUserURLs() {
 			args: args{
 				userID: userID,
 			},
-			wantRecords: []Record{
+			wantRecords: []storage.Record{
 				{
 					ShortURL:    "4rSPg8ap",
 					OriginalURL: "http://yandex.ru",
@@ -375,12 +430,11 @@ func (suite *PGRepoTestSuite) TestRetrieveUserURLs() {
 			},
 		},
 	}
-	t := suite.T()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			setupSeparateTest(t, suite, tt.execStatement)
+			setupSeparateTest(t, tt.execStatement)
 
-			records, err := suite.repo.RetrieveUserURLs(context.TODO(), tt.args.userID)
+			records, err := repo.RetrieveUserURLs(context.TODO(), tt.args.userID)
 
 			require.NoError(t, err)
 			assert.ElementsMatch(t, tt.wantRecords, records)
@@ -388,7 +442,94 @@ func (suite *PGRepoTestSuite) TestRetrieveUserURLs() {
 	}
 }
 
-// Запуск сьюта тестов
-func TestPGRepositoryTestSuite(t *testing.T) {
-	suite.Run(t, new(PGRepoTestSuite))
+// BenchmarkPGRepository_SaveURL измеряет производительность сохранения URL
+func BenchmarkPGRepository_SaveURL(b *testing.B) {
+	cleanup()
+	userID := uuid.New()
+	ctx := context.Background()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _, _ = repo.SaveURL(ctx, userID, "http://example.com")
+	}
+}
+
+// BenchmarkPGRepository_RetrieveByShortURL измеряет производительность получения URL по короткому идентификатору
+func BenchmarkPGRepository_RetrieveByShortURL(b *testing.B) {
+	cleanup()
+	userID := uuid.New()
+	ctx := context.Background()
+
+	// Подготовка данных
+	id, _, _ := repo.SaveURL(ctx, userID, "http://example.com")
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = repo.RetrieveByShortURL(ctx, id)
+	}
+}
+
+// BenchmarkPGRepository_RetrieveUserURLs измеряет производительность получения всех URL пользователя
+func BenchmarkPGRepository_RetrieveUserURLs(b *testing.B) {
+	cleanup()
+	userID := uuid.New()
+	ctx := context.Background()
+
+	// Подготовка данных
+	for i := 0; i < 100; i++ {
+		_, _, _ = repo.SaveURL(ctx, userID, "http://example.com")
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = repo.RetrieveUserURLs(ctx, userID)
+	}
+}
+
+// BenchmarkPGRepository_DeleteByShortURLs измеряет производительность удаления URL
+func BenchmarkPGRepository_DeleteByShortURLs(b *testing.B) {
+	cleanup()
+	userID := uuid.New()
+	ctx := context.Background()
+
+	// Подготовка данных
+	var shortURLs []string
+	for range 100 {
+		id, _, _ := repo.SaveURL(ctx, userID, "http://example.com")
+		shortURLs = append(shortURLs, id)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		repo.DeleteByShortURLs(ctx, userID, shortURLs)
+		// Ждем завершения асинхронных операций
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
+// BenchmarkPGRepository_SaveURLs измеряет производительность пакетного сохранения URL
+func BenchmarkPGRepository_SaveURLs(b *testing.B) {
+	cleanup()
+	ctx := context.Background()
+
+	urls := make([]string, 100)
+	for range 100 {
+		urls = append(urls, "http://example.com")
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = repo.SaveURLs(ctx, urls)
+	}
+}
+
+// BenchmarkPGRepository_CheckStatus измеряет производительность проверки состояния хранилища
+func BenchmarkPGRepository_CheckStatus(b *testing.B) {
+	cleanup()
+	ctx := context.Background()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = repo.CheckStatus(ctx)
+	}
 }
