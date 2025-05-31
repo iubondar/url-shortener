@@ -3,6 +3,7 @@ package main
 import (
 	"strings"
 
+	"github.com/iubondar/url-shortener/internal/analyser"
 	"github.com/kisielk/errcheck/errcheck"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/multichecker"
@@ -58,6 +59,9 @@ func main() {
 
 	// Добавляем анализатор errcheck
 	mychecks = append(mychecks, errcheck.Analyzer)
+
+	// Добавляем наш анализатор os.Exit
+	mychecks = append(mychecks, analyser.OsExitAnalyzer)
 
 	// Добавляем все стандартные анализаторы
 	mychecks = append(mychecks,
