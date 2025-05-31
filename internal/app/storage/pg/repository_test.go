@@ -2,7 +2,6 @@ package pg
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"os"
@@ -14,7 +13,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose"
 
-	"github.com/iubondar/url-shortener/internal/app/storage"
+	"github.com/iubondar/url-shortener/internal/app/models"
 	"github.com/iubondar/url-shortener/internal/app/storage/testhelpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,29 +32,29 @@ func init() {
 		log.Fatalf("Failed to create postgres container: %v", err)
 	}
 
-	db, err := sql.Open("pgx", pgContainer.ConnectionString)
+	db, err := NewDB(pgContainer.ConnectionString)
 	if err != nil {
 		pgContainer.Terminate(ctx)
-		log.Fatalf("Failed to open database: %v", err)
+		log.Fatalf("Failed to create database connection: %v", err)
 	}
 
 	goose.SetDialect("postgres")
-	err = goose.Up(db, "./migrations")
+	err = goose.Up(db.SQLDB, "./migrations")
 	if err != nil {
-		db.Close()
+		db.SQLDB.Close()
 		pgContainer.Terminate(ctx)
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
 	repo, err = NewPGRepository(db, 30*time.Millisecond)
 	if err != nil {
-		db.Close()
+		db.SQLDB.Close()
 		pgContainer.Terminate(ctx)
 		log.Fatalf("Failed to create repository: %v", err)
 	}
 
 	cleanup = func() {
-		_, err := repo.db.ExecContext(context.Background(), "TRUNCATE TABLE urls;")
+		_, err := repo.db.SQLDB.ExecContext(context.Background(), "TRUNCATE TABLE urls;")
 		if err != nil {
 			log.Printf("Failed to clear urls table: %v", err)
 		}
@@ -135,7 +134,7 @@ func setupSeparateTest(t *testing.T, execStatement string) {
 	cleanup()
 
 	if len(execStatement) > 0 {
-		_, err := repo.db.ExecContext(context.Background(), execStatement)
+		_, err := repo.db.SQLDB.ExecContext(context.Background(), execStatement)
 		require.NoError(t, err)
 	}
 }
@@ -389,7 +388,7 @@ func TestRetrieveUserURLs(t *testing.T) {
 		name          string
 		execStatement string
 		args          args
-		wantRecords   []storage.Record
+		wantRecords   []models.Record
 	}{
 		{
 			name:          "Empty repo",
@@ -397,7 +396,7 @@ func TestRetrieveUserURLs(t *testing.T) {
 			args: args{
 				userID: userID,
 			},
-			wantRecords: []storage.Record{},
+			wantRecords: []models.Record{},
 		},
 		{
 			name: "One record",
@@ -406,7 +405,7 @@ func TestRetrieveUserURLs(t *testing.T) {
 			args: args{
 				userID: userID,
 			},
-			wantRecords: []storage.Record{
+			wantRecords: []models.Record{
 				{
 					ShortURL:    "4rSPg8ap",
 					OriginalURL: "http://yandex.ru",
@@ -421,7 +420,7 @@ func TestRetrieveUserURLs(t *testing.T) {
 			args: args{
 				userID: userID,
 			},
-			wantRecords: []storage.Record{
+			wantRecords: []models.Record{
 				{
 					ShortURL:    "4rSPg8ap",
 					OriginalURL: "http://yandex.ru",

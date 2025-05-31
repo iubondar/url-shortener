@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/iubondar/url-shortener/internal/app/storage"
+	"github.com/iubondar/url-shortener/internal/app/models"
 	simple_storage "github.com/iubondar/url-shortener/internal/app/storage/simple"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -50,7 +50,7 @@ func ExampleShortenHandler_Shorten() {
 func TestShortenHandler_Shorten(t *testing.T) {
 	userID := uuid.New()
 	type fields struct {
-		records []storage.Record
+		records []models.Record
 	}
 	type want struct {
 		code        int
@@ -69,7 +69,7 @@ func TestShortenHandler_Shorten(t *testing.T) {
 			method: http.MethodPost,
 			body:   "{\"url\": \"" + testURL + "\"}",
 			fields: fields{
-				records: []storage.Record{},
+				records: []models.Record{},
 			},
 			want: want{
 				code:        http.StatusCreated,
@@ -82,7 +82,7 @@ func TestShortenHandler_Shorten(t *testing.T) {
 			method: http.MethodPost,
 			body:   "{\"url\": \"" + testURL + "\"}",
 			fields: fields{
-				records: []storage.Record{
+				records: []models.Record{
 					{
 						ShortURL:    "123",
 						OriginalURL: testURL,
@@ -101,7 +101,7 @@ func TestShortenHandler_Shorten(t *testing.T) {
 			method: http.MethodPost,
 			body:   "{url: " + testURL + "}",
 			fields: fields{
-				records: []storage.Record{},
+				records: []models.Record{},
 			},
 			want: want{
 				code:        http.StatusBadRequest,
@@ -114,7 +114,7 @@ func TestShortenHandler_Shorten(t *testing.T) {
 			method: http.MethodPost,
 			body:   "{\"url\": \"htps/practicum.yandex.ru\"}",
 			fields: fields{
-				records: []storage.Record{},
+				records: []models.Record{},
 			},
 			want: want{
 				code:        http.StatusBadRequest,
@@ -127,7 +127,7 @@ func TestShortenHandler_Shorten(t *testing.T) {
 			method: http.MethodGet,
 			body:   "{\"url\": \"" + testURL + "\"}",
 			fields: fields{
-				records: []storage.Record{},
+				records: []models.Record{},
 			},
 			want: want{
 				code:        http.StatusMethodNotAllowed,
@@ -140,7 +140,7 @@ func TestShortenHandler_Shorten(t *testing.T) {
 			method: http.MethodPut,
 			body:   "{\"url\": \"" + testURL + "\"}",
 			fields: fields{
-				records: []storage.Record{},
+				records: []models.Record{},
 			},
 			want: want{
 				code:        http.StatusMethodNotAllowed,
@@ -153,7 +153,7 @@ func TestShortenHandler_Shorten(t *testing.T) {
 			method: http.MethodDelete,
 			body:   "{\"url\": \"" + testURL + "\"}",
 			fields: fields{
-				records: []storage.Record{},
+				records: []models.Record{},
 			},
 			want: want{
 				code:        http.StatusMethodNotAllowed,

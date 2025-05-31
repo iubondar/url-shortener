@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/iubondar/url-shortener/internal/app/storage"
+	"github.com/iubondar/url-shortener/internal/app/models"
 	simple_storage "github.com/iubondar/url-shortener/internal/app/storage/simple"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -49,14 +49,14 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 		name    string
 		method  string
 		url     string
-		records []storage.Record
+		records []models.Record
 		want    want
 	}{
 		{
 			name:    "Positive test",
 			method:  http.MethodPost,
 			url:     "https://practicum.yandex.ru/",
-			records: []storage.Record{},
+			records: []models.Record{},
 			want: want{
 				code:        http.StatusCreated,
 				response:    `http://127.0.0.1`,
@@ -67,7 +67,7 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			name:   "Existed record test",
 			method: http.MethodPost,
 			url:    testURL,
-			records: []storage.Record{
+			records: []models.Record{
 				{
 					ShortURL:    "123",
 					OriginalURL: testURL,
@@ -84,7 +84,7 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			name:    "Test invalid URL",
 			method:  http.MethodPost,
 			url:     "https/practicum.yandex.ru/",
-			records: []storage.Record{},
+			records: []models.Record{},
 			want: want{
 				code:        http.StatusBadRequest,
 				response:    `http://127.0.0.1`,
@@ -95,7 +95,7 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			name:    "Test GET method not allowed",
 			method:  http.MethodGet,
 			url:     "https://practicum.yandex.ru/",
-			records: []storage.Record{},
+			records: []models.Record{},
 			want: want{
 				code:        http.StatusMethodNotAllowed,
 				response:    `http://127.0.0.1`,
@@ -106,7 +106,7 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			name:    "Test PUT method not allowed",
 			method:  http.MethodPut,
 			url:     "https://practicum.yandex.ru/",
-			records: []storage.Record{},
+			records: []models.Record{},
 			want: want{
 				code:        http.StatusMethodNotAllowed,
 				response:    `http://127.0.0.1`,
@@ -117,7 +117,7 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			name:    "Test DELETE method not allowed",
 			method:  http.MethodDelete,
 			url:     "https://practicum.yandex.ru/",
-			records: []storage.Record{},
+			records: []models.Record{},
 			want: want{
 				code:        http.StatusMethodNotAllowed,
 				response:    `http://127.0.0.1`,

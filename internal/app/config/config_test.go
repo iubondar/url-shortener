@@ -52,7 +52,7 @@ func TestConfig_Load(t *testing.T) {
 			c, err := NewConfig("Test", tt.args)
 
 			assert.NoError(t, err)
-			assert.Equal(t, tt.want, *c)
+			assert.Equal(t, tt.want, c)
 		})
 	}
 }

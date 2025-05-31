@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/iubondar/url-shortener/internal/app/auth"
-	"github.com/iubondar/url-shortener/internal/app/storage"
+	"github.com/iubondar/url-shortener/internal/app/models"
 	simple_storage "github.com/iubondar/url-shortener/internal/app/storage/simple"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,7 +27,7 @@ func ExampleUserUrlsHandler_RetrieveUserURLs() {
 
 	// Создаем репозиторий с тестовыми данными
 	repo := &simple_storage.SimpleRepository{
-		Records: []storage.Record{
+		Records: []models.Record{
 			{
 				ShortURL:    "123",
 				OriginalURL: "https://example1.com",
@@ -63,7 +63,7 @@ func TestUserUrlsHandler_RetrieveUserURLs(t *testing.T) {
 	tests := []struct {
 		name     string
 		method   string
-		records  []storage.Record
+		records  []models.Record
 		userID   uuid.UUID
 		wantCode int
 		wantOut  []UserUrlsOut
@@ -71,7 +71,7 @@ func TestUserUrlsHandler_RetrieveUserURLs(t *testing.T) {
 		{
 			name:   "Positive test",
 			method: http.MethodGet,
-			records: []storage.Record{
+			records: []models.Record{
 				{
 					ShortURL:    "123",
 					OriginalURL: "http://example.com",
@@ -99,7 +99,7 @@ func TestUserUrlsHandler_RetrieveUserURLs(t *testing.T) {
 		{
 			name:   "Only with correct userID",
 			method: http.MethodGet,
-			records: []storage.Record{
+			records: []models.Record{
 				{
 					ShortURL:    "123",
 					OriginalURL: "http://example.com",
@@ -123,7 +123,7 @@ func TestUserUrlsHandler_RetrieveUserURLs(t *testing.T) {
 		{
 			name:     "POST method not allowed",
 			method:   http.MethodPost,
-			records:  []storage.Record{},
+			records:  []models.Record{},
 			userID:   userID,
 			wantCode: http.StatusMethodNotAllowed,
 			wantOut:  []UserUrlsOut{},
@@ -131,7 +131,7 @@ func TestUserUrlsHandler_RetrieveUserURLs(t *testing.T) {
 		{
 			name:     "PUT method not allowed",
 			method:   http.MethodPut,
-			records:  []storage.Record{},
+			records:  []models.Record{},
 			userID:   userID,
 			wantCode: http.StatusMethodNotAllowed,
 			wantOut:  []UserUrlsOut{},
@@ -139,7 +139,7 @@ func TestUserUrlsHandler_RetrieveUserURLs(t *testing.T) {
 		{
 			name:     "DELETE method not allowed",
 			method:   http.MethodDelete,
-			records:  []storage.Record{},
+			records:  []models.Record{},
 			userID:   userID,
 			wantCode: http.StatusMethodNotAllowed,
 			wantOut:  []UserUrlsOut{},

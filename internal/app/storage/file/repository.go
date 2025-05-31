@@ -11,14 +11,14 @@ import (
 	"strconv"
 
 	"github.com/google/uuid"
-	"github.com/iubondar/url-shortener/internal/app/storage"
+	"github.com/iubondar/url-shortener/internal/app/models"
 	"github.com/iubondar/url-shortener/internal/app/strings"
 )
 
 // URLRecord представляет запись URL в файловом хранилище.
 // Содержит основную информацию о URL и дополнительное поле UUID для внутренней идентификации.
 type URLRecord struct {
-	storage.Record
+	models.Record
 	UUID string `json:"uuid"` // внутренний идентификатор записи
 }
 
@@ -106,7 +106,7 @@ func (frepo *FileRepository) addRecordForURL(url string, userID uuid.UUID) *URLR
 	uuid := strconv.Itoa(frepo.nextID())
 	record := URLRecord{
 		UUID: uuid,
-		Record: storage.Record{
+		Record: models.Record{
 			ShortURL:    id,
 			OriginalURL: url,
 			UserID:      userID,
@@ -119,14 +119,14 @@ func (frepo *FileRepository) addRecordForURL(url string, userID uuid.UUID) *URLR
 
 // RetrieveByShortURL получает запись по короткому идентификатору.
 // Возвращает запись и ошибку. Если запись не найдена, возвращает ошибку ErrorNotFound.
-func (frepo FileRepository) RetrieveByShortURL(ctx context.Context, shortURL string) (record storage.Record, err error) {
+func (frepo FileRepository) RetrieveByShortURL(ctx context.Context, shortURL string) (record models.Record, err error) {
 	for _, rec := range frepo.records {
 		if rec.ShortURL == shortURL {
 			return rec.Record, nil
 		}
 	}
 
-	return storage.Record{}, storage.ErrorNotFound
+	return models.Record{}, models.ErrorNotFound
 }
 
 // CheckStatus проверяет состояние файлового хранилища.
@@ -200,7 +200,7 @@ func (frepo FileRepository) appendToFile(records []URLRecord) error {
 
 // RetrieveUserURLs получает все URL пользователя.
 // Возвращает массив записей и ошибку.
-func (frepo FileRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID) (records []storage.Record, err error) {
+func (frepo FileRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID) (records []models.Record, err error) {
 	for _, r := range frepo.records {
 		if r.UserID == userID {
 			records = append(records, r.Record)

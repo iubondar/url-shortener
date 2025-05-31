@@ -1,28 +1,35 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/iubondar/url-shortener/internal/app/auth"
-	"github.com/iubondar/url-shortener/internal/app/storage"
+	"github.com/iubondar/url-shortener/internal/app/models"
 )
+
+// UserURLRepository представляет интерфейс для работы с репозиторием URL.
+type UserURLsRetriever interface {
+	RetrieveUserURLs(ctx context.Context, userID uuid.UUID) (records []models.Record, err error)
+}
 
 // UserUrlsHandler обрабатывает запросы на получение списка сокращенных URL пользователя.
 // Позволяет пользователю получить список всех своих сокращенных URL.
 type UserUrlsHandler struct {
-	repo    storage.Repository // репозиторий для хранения URL
-	baseURL string             // базовый URL для формирования сокращенных ссылок
+	retriever UserURLsRetriever // репозиторий для хранения URL
+	baseURL   string            // базовый URL для формирования сокращенных ссылок
 }
 
 // NewUserUrlsHandler создает новый экземпляр UserUrlsHandler.
 // Принимает репозиторий для хранения URL и базовый URL для формирования сокращенных ссылок.
-func NewUserUrlsHandler(repo storage.Repository, baseURL string) UserUrlsHandler {
+func NewUserUrlsHandler(retriever UserURLsRetriever, baseURL string) UserUrlsHandler {
 	return UserUrlsHandler{
-		repo:    repo,
-		baseURL: baseURL,
+		retriever: retriever,
+		baseURL:   baseURL,
 	}
 }
 
@@ -47,7 +54,7 @@ func (handler UserUrlsHandler) RetrieveUserURLs(res http.ResponseWriter, req *ht
 		return
 	}
 
-	records, err := handler.repo.RetrieveUserURLs(req.Context(), userID)
+	records, err := handler.retriever.RetrieveUserURLs(req.Context(), userID)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return

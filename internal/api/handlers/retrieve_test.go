@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
-	"github.com/iubondar/url-shortener/internal/app/storage"
+	"github.com/iubondar/url-shortener/internal/app/models"
 	simple_storage "github.com/iubondar/url-shortener/internal/app/storage/simple"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,7 +35,7 @@ func ExampleRetrieveURLHandler_RetrieveURL() {
 
 	// Создаем репозиторий с тестовыми данными
 	repo := &simple_storage.SimpleRepository{
-		Records: []storage.Record{
+		Records: []models.Record{
 			{
 				ShortURL:    "123",
 				OriginalURL: "https://example.com",
@@ -124,7 +124,7 @@ func TestRetrieveURLHandler_RetrieveURL(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			repo := simple_storage.SimpleRepository{
-				Records: []storage.Record{
+				Records: []models.Record{
 					{
 						ShortURL:    "123",
 						OriginalURL: testURL,
@@ -164,7 +164,7 @@ func TestRetrieveURLHandler_RetrieveURL(t *testing.T) {
 
 func TestRetrieveURLHandler_WithNoIdParameter(t *testing.T) {
 	repo := simple_storage.SimpleRepository{
-		Records: []storage.Record{
+		Records: []models.Record{
 			{
 				ShortURL:    "123",
 				OriginalURL: testURL,
