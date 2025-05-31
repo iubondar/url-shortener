@@ -2,7 +2,6 @@ package pg
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"os"
@@ -14,7 +13,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose"
 
-	"github.com/iubondar/url-shortener/internal/app/storage"
+	"github.com/iubondar/url-shortener/internal/app/models"
 	"github.com/iubondar/url-shortener/internal/app/storage/testhelpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -26,6 +25,26 @@ var (
 	pgContainer *testhelpers.PostgresContainer
 )
 
+func cleanupResources(db *DB, container *testhelpers.PostgresContainer, ctx context.Context) {
+	if db != nil {
+		if err := db.SQLDB.Close(); err != nil {
+			log.Printf("Failed to close database connection: %v", err)
+		}
+	}
+	if container != nil {
+		if err := container.Terminate(ctx); err != nil {
+			log.Printf("Failed to terminate postgres container: %v", err)
+		}
+	}
+}
+
+func handleError(err error, db *DB, container *testhelpers.PostgresContainer, ctx context.Context, message string) {
+	if err != nil {
+		cleanupResources(db, container, ctx)
+		log.Fatalf("%s: %v", message, err)
+	}
+}
+
 func init() {
 	ctx := context.Background()
 	pgContainer, err := testhelpers.CreatePostgresContainer(ctx)
@@ -33,31 +52,24 @@ func init() {
 		log.Fatalf("Failed to create postgres container: %v", err)
 	}
 
-	db, err := sql.Open("pgx", pgContainer.ConnectionString)
-	if err != nil {
-		pgContainer.Terminate(ctx)
-		log.Fatalf("Failed to open database: %v", err)
-	}
+	db, err := NewDB(pgContainer.ConnectionString)
+	handleError(err, db, pgContainer, ctx, "Failed to create database connection")
 
-	goose.SetDialect("postgres")
-	err = goose.Up(db, "./migrations")
-	if err != nil {
-		db.Close()
-		pgContainer.Terminate(ctx)
-		log.Fatalf("Failed to run migrations: %v", err)
-	}
+	err = goose.SetDialect("postgres")
+	handleError(err, db, pgContainer, ctx, "Failed to set dialect")
+
+	err = goose.Up(db.SQLDB, "./migrations")
+	handleError(err, db, pgContainer, ctx, "Failed to run migrations")
 
 	repo, err = NewPGRepository(db, 30*time.Millisecond)
-	if err != nil {
-		db.Close()
-		pgContainer.Terminate(ctx)
-		log.Fatalf("Failed to create repository: %v", err)
-	}
+	handleError(err, db, pgContainer, ctx, "Failed to create repository")
 
 	cleanup = func() {
-		_, err := repo.db.ExecContext(context.Background(), "TRUNCATE TABLE urls;")
-		if err != nil {
-			log.Printf("Failed to clear urls table: %v", err)
+		if repo != nil && repo.db != nil && repo.db.SQLDB != nil {
+			_, err := repo.db.SQLDB.ExecContext(context.Background(), "TRUNCATE TABLE urls;")
+			if err != nil {
+				log.Printf("Failed to clear urls table: %v", err)
+			}
 		}
 	}
 }
@@ -67,10 +79,8 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 
 	// Очищаем ресурсы после завершения всех тестов
-	if pgContainer != nil {
-		if err := pgContainer.Terminate(context.Background()); err != nil {
-			log.Printf("Failed to terminate postgres container: %v", err)
-		}
+	if repo != nil && repo.db != nil {
+		cleanupResources(repo.db, pgContainer, context.Background())
 	}
 
 	os.Exit(code)
@@ -116,8 +126,16 @@ func ExamplePGRepository_RetrieveUserURLs() {
 	cleanup()
 
 	// Сохраняем несколько URL
-	repo.SaveURL(context.Background(), testhelpers.TestUUID, "http://example.com")
-	repo.SaveURL(context.Background(), testhelpers.TestUUID, "http://example.org")
+	_, _, err := repo.SaveURL(context.Background(), testhelpers.TestUUID, "http://example.com")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	_, _, err = repo.SaveURL(context.Background(), testhelpers.TestUUID, "http://example.org")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
 
 	// Получаем все URL пользователя
 	records, err := repo.RetrieveUserURLs(context.Background(), testhelpers.TestUUID)
@@ -135,7 +153,7 @@ func setupSeparateTest(t *testing.T, execStatement string) {
 	cleanup()
 
 	if len(execStatement) > 0 {
-		_, err := repo.db.ExecContext(context.Background(), execStatement)
+		_, err := repo.db.SQLDB.ExecContext(context.Background(), execStatement)
 		require.NoError(t, err)
 	}
 }
@@ -389,7 +407,7 @@ func TestRetrieveUserURLs(t *testing.T) {
 		name          string
 		execStatement string
 		args          args
-		wantRecords   []storage.Record
+		wantRecords   []models.Record
 	}{
 		{
 			name:          "Empty repo",
@@ -397,7 +415,7 @@ func TestRetrieveUserURLs(t *testing.T) {
 			args: args{
 				userID: userID,
 			},
-			wantRecords: []storage.Record{},
+			wantRecords: []models.Record{},
 		},
 		{
 			name: "One record",
@@ -406,7 +424,7 @@ func TestRetrieveUserURLs(t *testing.T) {
 			args: args{
 				userID: userID,
 			},
-			wantRecords: []storage.Record{
+			wantRecords: []models.Record{
 				{
 					ShortURL:    "4rSPg8ap",
 					OriginalURL: "http://yandex.ru",
@@ -421,7 +439,7 @@ func TestRetrieveUserURLs(t *testing.T) {
 			args: args{
 				userID: userID,
 			},
-			wantRecords: []storage.Record{
+			wantRecords: []models.Record{
 				{
 					ShortURL:    "4rSPg8ap",
 					OriginalURL: "http://yandex.ru",

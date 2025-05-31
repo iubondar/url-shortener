@@ -2,24 +2,32 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/iubondar/url-shortener/internal/app/auth"
-	"github.com/iubondar/url-shortener/internal/app/storage"
 )
+
+// URLDeleter определяет интерфейс для удаления URL из хранилища.
+type URLDeleter interface {
+	// DeleteByShortURLs помечает URL как удаленные.
+	// Принимает идентификатор пользователя и массив коротких идентификаторов.
+	DeleteByShortURLs(ctx context.Context, userID uuid.UUID, shortURLs []string)
+}
 
 // DeleteUrlsHandler обрабатывает запросы на удаление сокращенных URL.
 // Позволяет пользователю удалить свои сокращенные ссылки.
 type DeleteUrlsHandler struct {
-	repo storage.Repository // репозиторий для хранения URL
+	deleter URLDeleter // репозиторий для хранения URL
 }
 
 // NewDeleteUrlsHandler создает новый экземпляр DeleteUrlsHandler.
 // Принимает репозиторий для хранения URL.
-func NewDeleteUrlsHandler(repo storage.Repository) DeleteUrlsHandler {
+func NewDeleteUrlsHandler(deleter URLDeleter) DeleteUrlsHandler {
 	return DeleteUrlsHandler{
-		repo: repo,
+		deleter: deleter,
 	}
 }
 
@@ -55,7 +63,7 @@ func (handler DeleteUrlsHandler) DeleteUserURLs(res http.ResponseWriter, req *ht
 	}
 
 	// запрос на удаление
-	handler.repo.DeleteByShortURLs(req.Context(), userID, shortURLs)
+	handler.deleter.DeleteByShortURLs(req.Context(), userID, shortURLs)
 
 	// сразу возвращаем статус
 	res.WriteHeader(http.StatusAccepted)

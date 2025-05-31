@@ -29,7 +29,7 @@ const (
 // Загружает значения из флагов командной строки и переменных окружения.
 // Приоритет: переменные окружения > флаги командной строки > значения по умолчанию.
 // Возвращает указатель на Config и ошибку, если она возникла.
-func NewConfig(progname string, args []string) (*Config, error) {
+func NewConfig(progname string, args []string) (Config, error) {
 	var c Config
 
 	// https://eli.thegreenplace.net/2020/testing-flag-parsing-in-go-programs/
@@ -43,16 +43,16 @@ func NewConfig(progname string, args []string) (*Config, error) {
 
 	err := flags.Parse(args)
 	if err != nil {
-		return nil, err
+		return Config{}, err
 	}
 
 	// Переписываем значения из переменных окружения
 	err = env.Parse(&c)
 	if err != nil {
-		return nil, err
+		return Config{}, err
 	}
 
-	return &c, nil
+	return c, nil
 }
 
 // defaultDatabaseDSN возвращает строку подключения к базе данных по умолчанию.

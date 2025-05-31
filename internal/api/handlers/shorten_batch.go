@@ -1,13 +1,12 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
-
-	"github.com/iubondar/url-shortener/internal/app/storage"
 )
 
 // ShortenBatchIn представляет входные данные для пакетного создания сокращенных URL.
@@ -22,18 +21,25 @@ type ShortenBatchOut struct {
 	ShortURL      string `json:"short_url"`      // сокращенный URL
 }
 
+// URLBatchSaver определяет интерфейс для пакетного сохранения URL в хранилище.
+type URLBatchSaver interface {
+	// SaveURLs сохраняет массив URL в хранилище.
+	// Возвращает массив коротких идентификаторов и ошибку.
+	SaveURLs(ctx context.Context, urls []string) (ids []string, err error)
+}
+
 // ShortenBatchHandler обрабатывает запросы на пакетное создание сокращенных URL.
 // Позволяет создать несколько сокращенных URL за один запрос.
 type ShortenBatchHandler struct {
-	repo    storage.Repository // репозиторий для хранения URL
-	baseURL string             // базовый URL для формирования сокращенных ссылок
+	saver   URLBatchSaver // репозиторий для хранения URL
+	baseURL string        // базовый URL для формирования сокращенных ссылок
 }
 
 // NewShortenBatchHandler создает новый экземпляр ShortenBatchHandler.
 // Принимает репозиторий для хранения URL и базовый URL для формирования сокращенных ссылок.
-func NewShortenBatchHandler(repo storage.Repository, baseURL string) ShortenBatchHandler {
+func NewShortenBatchHandler(saver URLBatchSaver, baseURL string) ShortenBatchHandler {
 	return ShortenBatchHandler{
-		repo:    repo,
+		saver:   saver,
 		baseURL: baseURL,
 	}
 }
@@ -65,7 +71,7 @@ func (handler ShortenBatchHandler) ShortenBatch(res http.ResponseWriter, req *ht
 		urls = append(urls, URL.String())
 	}
 
-	ids, err := handler.repo.SaveURLs(req.Context(), urls)
+	ids, err := handler.saver.SaveURLs(req.Context(), urls)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return

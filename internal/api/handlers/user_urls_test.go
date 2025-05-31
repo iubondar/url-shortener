@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/iubondar/url-shortener/internal/app/auth"
-	"github.com/iubondar/url-shortener/internal/app/storage"
+	"github.com/iubondar/url-shortener/internal/app/models"
 	simple_storage "github.com/iubondar/url-shortener/internal/app/storage/simple"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,7 +27,7 @@ func ExampleUserUrlsHandler_RetrieveUserURLs() {
 
 	// Создаем репозиторий с тестовыми данными
 	repo := &simple_storage.SimpleRepository{
-		Records: []storage.Record{
+		Records: []models.Record{
 			{
 				ShortURL:    "123",
 				OriginalURL: "https://example1.com",
@@ -50,7 +50,11 @@ func ExampleUserUrlsHandler_RetrieveUserURLs() {
 
 	// Получаем ответ
 	res := w.Result()
-	defer res.Body.Close()
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			fmt.Printf("Error closing response body: %v\n", err)
+		}
+	}()
 
 	// Выводим статус ответа
 	fmt.Println(res.Status)
@@ -63,7 +67,7 @@ func TestUserUrlsHandler_RetrieveUserURLs(t *testing.T) {
 	tests := []struct {
 		name     string
 		method   string
-		records  []storage.Record
+		records  []models.Record
 		userID   uuid.UUID
 		wantCode int
 		wantOut  []UserUrlsOut
@@ -71,7 +75,7 @@ func TestUserUrlsHandler_RetrieveUserURLs(t *testing.T) {
 		{
 			name:   "Positive test",
 			method: http.MethodGet,
-			records: []storage.Record{
+			records: []models.Record{
 				{
 					ShortURL:    "123",
 					OriginalURL: "http://example.com",
@@ -99,7 +103,7 @@ func TestUserUrlsHandler_RetrieveUserURLs(t *testing.T) {
 		{
 			name:   "Only with correct userID",
 			method: http.MethodGet,
-			records: []storage.Record{
+			records: []models.Record{
 				{
 					ShortURL:    "123",
 					OriginalURL: "http://example.com",
@@ -123,7 +127,7 @@ func TestUserUrlsHandler_RetrieveUserURLs(t *testing.T) {
 		{
 			name:     "POST method not allowed",
 			method:   http.MethodPost,
-			records:  []storage.Record{},
+			records:  []models.Record{},
 			userID:   userID,
 			wantCode: http.StatusMethodNotAllowed,
 			wantOut:  []UserUrlsOut{},
@@ -131,7 +135,7 @@ func TestUserUrlsHandler_RetrieveUserURLs(t *testing.T) {
 		{
 			name:     "PUT method not allowed",
 			method:   http.MethodPut,
-			records:  []storage.Record{},
+			records:  []models.Record{},
 			userID:   userID,
 			wantCode: http.StatusMethodNotAllowed,
 			wantOut:  []UserUrlsOut{},
@@ -139,7 +143,7 @@ func TestUserUrlsHandler_RetrieveUserURLs(t *testing.T) {
 		{
 			name:     "DELETE method not allowed",
 			method:   http.MethodDelete,
-			records:  []storage.Record{},
+			records:  []models.Record{},
 			userID:   userID,
 			wantCode: http.StatusMethodNotAllowed,
 			wantOut:  []UserUrlsOut{},
@@ -162,15 +166,16 @@ func TestUserUrlsHandler_RetrieveUserURLs(t *testing.T) {
 			handler.RetrieveUserURLs(w, request)
 
 			res := w.Result()
-			defer res.Body.Close()
+			defer func() {
+				if err := res.Body.Close(); err != nil {
+					t.Errorf("Error closing response body: %v", err)
+				}
+			}()
 
 			require.Equal(t, test.wantCode, res.StatusCode)
 			if res.StatusCode != http.StatusNoContent && res.StatusCode != http.StatusOK {
 				return
 			}
-
-			// получаем и проверяем тело запроса
-			defer res.Body.Close()
 
 			assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 

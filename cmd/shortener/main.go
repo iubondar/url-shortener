@@ -11,12 +11,9 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
 
+	"github.com/iubondar/url-shortener/internal/api/handlers"
 	"github.com/iubondar/url-shortener/internal/app/config"
 	"github.com/iubondar/url-shortener/internal/app/router"
-	"github.com/iubondar/url-shortener/internal/app/storage"
-	filestorage "github.com/iubondar/url-shortener/internal/app/storage/file"
-	pg_storage "github.com/iubondar/url-shortener/internal/app/storage/pg"
-	simple_storage "github.com/iubondar/url-shortener/internal/app/storage/simple"
 
 	_ "net/http/pprof" // подключаем пакет pprof
 )
@@ -41,27 +38,14 @@ func main() {
 		"DatabaseDSN", config.DatabaseDSN,
 	)
 
-	var repo storage.Repository
-
-	if len(config.DatabaseDSN) > 0 {
-		db, err := pg_storage.NewDB(config.DatabaseDSN)
-		if err != nil {
-			log.Fatal(err)
+	factory := handlers.NewFactory(config)
+	defer func() {
+		if err := factory.Close(); err != nil {
+			zap.L().Sugar().Errorf("Error closing factory: %v", err)
 		}
+	}()
 
-		defer db.SQLDB.Close()
-
-		repo = db.Repo
-	} else if len(config.FileStoragePath) > 0 {
-		repo, err = filestorage.NewFileRepository(config.FileStoragePath)
-		if err != nil {
-			log.Fatal(err)
-		}
-	} else {
-		repo = simple_storage.NewSimpleRepository()
-	}
-
-	router, err := router.NewRouter(config.BaseURLAddress, repo)
+	router, err := router.NewRouter(factory)
 	if err != nil {
 		log.Fatal(err)
 	}

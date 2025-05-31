@@ -1,21 +1,29 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/go-chi/chi"
-	"github.com/iubondar/url-shortener/internal/app/storage"
+	"github.com/iubondar/url-shortener/internal/app/models"
 )
+
+// URLRetriever определяет интерфейс для получения URL из хранилища.
+type URLRetriever interface {
+	// RetrieveByShortURL получает запись по короткому идентификатору.
+	// Возвращает запись и ошибку.
+	RetrieveByShortURL(ctx context.Context, shortURL string) (record models.Record, err error)
+}
 
 // RetrieveURLHandler обрабатывает запросы на получение оригинального URL по сокращенному идентификатору.
 // Выполняет перенаправление на оригинальный URL или возвращает ошибку, если URL не найден или удален.
 type RetrieveURLHandler struct {
-	repo storage.Repository // репозиторий для хранения URL
+	repo URLRetriever // репозиторий для хранения URL
 }
 
 // NewRetrieveURLHandler создает новый экземпляр RetrieveURLHandler.
 // Принимает репозиторий для хранения URL.
-func NewRetrieveURLHandler(repo storage.Repository) RetrieveURLHandler {
+func NewRetrieveURLHandler(repo URLRetriever) RetrieveURLHandler {
 	return RetrieveURLHandler{
 		repo: repo,
 	}

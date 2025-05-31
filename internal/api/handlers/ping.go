@@ -1,20 +1,27 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
-
-	"github.com/iubondar/url-shortener/internal/app/storage"
 )
+
+// StatusChecker определяет интерфейс для проверки состояния хранилища.
+// Используется для проверки доступности и работоспособности хранилища.
+type StatusChecker interface {
+	// CheckStatus проверяет состояние хранилища.
+	// Возвращает ошибку, если хранилище недоступно или неработоспособно.
+	CheckStatus(ctx context.Context) error
+}
 
 // PingHandler обрабатывает запросы для проверки доступности сервиса.
 // Используется для проверки работоспособности сервера и его подключения к хранилищу.
 type PingHandler struct {
-	checker storage.StatusChecker // интерфейс для проверки статуса хранилища
+	checker StatusChecker // интерфейс для проверки статуса хранилища
 }
 
 // NewPingHandler создает новый экземпляр PingHandler.
 // Принимает интерфейс для проверки статуса хранилища.
-func NewPingHandler(checker storage.StatusChecker) PingHandler {
+func NewPingHandler(checker StatusChecker) PingHandler {
 	return PingHandler{
 		checker: checker,
 	}

@@ -6,7 +6,7 @@ import (
 	"slices"
 
 	"github.com/google/uuid"
-	"github.com/iubondar/url-shortener/internal/app/storage"
+	"github.com/iubondar/url-shortener/internal/app/models"
 	"github.com/iubondar/url-shortener/internal/app/strings"
 )
 
@@ -15,14 +15,14 @@ const idLength int = 8
 // SimpleRepository реализует in-memory хранилище URL.
 // Хранит все записи в памяти и не сохраняет их между запусками приложения.
 type SimpleRepository struct {
-	Records []storage.Record // массив записей URL
+	Records []models.Record // массив записей URL
 }
 
 // NewSimpleRepository создает новый экземпляр SimpleRepository.
 // Возвращает указатель на инициализированное хранилище.
 func NewSimpleRepository() *SimpleRepository {
 	return &SimpleRepository{
-		Records: []storage.Record{},
+		Records: []models.Record{},
 	}
 }
 
@@ -39,7 +39,7 @@ func (repo *SimpleRepository) SaveURL(ctx context.Context, userID uuid.UUID, url
 	id = strings.RandString(idLength)
 	repo.Records = append(
 		repo.Records,
-		storage.Record{
+		models.Record{
 			ShortURL:    id,
 			OriginalURL: url,
 			UserID:      userID,
@@ -72,14 +72,14 @@ func (repo *SimpleRepository) SaveURLs(ctx context.Context, urls []string) (ids 
 
 // RetrieveByShortURL получает запись по короткому идентификатору.
 // Возвращает запись и ошибку.
-func (repo SimpleRepository) RetrieveByShortURL(ctx context.Context, shortURL string) (record storage.Record, err error) {
+func (repo SimpleRepository) RetrieveByShortURL(ctx context.Context, shortURL string) (record models.Record, err error) {
 	for _, r := range repo.Records {
 		if r.ShortURL == shortURL {
 			return r, nil
 		}
 	}
 
-	return storage.Record{}, storage.ErrorNotFound
+	return models.Record{}, models.ErrorNotFound
 }
 
 // RetrieveID получает короткий идентификатор по оригинальному URL.
@@ -91,13 +91,13 @@ func (repo SimpleRepository) RetrieveID(url string) (id string, err error) {
 		}
 	}
 
-	return "", storage.ErrorNotFound
+	return "", models.ErrorNotFound
 }
 
 // RetrieveUserURLs получает все URL пользователя.
 // Возвращает массив записей и ошибку.
-func (repo SimpleRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID) (records []storage.Record, err error) {
-	records = make([]storage.Record, 0)
+func (repo SimpleRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID) (records []models.Record, err error) {
+	records = make([]models.Record, 0)
 	for _, r := range repo.Records {
 		if r.UserID == userID {
 			records = append(records, r)

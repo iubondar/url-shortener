@@ -40,7 +40,11 @@ func Example() {
 	if err != nil {
 		panic(err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			panic(err)
+		}
+	}()
 
 	// Проверяем, что ответ сжат
 	encoding := resp.Header.Get(contentEncoding)
@@ -50,7 +54,11 @@ func Example() {
 		if err != nil {
 			panic(err)
 		}
-		defer reader.Close()
+		defer func() {
+			if err := reader.Close(); err != nil {
+				panic(err)
+			}
+		}()
 		body, err := io.ReadAll(reader)
 		if err != nil {
 			panic(err)
@@ -111,7 +119,11 @@ func Example_compressedRequest() {
 	if err != nil {
 		panic(err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			panic(err)
+		}
+	}()
 
 	// Читаем ответ
 	body, err := io.ReadAll(resp.Body)

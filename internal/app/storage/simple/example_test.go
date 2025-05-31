@@ -30,7 +30,11 @@ func ExampleSimpleRepository_RetrieveByShortURL() {
 	repo := NewSimpleRepository()
 
 	// Сохраняем URL
-	id, _, _ := repo.SaveURL(context.Background(), testhelpers.TestUUID, "http://example.com")
+	id, _, err := repo.SaveURL(context.Background(), testhelpers.TestUUID, "http://example.com")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
 
 	// Получаем запись по короткому идентификатору
 	record, err := repo.RetrieveByShortURL(context.Background(), id)
@@ -50,8 +54,16 @@ func ExampleSimpleRepository_RetrieveUserURLs() {
 	repo := NewSimpleRepository()
 
 	// Сохраняем несколько URL
-	repo.SaveURL(context.Background(), testhelpers.TestUUID, "http://example.com")
-	repo.SaveURL(context.Background(), testhelpers.TestUUID, "http://example.org")
+	_, _, err := repo.SaveURL(context.Background(), testhelpers.TestUUID, "http://example.com")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	_, _, err = repo.SaveURL(context.Background(), testhelpers.TestUUID, "http://example.org")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
 
 	// Получаем все URL пользователя
 	records, err := repo.RetrieveUserURLs(context.Background(), testhelpers.TestUUID)

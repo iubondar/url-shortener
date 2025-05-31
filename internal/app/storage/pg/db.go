@@ -6,7 +6,6 @@ import (
 
 	"embed"
 
-	"github.com/iubondar/url-shortener/internal/app/storage"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 )
@@ -14,10 +13,9 @@ import (
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
 
-// DB представляет соединение с базой данных и репозиторий для работы с URL.
+// DB представляет соединение с базой данных
 type DB struct {
-	SQLDB *sql.DB            // соединение с базой данных
-	Repo  storage.Repository // репозиторий для работы с URL
+	SQLDB *sql.DB // соединение с базой данных
 }
 
 // NewDB создает новое соединение с базой данных и инициализирует репозиторий.
@@ -40,13 +38,7 @@ func NewDB(dsn string) (db *DB, err error) {
 		return nil, err
 	}
 
-	repo, err := NewPGRepository(pgx, 0)
-	if err != nil {
-		return nil, err
-	}
-
 	return &DB{
 		SQLDB: pgx,
-		Repo:  repo,
 	}, nil
 }

@@ -34,7 +34,11 @@ func ExampleWithLogging() {
 	if err != nil {
 		panic(err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			panic(err)
+		}
+	}()
 
 	// Проверяем, что запрос выполнен успешно
 	if resp.StatusCode == http.StatusOK {
@@ -72,7 +76,11 @@ func ExampleWithLogging_error() {
 	if err != nil {
 		panic(err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			panic(err)
+		}
+	}()
 
 	// Проверяем, что запрос завершился с ошибкой
 	if resp.StatusCode == http.StatusInternalServerError {

@@ -33,7 +33,11 @@ func ExamplePingHandler_Ping() {
 
 	// Получаем ответ
 	res := w.Result()
-	defer res.Body.Close()
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			fmt.Printf("Error closing response body: %v\n", err)
+		}
+	}()
 
 	// Выводим статус ответа
 	fmt.Println(res.Status)
@@ -96,7 +100,11 @@ func TestPingHandler_Ping(t *testing.T) {
 			handler.Ping(w, request)
 
 			res := w.Result()
-			defer res.Body.Close()
+			defer func() {
+				if err := res.Body.Close(); err != nil {
+					t.Errorf("Error closing response body: %v", err)
+				}
+			}()
 
 			assert.Equal(t, tt.wantCode, res.StatusCode)
 		})
