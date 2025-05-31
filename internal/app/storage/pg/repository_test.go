@@ -38,6 +38,22 @@ func cleanupResources(db *DB, container *testhelpers.PostgresContainer, ctx cont
 	}
 }
 
+func handleError(err error, db *DB, container *testhelpers.PostgresContainer, ctx context.Context, message string) {
+	if err != nil {
+		if db != nil && db.SQLDB != nil {
+			if err := db.SQLDB.Close(); err != nil {
+				log.Printf("Failed to close database connection: %v", err)
+			}
+		}
+		if container != nil {
+			if err := container.Terminate(ctx); err != nil {
+				log.Printf("Failed to terminate postgres container: %v", err)
+			}
+		}
+		log.Fatalf("%s: %v", message, err)
+	}
+}
+
 func init() {
 	ctx := context.Background()
 	pgContainer, err := testhelpers.CreatePostgresContainer(ctx)
@@ -46,44 +62,16 @@ func init() {
 	}
 
 	db, err := NewDB(pgContainer.ConnectionString)
-	if err != nil {
-		if db != nil && db.SQLDB != nil {
-			if err := db.SQLDB.Close(); err != nil {
-				log.Printf("Failed to close database connection: %v", err)
-			}
-		}
-		if err := pgContainer.Terminate(ctx); err != nil {
-			log.Printf("Failed to terminate postgres container: %v", err)
-		}
-		log.Fatalf("Failed to create database connection: %v", err)
-	}
+	handleError(err, db, pgContainer, ctx, "Failed to create database connection")
 
-	goose.SetDialect("postgres")
+	err = goose.SetDialect("postgres")
+	handleError(err, db, pgContainer, ctx, "Failed to set dialect")
+
 	err = goose.Up(db.SQLDB, "./migrations")
-	if err != nil {
-		if db != nil && db.SQLDB != nil {
-			if err := db.SQLDB.Close(); err != nil {
-				log.Printf("Failed to close database connection: %v", err)
-			}
-		}
-		if err := pgContainer.Terminate(ctx); err != nil {
-			log.Printf("Failed to terminate postgres container: %v", err)
-		}
-		log.Fatalf("Failed to run migrations: %v", err)
-	}
+	handleError(err, db, pgContainer, ctx, "Failed to run migrations")
 
 	repo, err = NewPGRepository(db, 30*time.Millisecond)
-	if err != nil {
-		if db != nil && db.SQLDB != nil {
-			if err := db.SQLDB.Close(); err != nil {
-				log.Printf("Failed to close database connection: %v", err)
-			}
-		}
-		if err := pgContainer.Terminate(ctx); err != nil {
-			log.Printf("Failed to terminate postgres container: %v", err)
-		}
-		log.Fatalf("Failed to create repository: %v", err)
-	}
+	handleError(err, db, pgContainer, ctx, "Failed to create repository")
 
 	cleanup = func() {
 		if repo != nil && repo.db != nil && repo.db.SQLDB != nil {
@@ -149,8 +137,16 @@ func ExamplePGRepository_RetrieveUserURLs() {
 	cleanup()
 
 	// Сохраняем несколько URL
-	repo.SaveURL(context.Background(), testhelpers.TestUUID, "http://example.com")
-	repo.SaveURL(context.Background(), testhelpers.TestUUID, "http://example.org")
+	_, _, err := repo.SaveURL(context.Background(), testhelpers.TestUUID, "http://example.com")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	_, _, err = repo.SaveURL(context.Background(), testhelpers.TestUUID, "http://example.org")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
 
 	// Получаем все URL пользователя
 	records, err := repo.RetrieveUserURLs(context.Background(), testhelpers.TestUUID)

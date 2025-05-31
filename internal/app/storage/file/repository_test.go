@@ -53,6 +53,33 @@ func TestFileRepository_ReadFromFile(t *testing.T) {
 	})
 }
 
+// setupTestFile creates a temporary file for tests and ensures it's cleaned up
+func setupTestFile(t testing.TB) string {
+	tempFile := filepath.Join(os.TempDir(), "frepo_test_"+t.Name())
+
+	// Create directory if it doesn't exist
+	dir := filepath.Dir(tempFile)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatalf("Failed to create directory: %v", err)
+	}
+
+	// Create an empty file
+	file, err := os.OpenFile(tempFile, os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatalf("Failed to close test file: %v", err)
+	}
+
+	t.Cleanup(func() {
+		if err := os.Remove(tempFile); err != nil && !os.IsNotExist(err) {
+			t.Errorf("Error removing test file: %v", err)
+		}
+	})
+	return tempFile
+}
+
 func TestFileRepository_SaveURL(t *testing.T) {
 	type args struct {
 		url string
@@ -92,7 +119,7 @@ func TestFileRepository_SaveURL(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fpath := os.TempDir() + "frepo_save_url_tmp"
+			fpath := setupTestFile(t)
 			frepo := FileRepository{
 				fPath:   fpath,
 				records: tt.records,
@@ -111,9 +138,6 @@ func TestFileRepository_SaveURL(t *testing.T) {
 			}
 			if gotExists != tt.wantExists {
 				t.Errorf("FileRepository.SaveURL() gotExists = %v, want %v", gotExists, tt.wantExists)
-			}
-			if err := os.Remove(fpath); err != nil {
-				t.Errorf("Error removing test file: %v", err)
 			}
 		})
 	}
@@ -155,7 +179,7 @@ func TestFileRepository_RetrieveByShortURL(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fpath := os.TempDir() + "frepo_save_url_tmp"
+			fpath := setupTestFile(t)
 			frepo := FileRepository{
 				fPath:   fpath,
 				records: tt.records,
@@ -168,15 +192,12 @@ func TestFileRepository_RetrieveByShortURL(t *testing.T) {
 			if record.OriginalURL != tt.wantURL {
 				t.Errorf("FileRepository.RetrieveURL() = %v, want %v", record.OriginalURL, tt.wantURL)
 			}
-			if err := os.Remove(fpath); err != nil {
-				t.Errorf("Error removing test file: %v", err)
-			}
 		})
 	}
 }
 
 func TestFileRepository_SaveAndRetrieve(t *testing.T) {
-	fpath := os.TempDir() + "frepo_save_url_tmp"
+	fpath := setupTestFile(t)
 	frepo, err := NewFileRepository(fpath)
 	require.NoError(t, err)
 	testURL := "http://example.com"
@@ -189,10 +210,6 @@ func TestFileRepository_SaveAndRetrieve(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, testURL, record.OriginalURL)
-
-	if err := os.Remove(fpath); err != nil {
-		t.Errorf("Error removing test file: %v", err)
-	}
 }
 
 func TestFileRepository_SaveURLs(t *testing.T) {
@@ -252,7 +269,7 @@ func TestFileRepository_SaveURLs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fpath := os.TempDir() + "frepo_save_url_tmp"
+			fpath := setupTestFile(t)
 			frepo := FileRepository{
 				fPath:   fpath,
 				records: tt.fields.records,
@@ -263,9 +280,6 @@ func TestFileRepository_SaveURLs(t *testing.T) {
 				return
 			}
 			assert.Equal(t, len(gotIDs), tt.wantIDsCount)
-			if err := os.Remove(fpath); err != nil {
-				t.Errorf("Error removing test file: %v", err)
-			}
 		})
 	}
 }
@@ -464,7 +478,7 @@ func TestFileRepository_DeleteByShortURLs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fpath := os.TempDir() + "frepo_save_url_tmp"
+			fpath := setupTestFile(t)
 			frepo := FileRepository{
 				fPath:   fpath,
 				records: tt.records,
@@ -473,9 +487,6 @@ func TestFileRepository_DeleteByShortURLs(t *testing.T) {
 			frepo.DeleteByShortURLs(context.Background(), tt.args.userID, tt.args.shortURLs)
 
 			assert.ElementsMatch(t, tt.wantRecords, frepo.records)
-			if err := os.Remove(fpath); err != nil {
-				t.Errorf("Error removing test file: %v", err)
-			}
 		})
 	}
 }
@@ -540,7 +551,7 @@ func TestFileRepository_RetrieveUserURLs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fpath := os.TempDir() + "frepo_save_url_tmp"
+			fpath := setupTestFile(t)
 			frepo := FileRepository{
 				fPath:   fpath,
 				records: tt.records,
@@ -549,22 +560,8 @@ func TestFileRepository_RetrieveUserURLs(t *testing.T) {
 			records, err := frepo.RetrieveUserURLs(context.Background(), tt.args.userID)
 			require.NoError(t, err)
 			assert.ElementsMatch(t, tt.wantRecords, records)
-			if err := os.Remove(fpath); err != nil {
-				t.Errorf("Error removing test file: %v", err)
-			}
 		})
 	}
-}
-
-// setupTestFile создает временный файл для тестов
-func setupTestFile(t *testing.B) string {
-	tempFile := filepath.Join(os.TempDir(), "benchmark_urls.json")
-	t.Cleanup(func() {
-		if err := os.Remove(tempFile); err != nil {
-			t.Errorf("Error removing test file: %v", err)
-		}
-	})
-	return tempFile
 }
 
 // BenchmarkFileRepository_SaveURL измеряет производительность сохранения URL
