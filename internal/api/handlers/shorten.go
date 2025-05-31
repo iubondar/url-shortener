@@ -98,5 +98,8 @@ func (handler ShortenHandler) Shorten(res http.ResponseWriter, req *http.Request
 		res.WriteHeader(http.StatusCreated)
 	}
 
-	res.Write(resp)
+	if _, err := res.Write(resp); err != nil {
+		http.Error(res, "Error writing response", http.StatusInternalServerError)
+		return
+	}
 }

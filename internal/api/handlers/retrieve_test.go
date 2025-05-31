@@ -53,7 +53,11 @@ func ExampleRetrieveURLHandler_RetrieveURL() {
 
 	// Получаем ответ
 	res := w.Result()
-	defer res.Body.Close()
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			fmt.Printf("Error closing response body: %v\n", err)
+		}
+	}()
 
 	// Выводим статус ответа и заголовок Location
 	fmt.Println(res.Status)
@@ -148,7 +152,11 @@ func TestRetrieveURLHandler_RetrieveURL(t *testing.T) {
 			handler.RetrieveURL(w, withURLParam(request, "id", test.id))
 
 			res := w.Result()
-			defer res.Body.Close()
+			defer func() {
+				if err := res.Body.Close(); err != nil {
+					t.Errorf("Error closing response body: %v", err)
+				}
+			}()
 
 			// проверяем код ответа, выходим если он ошибочный
 			require.Equal(t, test.want.code, res.StatusCode)
@@ -181,7 +189,11 @@ func TestRetrieveURLHandler_WithNoIdParameter(t *testing.T) {
 	handler.RetrieveURL(w, request)
 
 	res := w.Result()
-	defer res.Body.Close()
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			t.Errorf("Error closing response body: %v", err)
+		}
+	}()
 
 	require.Equal(t, http.StatusBadRequest, res.StatusCode)
 }
@@ -197,7 +209,11 @@ func TestRetrieveURLHandler_WithNoURL(t *testing.T) {
 	handler.RetrieveURL(w, request)
 
 	res := w.Result()
-	defer res.Body.Close()
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			t.Errorf("Error closing response body: %v", err)
+		}
+	}()
 
 	require.Equal(t, http.StatusBadRequest, res.StatusCode)
 }

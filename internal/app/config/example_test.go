@@ -30,15 +30,35 @@ func ExampleNewConfig_withFlags() {
 // ExampleNewConfig_withEnvVars демонстрирует создание конфигурации с использованием переменных окружения.
 func ExampleNewConfig_withEnvVars() {
 	// Устанавливаем переменные окружения
-	os.Setenv("SERVER_ADDRESS", "localhost:9999")
-	os.Setenv("BASE_URL", "localhost:9998")
-	os.Setenv("FILE_STORAGE_PATH", "env/path.txt")
-	os.Setenv("DATABASE_DSN", "host=env user=env password=env dbname=env")
+	if err := os.Setenv("SERVER_ADDRESS", "localhost:9999"); err != nil {
+		fmt.Printf("Error setting SERVER_ADDRESS: %v\n", err)
+		return
+	}
+	if err := os.Setenv("BASE_URL", "localhost:9998"); err != nil {
+		fmt.Printf("Error setting BASE_URL: %v\n", err)
+		return
+	}
+	if err := os.Setenv("FILE_STORAGE_PATH", "env/path.txt"); err != nil {
+		fmt.Printf("Error setting FILE_STORAGE_PATH: %v\n", err)
+		return
+	}
+	if err := os.Setenv("DATABASE_DSN", "host=env user=env password=env dbname=env"); err != nil {
+		fmt.Printf("Error setting DATABASE_DSN: %v\n", err)
+		return
+	}
 	defer func() {
-		os.Unsetenv("SERVER_ADDRESS")
-		os.Unsetenv("BASE_URL")
-		os.Unsetenv("FILE_STORAGE_PATH")
-		os.Unsetenv("DATABASE_DSN")
+		if err := os.Unsetenv("SERVER_ADDRESS"); err != nil {
+			fmt.Printf("Error unsetting SERVER_ADDRESS: %v\n", err)
+		}
+		if err := os.Unsetenv("BASE_URL"); err != nil {
+			fmt.Printf("Error unsetting BASE_URL: %v\n", err)
+		}
+		if err := os.Unsetenv("FILE_STORAGE_PATH"); err != nil {
+			fmt.Printf("Error unsetting FILE_STORAGE_PATH: %v\n", err)
+		}
+		if err := os.Unsetenv("DATABASE_DSN"); err != nil {
+			fmt.Printf("Error unsetting DATABASE_DSN: %v\n", err)
+		}
 	}()
 
 	// Создаем конфигурацию без флагов командной строки

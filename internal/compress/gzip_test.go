@@ -51,7 +51,11 @@ func TestGzipCompression(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode)
 
-		defer resp.Body.Close()
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				t.Errorf("Error closing response body: %v", err)
+			}
+		}()
 
 		b, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
@@ -69,10 +73,19 @@ func TestGzipCompression(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode)
 
-		defer resp.Body.Close()
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				t.Errorf("Error closing response body: %v", err)
+			}
+		}()
 
 		zr, err := gzip.NewReader(resp.Body)
 		require.NoError(t, err)
+		defer func() {
+			if err := zr.Close(); err != nil {
+				t.Errorf("Error closing gzip reader: %v", err)
+			}
+		}()
 
 		b, err := io.ReadAll(zr)
 		require.NoError(t, err)
@@ -142,7 +155,9 @@ func BenchmarkGzipCompression(b *testing.B) {
 				if err != nil {
 					b.Fatal(err)
 				}
-				resp.Body.Close()
+				if err := resp.Body.Close(); err != nil {
+					b.Errorf("Error closing response body: %v", err)
+				}
 			}
 		})
 	}

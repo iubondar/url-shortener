@@ -35,7 +35,11 @@ func ExampleDeleteUrlsHandler_DeleteUserURLs() {
 
 	// Получаем ответ
 	res := w.Result()
-	defer res.Body.Close()
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			fmt.Printf("Error closing response body: %v\n", err)
+		}
+	}()
 
 	// Выводим статус ответа
 	fmt.Println(res.Status)
@@ -129,7 +133,11 @@ func TestDeleteUrlsHandler_DeleteUserURLs(t *testing.T) {
 			handler.DeleteUserURLs(w, request)
 
 			res := w.Result()
-			defer res.Body.Close()
+			defer func() {
+				if err := res.Body.Close(); err != nil {
+					t.Errorf("Error closing response body: %v", err)
+				}
+			}()
 
 			assert.Equal(t, test.wantCode, res.StatusCode)
 			assert.ElementsMatch(t, test.wantRecords, repo.Records)

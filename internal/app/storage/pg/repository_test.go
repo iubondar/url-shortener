@@ -25,6 +25,19 @@ var (
 	pgContainer *testhelpers.PostgresContainer
 )
 
+func cleanupResources(db *DB, container *testhelpers.PostgresContainer, ctx context.Context) {
+	if db != nil {
+		if err := db.SQLDB.Close(); err != nil {
+			log.Printf("Failed to close database connection: %v", err)
+		}
+	}
+	if container != nil {
+		if err := container.Terminate(ctx); err != nil {
+			log.Printf("Failed to terminate postgres container: %v", err)
+		}
+	}
+}
+
 func init() {
 	ctx := context.Background()
 	pgContainer, err := testhelpers.CreatePostgresContainer(ctx)
@@ -34,29 +47,50 @@ func init() {
 
 	db, err := NewDB(pgContainer.ConnectionString)
 	if err != nil {
-		pgContainer.Terminate(ctx)
+		if db != nil && db.SQLDB != nil {
+			if err := db.SQLDB.Close(); err != nil {
+				log.Printf("Failed to close database connection: %v", err)
+			}
+		}
+		if err := pgContainer.Terminate(ctx); err != nil {
+			log.Printf("Failed to terminate postgres container: %v", err)
+		}
 		log.Fatalf("Failed to create database connection: %v", err)
 	}
 
 	goose.SetDialect("postgres")
 	err = goose.Up(db.SQLDB, "./migrations")
 	if err != nil {
-		db.SQLDB.Close()
-		pgContainer.Terminate(ctx)
+		if db != nil && db.SQLDB != nil {
+			if err := db.SQLDB.Close(); err != nil {
+				log.Printf("Failed to close database connection: %v", err)
+			}
+		}
+		if err := pgContainer.Terminate(ctx); err != nil {
+			log.Printf("Failed to terminate postgres container: %v", err)
+		}
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
 	repo, err = NewPGRepository(db, 30*time.Millisecond)
 	if err != nil {
-		db.SQLDB.Close()
-		pgContainer.Terminate(ctx)
+		if db != nil && db.SQLDB != nil {
+			if err := db.SQLDB.Close(); err != nil {
+				log.Printf("Failed to close database connection: %v", err)
+			}
+		}
+		if err := pgContainer.Terminate(ctx); err != nil {
+			log.Printf("Failed to terminate postgres container: %v", err)
+		}
 		log.Fatalf("Failed to create repository: %v", err)
 	}
 
 	cleanup = func() {
-		_, err := repo.db.SQLDB.ExecContext(context.Background(), "TRUNCATE TABLE urls;")
-		if err != nil {
-			log.Printf("Failed to clear urls table: %v", err)
+		if repo != nil && repo.db != nil && repo.db.SQLDB != nil {
+			_, err := repo.db.SQLDB.ExecContext(context.Background(), "TRUNCATE TABLE urls;")
+			if err != nil {
+				log.Printf("Failed to clear urls table: %v", err)
+			}
 		}
 	}
 }

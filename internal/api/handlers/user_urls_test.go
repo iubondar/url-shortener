@@ -50,7 +50,11 @@ func ExampleUserUrlsHandler_RetrieveUserURLs() {
 
 	// Получаем ответ
 	res := w.Result()
-	defer res.Body.Close()
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			fmt.Printf("Error closing response body: %v\n", err)
+		}
+	}()
 
 	// Выводим статус ответа
 	fmt.Println(res.Status)
@@ -162,15 +166,16 @@ func TestUserUrlsHandler_RetrieveUserURLs(t *testing.T) {
 			handler.RetrieveUserURLs(w, request)
 
 			res := w.Result()
-			defer res.Body.Close()
+			defer func() {
+				if err := res.Body.Close(); err != nil {
+					t.Errorf("Error closing response body: %v", err)
+				}
+			}()
 
 			require.Equal(t, test.wantCode, res.StatusCode)
 			if res.StatusCode != http.StatusNoContent && res.StatusCode != http.StatusOK {
 				return
 			}
-
-			// получаем и проверяем тело запроса
-			defer res.Body.Close()
 
 			assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 

@@ -82,5 +82,8 @@ func (handler UserUrlsHandler) RetrieveUserURLs(res http.ResponseWriter, req *ht
 		res.WriteHeader(http.StatusOK)
 	}
 
-	res.Write(resp)
+	if _, err := res.Write(resp); err != nil {
+		http.Error(res, "Error writing response", http.StatusInternalServerError)
+		return
+	}
 }

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -37,14 +38,20 @@ func NewFileRepository(fPath string) (*FileRepository, error) {
 	// Создаём папки по указанному пути, если их ещё нет
 	folderPath, _ := filepath.Split(fPath)
 	if _, err := os.Stat(folderPath); os.IsNotExist(err) {
-		os.MkdirAll(folderPath, os.ModePerm)
+		if err := os.MkdirAll(folderPath, os.ModePerm); err != nil {
+			return nil, fmt.Errorf("failed to create directory: %w", err)
+		}
 	}
 	// Создаём файл, если его нет, или открываем на чтение
 	file, err := os.OpenFile(fPath, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Printf("Error closing file: %v", err)
+		}
+	}()
 
 	var records = []URLRecord{}
 	scanner := bufio.NewScanner(file)
@@ -58,7 +65,7 @@ func NewFileRepository(fPath string) (*FileRepository, error) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("error scanning file: %w", err)
 	}
 
 	return &FileRepository{
@@ -80,7 +87,9 @@ func (frepo *FileRepository) SaveURL(ctx context.Context, userID uuid.UUID, url 
 	// сохраняем изменения на диск
 	record = frepo.addRecordForURL(url, userID)
 
-	frepo.appendToFile([]URLRecord{*record})
+	if err := frepo.appendToFile([]URLRecord{*record}); err != nil {
+		return "", false, fmt.Errorf("failed to save URL to file: %w", err)
+	}
 
 	return record.ShortURL, false, nil
 }
@@ -137,7 +146,11 @@ func (frepo FileRepository) CheckStatus(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Printf("Error closing file: %v", err)
+		}
+	}()
 
 	return nil
 }
@@ -160,7 +173,9 @@ func (frepo *FileRepository) SaveURLs(ctx context.Context, urls []string) (ids [
 	}
 
 	// сохраняем изменения на диск
-	frepo.appendToFile(newRecords)
+	if err := frepo.appendToFile(newRecords); err != nil {
+		return nil, fmt.Errorf("failed to save URLs to file: %w", err)
+	}
 
 	return ids, nil
 }
@@ -171,7 +186,7 @@ func (frepo FileRepository) nextID() int {
 	if len(frepo.records) > 0 {
 		last, err := strconv.Atoi(frepo.records[len(frepo.records)-1].UUID)
 		if err != nil {
-			log.Fatal(err)
+			return 1 // Return default value on error
 		}
 		return last + 1
 	}
@@ -186,6 +201,11 @@ func (frepo FileRepository) appendToFile(records []URLRecord) error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Printf("Error closing file: %v", err)
+		}
+	}()
 
 	encoder := json.NewEncoder(file)
 	for _, record := range records {

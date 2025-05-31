@@ -35,7 +35,9 @@ func TestFileRepository_ReadFromFile(t *testing.T) {
 
 		assert.Equal(t, len(frepo.records), 0)
 
-		os.Remove(fpath)
+		if err := os.Remove(fpath); err != nil {
+			t.Errorf("Error removing test file: %v", err)
+		}
 	})
 
 	t.Run("Empty file with nested path", func(t *testing.T) {
@@ -45,7 +47,9 @@ func TestFileRepository_ReadFromFile(t *testing.T) {
 
 		assert.Equal(t, len(frepo.records), 0)
 
-		os.Remove(fpath)
+		if err := os.Remove(fpath); err != nil {
+			t.Errorf("Error removing test file: %v", err)
+		}
 	})
 }
 
@@ -108,7 +112,9 @@ func TestFileRepository_SaveURL(t *testing.T) {
 			if gotExists != tt.wantExists {
 				t.Errorf("FileRepository.SaveURL() gotExists = %v, want %v", gotExists, tt.wantExists)
 			}
-			os.Remove(fpath)
+			if err := os.Remove(fpath); err != nil {
+				t.Errorf("Error removing test file: %v", err)
+			}
 		})
 	}
 }
@@ -162,7 +168,9 @@ func TestFileRepository_RetrieveByShortURL(t *testing.T) {
 			if record.OriginalURL != tt.wantURL {
 				t.Errorf("FileRepository.RetrieveURL() = %v, want %v", record.OriginalURL, tt.wantURL)
 			}
-			os.Remove(fpath)
+			if err := os.Remove(fpath); err != nil {
+				t.Errorf("Error removing test file: %v", err)
+			}
 		})
 	}
 }
@@ -182,7 +190,9 @@ func TestFileRepository_SaveAndRetrieve(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, testURL, record.OriginalURL)
 
-	os.Remove(fpath)
+	if err := os.Remove(fpath); err != nil {
+		t.Errorf("Error removing test file: %v", err)
+	}
 }
 
 func TestFileRepository_SaveURLs(t *testing.T) {
@@ -253,7 +263,9 @@ func TestFileRepository_SaveURLs(t *testing.T) {
 				return
 			}
 			assert.Equal(t, len(gotIDs), tt.wantIDsCount)
-			os.Remove(fpath)
+			if err := os.Remove(fpath); err != nil {
+				t.Errorf("Error removing test file: %v", err)
+			}
 		})
 	}
 }
@@ -461,7 +473,9 @@ func TestFileRepository_DeleteByShortURLs(t *testing.T) {
 			frepo.DeleteByShortURLs(context.Background(), tt.args.userID, tt.args.shortURLs)
 
 			assert.ElementsMatch(t, tt.wantRecords, frepo.records)
-			os.Remove(fpath)
+			if err := os.Remove(fpath); err != nil {
+				t.Errorf("Error removing test file: %v", err)
+			}
 		})
 	}
 }
@@ -535,7 +549,9 @@ func TestFileRepository_RetrieveUserURLs(t *testing.T) {
 			records, err := frepo.RetrieveUserURLs(context.Background(), tt.args.userID)
 			require.NoError(t, err)
 			assert.ElementsMatch(t, tt.wantRecords, records)
-			os.Remove(fpath)
+			if err := os.Remove(fpath); err != nil {
+				t.Errorf("Error removing test file: %v", err)
+			}
 		})
 	}
 }
@@ -544,7 +560,9 @@ func TestFileRepository_RetrieveUserURLs(t *testing.T) {
 func setupTestFile(t *testing.B) string {
 	tempFile := filepath.Join(os.TempDir(), "benchmark_urls.json")
 	t.Cleanup(func() {
-		os.Remove(tempFile)
+		if err := os.Remove(tempFile); err != nil {
+			t.Errorf("Error removing test file: %v", err)
+		}
 	})
 	return tempFile
 }

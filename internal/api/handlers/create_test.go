@@ -31,7 +31,11 @@ func ExampleCreateIDHandler_CreateID() {
 
 	// Получаем ответ
 	res := w.Result()
-	defer res.Body.Close()
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			fmt.Printf("Error closing response body: %v\n", err)
+		}
+	}()
 
 	// Выводим статус ответа
 	fmt.Println(res.Status)
@@ -144,7 +148,11 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			}
 
 			// получаем и проверяем тело запроса
-			defer res.Body.Close()
+			defer func() {
+				if err := res.Body.Close(); err != nil {
+					t.Errorf("Error closing response body: %v", err)
+				}
+			}()
 			resBody, err := io.ReadAll(res.Body)
 			require.NoError(t, err)
 

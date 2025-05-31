@@ -143,13 +143,23 @@ func (repo *PGRepository) SaveURLs(ctx context.Context, urls []string) (ids []st
 		return nil, err
 	}
 	// если Commit будет раньше, то откат проигнорируется
-	defer tx.Rollback()
+	defer func() {
+		if err != nil {
+			if rbErr := tx.Rollback(); rbErr != nil {
+				zap.L().Sugar().Errorf("error rolling back transaction: %v", rbErr)
+			}
+		}
+	}()
 
 	stmt, err := tx.PrepareContext(ctx, queries.InsertURL)
 	if err != nil {
 		return nil, err
 	}
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			zap.L().Sugar().Errorf("error closing statement: %v", err)
+		}
+	}()
 
 	ids = make([]string, 0)
 	for _, url := range urls {
@@ -187,7 +197,11 @@ func (repo *PGRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID
 		}
 	}
 
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			zap.L().Sugar().Errorf("error closing rows: %v", err)
+		}
+	}()
 
 	for rows.Next() {
 		var record models.Record
@@ -249,10 +263,20 @@ func (repo *PGRepository) markAsDeleted(ctx context.Context, deletions ...delete
 		return err
 	}
 	// если Commit будет раньше, то откат проигнорируется
-	defer tx.Rollback()
+	defer func() {
+		if err != nil {
+			if rbErr := tx.Rollback(); rbErr != nil {
+				zap.L().Sugar().Errorf("error rolling back transaction: %v", rbErr)
+			}
+		}
+	}()
 
 	stmt := tx.Stmt(repo.deleteStmt)
-	defer stmt.Close()
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			zap.L().Sugar().Errorf("error closing statement: %v", err)
+		}
+	}()
 
 	for _, deleteIn := range deletions {
 		_, err = stmt.ExecContext(ctx, deleteIn.userID, deleteIn.shortURL)

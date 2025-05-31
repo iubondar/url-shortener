@@ -70,5 +70,8 @@ func (handler CreateIDHandler) CreateID(res http.ResponseWriter, req *http.Reque
 	baseURL := strings.TrimSuffix(strings.TrimPrefix(handler.baseURL, "http://"), "/")
 	result := fmt.Sprintf("http://%s/%s", baseURL, id)
 
-	res.Write([]byte(result))
+	if _, err := res.Write([]byte(result)); err != nil {
+		http.Error(res, "Error writing response", http.StatusInternalServerError)
+		return
+	}
 }

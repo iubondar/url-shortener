@@ -68,7 +68,9 @@ func NewFactory(config config.Config) *Factory {
 
 		repo, err = pg.NewPGRepository(db, 0)
 		if err != nil {
-			db.SQLDB.Close()
+			if err := db.SQLDB.Close(); err != nil {
+				log.Printf("Error closing database connection: %v", err)
+			}
 			log.Fatal(err)
 		}
 	} else if len(config.FileStoragePath) > 0 {
