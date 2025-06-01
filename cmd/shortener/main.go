@@ -4,6 +4,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -18,6 +19,12 @@ import (
 	_ "net/http/pprof" // подключаем пакет pprof
 )
 
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
+)
+
 func init() {
 	zap.ReplaceGlobals(zap.Must(zap.NewDevelopment()))
 }
@@ -26,6 +33,8 @@ func init() {
 // Функция инициализирует конфигурацию, подключает выбранное хранилище данных,
 // настраивает маршрутизацию и запускает HTTP-сервер.
 func main() {
+	printVersion()
+
 	config, err := config.NewConfig(os.Args[0], os.Args[1:])
 	if err != nil {
 		log.Fatal(err)
@@ -54,4 +63,19 @@ func main() {
 	log.Fatal(
 		http.ListenAndServe(config.ServerAddress, router),
 	)
+}
+
+func printVersion() {
+	if buildVersion == "" {
+		buildVersion = "N/A"
+	}
+	if buildDate == "" {
+		buildDate = "N/A"
+	}
+	if buildCommit == "" {
+		buildCommit = "N/A"
+	}
+	fmt.Printf("Build version: %s\n", buildVersion)
+	fmt.Printf("Build date: %s\n", buildDate)
+	fmt.Printf("Build commit: %s\n", buildCommit)
 }
