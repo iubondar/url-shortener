@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/iubondar/url-shortener/internal/app/storage"
+	"github.com/iubondar/url-shortener/internal/app/models"
 	simple_storage "github.com/iubondar/url-shortener/internal/app/storage/simple"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,7 +31,11 @@ func ExampleCreateIDHandler_CreateID() {
 
 	// Получаем ответ
 	res := w.Result()
-	defer res.Body.Close()
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			fmt.Printf("Error closing response body: %v\n", err)
+		}
+	}()
 
 	// Выводим статус ответа
 	fmt.Println(res.Status)
@@ -49,14 +53,14 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 		name    string
 		method  string
 		url     string
-		records []storage.Record
+		records []models.Record
 		want    want
 	}{
 		{
 			name:    "Positive test",
 			method:  http.MethodPost,
 			url:     "https://practicum.yandex.ru/",
-			records: []storage.Record{},
+			records: []models.Record{},
 			want: want{
 				code:        http.StatusCreated,
 				response:    `http://127.0.0.1`,
@@ -67,7 +71,7 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			name:   "Existed record test",
 			method: http.MethodPost,
 			url:    testURL,
-			records: []storage.Record{
+			records: []models.Record{
 				{
 					ShortURL:    "123",
 					OriginalURL: testURL,
@@ -84,7 +88,7 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			name:    "Test invalid URL",
 			method:  http.MethodPost,
 			url:     "https/practicum.yandex.ru/",
-			records: []storage.Record{},
+			records: []models.Record{},
 			want: want{
 				code:        http.StatusBadRequest,
 				response:    `http://127.0.0.1`,
@@ -95,7 +99,7 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			name:    "Test GET method not allowed",
 			method:  http.MethodGet,
 			url:     "https://practicum.yandex.ru/",
-			records: []storage.Record{},
+			records: []models.Record{},
 			want: want{
 				code:        http.StatusMethodNotAllowed,
 				response:    `http://127.0.0.1`,
@@ -106,7 +110,7 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			name:    "Test PUT method not allowed",
 			method:  http.MethodPut,
 			url:     "https://practicum.yandex.ru/",
-			records: []storage.Record{},
+			records: []models.Record{},
 			want: want{
 				code:        http.StatusMethodNotAllowed,
 				response:    `http://127.0.0.1`,
@@ -117,7 +121,7 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			name:    "Test DELETE method not allowed",
 			method:  http.MethodDelete,
 			url:     "https://practicum.yandex.ru/",
-			records: []storage.Record{},
+			records: []models.Record{},
 			want: want{
 				code:        http.StatusMethodNotAllowed,
 				response:    `http://127.0.0.1`,
@@ -144,7 +148,11 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 			}
 
 			// получаем и проверяем тело запроса
-			defer res.Body.Close()
+			defer func() {
+				if err := res.Body.Close(); err != nil {
+					t.Errorf("Error closing response body: %v", err)
+				}
+			}()
 			resBody, err := io.ReadAll(res.Body)
 			require.NoError(t, err)
 

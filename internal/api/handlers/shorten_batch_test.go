@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/iubondar/url-shortener/internal/app/storage"
+	"github.com/iubondar/url-shortener/internal/app/models"
 	simple_storage "github.com/iubondar/url-shortener/internal/app/storage/simple"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,7 +38,11 @@ func ExampleShortenBatchHandler_ShortenBatch() {
 
 	// Получаем ответ
 	res := w.Result()
-	defer res.Body.Close()
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			fmt.Printf("Error closing response body: %v\n", err)
+		}
+	}()
 
 	// Выводим статус ответа
 	fmt.Println(res.Status)
@@ -48,7 +52,7 @@ func ExampleShortenBatchHandler_ShortenBatch() {
 func TestShortenBatchHandler_ShortenBatch(t *testing.T) {
 	userID := uuid.New()
 	type fields struct {
-		records []storage.Record
+		records []models.Record
 	}
 	type want struct {
 		code        int
@@ -70,7 +74,7 @@ func TestShortenBatchHandler_ShortenBatch(t *testing.T) {
 				{CorrelationID: "123", OriginalURL: "http://practicum.yandex.ru"},
 			},
 			fields: fields{
-				records: []storage.Record{},
+				records: []models.Record{},
 			},
 			want: want{
 				code:        http.StatusCreated,
@@ -86,7 +90,7 @@ func TestShortenBatchHandler_ShortenBatch(t *testing.T) {
 				{CorrelationID: "123", OriginalURL: "http://practicum.yandex.ru"},
 			},
 			fields: fields{
-				records: []storage.Record{
+				records: []models.Record{
 					{
 						ShortURL:    "098",
 						OriginalURL: "http://practicum.yandex.ru",
@@ -108,7 +112,7 @@ func TestShortenBatchHandler_ShortenBatch(t *testing.T) {
 				{CorrelationID: "123", OriginalURL: "http://practicum.yandex.ru"},
 			},
 			fields: fields{
-				records: []storage.Record{},
+				records: []models.Record{},
 			},
 			want: want{
 				code:        http.StatusBadRequest,
@@ -124,7 +128,7 @@ func TestShortenBatchHandler_ShortenBatch(t *testing.T) {
 				{CorrelationID: "123", OriginalURL: "http://practicum.yandex.ru"},
 			},
 			fields: fields{
-				records: []storage.Record{},
+				records: []models.Record{},
 			},
 			want: want{
 				code:        http.StatusMethodNotAllowed,
@@ -140,7 +144,7 @@ func TestShortenBatchHandler_ShortenBatch(t *testing.T) {
 				{CorrelationID: "123", OriginalURL: "http://practicum.yandex.ru"},
 			},
 			fields: fields{
-				records: []storage.Record{},
+				records: []models.Record{},
 			},
 			want: want{
 				code:        http.StatusMethodNotAllowed,
@@ -156,7 +160,7 @@ func TestShortenBatchHandler_ShortenBatch(t *testing.T) {
 				{CorrelationID: "123", OriginalURL: "http://practicum.yandex.ru"},
 			},
 			fields: fields{
-				records: []storage.Record{},
+				records: []models.Record{},
 			},
 			want: want{
 				code:        http.StatusMethodNotAllowed,
@@ -185,7 +189,11 @@ func TestShortenBatchHandler_ShortenBatch(t *testing.T) {
 			}
 
 			// получаем и проверяем тело запроса
-			defer res.Body.Close()
+			defer func() {
+				if err := res.Body.Close(); err != nil {
+					t.Errorf("Error closing response body: %v", err)
+				}
+			}()
 
 			assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
 

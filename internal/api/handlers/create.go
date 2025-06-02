@@ -8,20 +8,19 @@ import (
 	"strings"
 
 	"github.com/iubondar/url-shortener/internal/app/auth"
-	"github.com/iubondar/url-shortener/internal/app/storage"
 )
 
 // CreateIDHandler обрабатывает запросы на создание сокращенных URL.
 type CreateIDHandler struct {
-	repo    storage.Repository // репозиторий для хранения URL
-	baseURL string             // базовый URL для формирования сокращенных ссылок
+	saver   URLSaver // репозиторий для хранения URL
+	baseURL string   // базовый URL для формирования сокращенных ссылок
 }
 
 // NewCreateIDHandler создает новый экземпляр CreateIDHandler.
 // Принимает репозиторий для хранения URL и базовый URL для формирования сокращенных ссылок.
-func NewCreateIDHandler(repo storage.Repository, baseURL string) CreateIDHandler {
+func NewCreateIDHandler(saver URLSaver, baseURL string) CreateIDHandler {
 	return CreateIDHandler{
-		repo:    repo,
+		saver:   saver,
 		baseURL: baseURL,
 	}
 }
@@ -54,7 +53,7 @@ func (handler CreateIDHandler) CreateID(res http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	id, exists, err := handler.repo.SaveURL(req.Context(), userID, url.String())
+	id, exists, err := handler.saver.SaveURL(req.Context(), userID, url.String())
 	if err != nil {
 		http.Error(res, "Can't save URL", http.StatusBadRequest)
 		return
@@ -71,5 +70,8 @@ func (handler CreateIDHandler) CreateID(res http.ResponseWriter, req *http.Reque
 	baseURL := strings.TrimSuffix(strings.TrimPrefix(handler.baseURL, "http://"), "/")
 	result := fmt.Sprintf("http://%s/%s", baseURL, id)
 
-	res.Write([]byte(result))
+	if _, err := res.Write([]byte(result)); err != nil {
+		http.Error(res, "Error writing response", http.StatusInternalServerError)
+		return
+	}
 }

@@ -4,6 +4,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -11,14 +12,17 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
 
+	"github.com/iubondar/url-shortener/internal/api/handlers"
 	"github.com/iubondar/url-shortener/internal/app/config"
 	"github.com/iubondar/url-shortener/internal/app/router"
-	"github.com/iubondar/url-shortener/internal/app/storage"
-	filestorage "github.com/iubondar/url-shortener/internal/app/storage/file"
-	pg_storage "github.com/iubondar/url-shortener/internal/app/storage/pg"
-	simple_storage "github.com/iubondar/url-shortener/internal/app/storage/simple"
 
 	_ "net/http/pprof" // подключаем пакет pprof
+)
+
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
 )
 
 func init() {
@@ -29,6 +33,8 @@ func init() {
 // Функция инициализирует конфигурацию, подключает выбранное хранилище данных,
 // настраивает маршрутизацию и запускает HTTP-сервер.
 func main() {
+	printVersion()
+
 	config, err := config.NewConfig(os.Args[0], os.Args[1:])
 	if err != nil {
 		log.Fatal(err)
@@ -41,27 +47,14 @@ func main() {
 		"DatabaseDSN", config.DatabaseDSN,
 	)
 
-	var repo storage.Repository
-
-	if len(config.DatabaseDSN) > 0 {
-		db, err := pg_storage.NewDB(config.DatabaseDSN)
-		if err != nil {
-			log.Fatal(err)
+	factory := handlers.NewFactory(config)
+	defer func() {
+		if err := factory.Close(); err != nil {
+			zap.L().Sugar().Errorf("Error closing factory: %v", err)
 		}
+	}()
 
-		defer db.SQLDB.Close()
-
-		repo = db.Repo
-	} else if len(config.FileStoragePath) > 0 {
-		repo, err = filestorage.NewFileRepository(config.FileStoragePath)
-		if err != nil {
-			log.Fatal(err)
-		}
-	} else {
-		repo = simple_storage.NewSimpleRepository()
-	}
-
-	router, err := router.NewRouter(config.BaseURLAddress, repo)
+	router, err := router.NewRouter(factory)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -70,4 +63,19 @@ func main() {
 	log.Fatal(
 		http.ListenAndServe(config.ServerAddress, router),
 	)
+}
+
+func printVersion() {
+	if buildVersion == "" {
+		buildVersion = "N/A"
+	}
+	if buildDate == "" {
+		buildDate = "N/A"
+	}
+	if buildCommit == "" {
+		buildCommit = "N/A"
+	}
+	fmt.Printf("Build version: %s\n", buildVersion)
+	fmt.Printf("Build date: %s\n", buildDate)
+	fmt.Printf("Build commit: %s\n", buildCommit)
 }

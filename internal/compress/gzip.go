@@ -5,6 +5,7 @@ package compress
 import (
 	"compress/gzip"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -40,7 +41,14 @@ type gzipWriter struct {
 // newGzipWriter создает новый экземпляр gzipWriter.
 // Оборачивает http.ResponseWriter для сжатия исходящего трафика.
 func newGzipWriter(w http.ResponseWriter) *gzipWriter {
-	zw, _ := gzip.NewWriterLevel(w, gzip.BestSpeed)
+	zw, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
+	if err != nil {
+		// If we can't create a gzip writer, we'll just use the original writer
+		return &gzipWriter{
+			w:  w,
+			zw: nil,
+		}
+	}
 	return &gzipWriter{
 		w:  w,
 		zw: zw,
@@ -137,7 +145,13 @@ func WithGzipCompression(h http.Handler) http.Handler {
 			// меняем оригинальный http.ResponseWriter на новый
 			ow = cw
 			// не забываем отправить клиенту все сжатые данные после завершения middleware
-			defer cw.Close()
+			defer func() {
+				if err := cw.Close(); err != nil {
+					// Log the error but don't expose it to the client
+					// since the response has already been sent
+					log.Printf("Error closing gzip writer: %v", err)
+				}
+			}()
 		}
 
 		// проверяем, что клиент отправил серверу сжатые данные в формате gzip
@@ -147,12 +161,18 @@ func WithGzipCompression(h http.Handler) http.Handler {
 			// оборачиваем тело запроса в io.Reader с поддержкой декомпрессии
 			cr, err := newGzipReader(r.Body)
 			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
+				http.Error(w, "Error reading compressed request", http.StatusBadRequest)
 				return
 			}
 			// меняем тело запроса на новое
 			r.Body = cr
-			defer cr.Close()
+			defer func() {
+				if err := cr.Close(); err != nil {
+					// Log the error but don't expose it to the client
+					// since the response has already been sent
+					log.Printf("Error closing gzip reader: %v", err)
+				}
+			}()
 		}
 
 		// передаём управление хендлеру

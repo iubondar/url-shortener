@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/iubondar/url-shortener/internal/app/auth"
-	"github.com/iubondar/url-shortener/internal/app/storage"
+	"github.com/iubondar/url-shortener/internal/app/models"
 	simple_storage "github.com/iubondar/url-shortener/internal/app/storage/simple"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,7 +35,11 @@ func ExampleDeleteUrlsHandler_DeleteUserURLs() {
 
 	// Получаем ответ
 	res := w.Result()
-	defer res.Body.Close()
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			fmt.Printf("Error closing response body: %v\n", err)
+		}
+	}()
 
 	// Выводим статус ответа
 	fmt.Println(res.Status)
@@ -47,16 +51,16 @@ func TestDeleteUrlsHandler_DeleteUserURLs(t *testing.T) {
 	tests := []struct {
 		name        string
 		method      string
-		records     []storage.Record
+		records     []models.Record
 		body        string
 		userID      uuid.UUID
 		wantCode    int
-		wantRecords []storage.Record
+		wantRecords []models.Record
 	}{
 		{
 			name:   "Positive test",
 			method: http.MethodDelete,
-			records: []storage.Record{
+			records: []models.Record{
 				{
 					ShortURL:    "123",
 					OriginalURL: "http://example.com",
@@ -66,7 +70,7 @@ func TestDeleteUrlsHandler_DeleteUserURLs(t *testing.T) {
 			body:     "[\"123\"]",
 			userID:   userID,
 			wantCode: http.StatusAccepted,
-			wantRecords: []storage.Record{
+			wantRecords: []models.Record{
 				{
 					ShortURL:    "123",
 					OriginalURL: "http://example.com",
@@ -78,38 +82,38 @@ func TestDeleteUrlsHandler_DeleteUserURLs(t *testing.T) {
 		{
 			name:        "Invalid JSON",
 			method:      http.MethodDelete,
-			records:     []storage.Record{},
+			records:     []models.Record{},
 			body:        "[\"123\", 456,]",
 			userID:      userID,
 			wantCode:    http.StatusBadRequest,
-			wantRecords: []storage.Record{},
+			wantRecords: []models.Record{},
 		},
 		{
 			name:        "GET method not allowed",
 			method:      http.MethodGet,
-			records:     []storage.Record{},
+			records:     []models.Record{},
 			body:        "[\"123\"]",
 			userID:      userID,
 			wantCode:    http.StatusMethodNotAllowed,
-			wantRecords: []storage.Record{},
+			wantRecords: []models.Record{},
 		},
 		{
 			name:        "POST method not allowed",
 			method:      http.MethodPost,
-			records:     []storage.Record{},
+			records:     []models.Record{},
 			body:        "[\"123\"]",
 			userID:      userID,
 			wantCode:    http.StatusMethodNotAllowed,
-			wantRecords: []storage.Record{},
+			wantRecords: []models.Record{},
 		},
 		{
 			name:        "PUT method not allowed",
 			method:      http.MethodPut,
-			records:     []storage.Record{},
+			records:     []models.Record{},
 			body:        "[\"123\"]",
 			userID:      userID,
 			wantCode:    http.StatusMethodNotAllowed,
-			wantRecords: []storage.Record{},
+			wantRecords: []models.Record{},
 		},
 	}
 	for _, test := range tests {
@@ -129,7 +133,11 @@ func TestDeleteUrlsHandler_DeleteUserURLs(t *testing.T) {
 			handler.DeleteUserURLs(w, request)
 
 			res := w.Result()
-			defer res.Body.Close()
+			defer func() {
+				if err := res.Body.Close(); err != nil {
+					t.Errorf("Error closing response body: %v", err)
+				}
+			}()
 
 			assert.Equal(t, test.wantCode, res.StatusCode)
 			assert.ElementsMatch(t, test.wantRecords, repo.Records)

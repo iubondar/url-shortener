@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/iubondar/url-shortener/internal/app/auth"
-	"github.com/iubondar/url-shortener/internal/app/storage"
 )
 
 // ShortenIn представляет входные данные для создания сокращенного URL.
@@ -25,15 +24,15 @@ type ShortenOut struct {
 // ShortenHandler обрабатывает запросы на создание сокращенного URL.
 // Позволяет создать сокращенную ссылку для одного URL.
 type ShortenHandler struct {
-	repo    storage.Repository // репозиторий для хранения URL
-	baseURL string             // базовый URL для формирования сокращенных ссылок
+	saver   URLSaver // репозиторий для хранения URL
+	baseURL string   // базовый URL для формирования сокращенных ссылок
 }
 
 // NewShortenHandler создает новый экземпляр ShortenHandler.
 // Принимает репозиторий для хранения URL и базовый URL для формирования сокращенных ссылок.
-func NewShortenHandler(repo storage.Repository, baseURL string) ShortenHandler {
+func NewShortenHandler(saver URLSaver, baseURL string) ShortenHandler {
 	return ShortenHandler{
-		repo:    repo,
+		saver:   saver,
 		baseURL: baseURL,
 	}
 }
@@ -75,7 +74,7 @@ func (handler ShortenHandler) Shorten(res http.ResponseWriter, req *http.Request
 		return
 	}
 
-	id, exists, err := handler.repo.SaveURL(req.Context(), userID, url.String())
+	id, exists, err := handler.saver.SaveURL(req.Context(), userID, url.String())
 	if err != nil {
 		http.Error(res, "Can't save URL", http.StatusBadRequest)
 		return
@@ -99,5 +98,8 @@ func (handler ShortenHandler) Shorten(res http.ResponseWriter, req *http.Request
 		res.WriteHeader(http.StatusCreated)
 	}
 
-	res.Write(resp)
+	if _, err := res.Write(resp); err != nil {
+		http.Error(res, "Error writing response", http.StatusInternalServerError)
+		return
+	}
 }
