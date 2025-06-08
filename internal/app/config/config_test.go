@@ -56,3 +56,65 @@ func TestConfig_Load(t *testing.T) {
 		})
 	}
 }
+
+func TestConfig_EnableHTTPS(t *testing.T) {
+	tests := []struct {
+		name     string
+		args     []string
+		setEnv   bool
+		envValue string
+		want     bool
+	}{
+		{
+			name:   "Neither flag nor env set",
+			args:   nil,
+			setEnv: false,
+			want:   false,
+		},
+		{
+			name:   "Flag set, env not set",
+			args:   []string{"-s"},
+			setEnv: false,
+			want:   true,
+		},
+		{
+			name:     "Both flag and env set to true",
+			args:     []string{"-s"},
+			setEnv:   true,
+			envValue: "true",
+			want:     true,
+		},
+		{
+			name:     "Flag set, env set to false (env has priority)",
+			args:     []string{"-s"},
+			setEnv:   true,
+			envValue: "false",
+			want:     false,
+		},
+		{
+			name:     "Only env set to true",
+			args:     nil,
+			setEnv:   true,
+			envValue: "true",
+			want:     true,
+		},
+		{
+			name:     "Only env set to false",
+			args:     nil,
+			setEnv:   true,
+			envValue: "false",
+			want:     false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.setEnv {
+				t.Setenv("ENABLE_HTTPS", tt.envValue)
+			}
+			c, err := NewConfig("Test", tt.args)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, c.EnableHTTPS)
+		})
+	}
+}

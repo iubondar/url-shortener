@@ -17,6 +17,7 @@ type Config struct {
 	BaseURLAddress  string `env:"BASE_URL"`          // базовый URL для формирования коротких ссылок
 	FileStoragePath string `env:"FILE_STORAGE_PATH"` // путь к файлу хранилища
 	DatabaseDSN     string `env:"DATABASE_DSN"`      // строка подключения к базе данных
+	EnableHTTPS     bool   `env:"ENABLE_HTTPS"`      // флаг для включения HTTPS
 }
 
 const (
@@ -40,6 +41,7 @@ func NewConfig(progname string, args []string) (Config, error) {
 	flags.StringVar(&c.BaseURLAddress, "b", defaultAddress, "base address to construct short URL")
 	flags.StringVar(&c.FileStoragePath, "f", defaultStoragePath, "path to storage file")
 	flags.StringVar(&c.DatabaseDSN, "d", defaultDatabaseDSN(), "database DSN")
+	flags.BoolVar(&c.EnableHTTPS, "s", false, "enable HTTPS")
 
 	err := flags.Parse(args)
 	if err != nil {
