@@ -6,11 +6,14 @@ package main
 import (
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
+	"strings"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/acme/autocert"
 
 	"github.com/iubondar/url-shortener/internal/api/handlers"
 	"github.com/iubondar/url-shortener/internal/app/config"
@@ -45,6 +48,7 @@ func main() {
 		"BaseURLAddress", config.BaseURLAddress,
 		"FileStoragePath", config.FileStoragePath,
 		"DatabaseDSN", config.DatabaseDSN,
+		"EnableHTTPS", config.EnableHTTPS,
 	)
 
 	factory := handlers.NewFactory(config)
@@ -60,8 +64,52 @@ func main() {
 	}
 
 	zap.L().Sugar().Debugln("Starting serving requests: ", config.ServerAddress)
+	if config.EnableHTTPS {
+		startHTTPServerTLS(config, router)
+	} else {
+		startHTTPServer(config, router)
+	}
+}
+
+func startHTTPServer(config config.Config, router http.Handler) {
 	log.Fatal(
 		http.ListenAndServe(config.ServerAddress, router),
+	)
+}
+
+func startHTTPServerTLS(config config.Config, router http.Handler) {
+	var server *http.Server
+
+	// Извлекаем хост из адреса (без порта)
+	host := strings.Split(config.BaseURLAddress, ":")[0]
+	isLocalhost := strings.Contains(config.BaseURLAddress, "localhost")
+	isIP := net.ParseIP(host) != nil
+
+	// Если BaseURLAddress содержит localhost или IP-адрес, используем локальные сертификаты
+	if isLocalhost || isIP {
+		server = &http.Server{
+			Addr:    config.ServerAddress,
+			Handler: router,
+		}
+		log.Fatal(
+			server.ListenAndServeTLS("certs/cert.pem", "certs/key.pem"),
+		)
+		return
+	}
+
+	// Для публичных доменов используем Let's Encrypt
+	m := &autocert.Manager{
+		Cache:      autocert.DirCache("certs"),
+		Prompt:     autocert.AcceptTOS,
+		HostPolicy: autocert.HostWhitelist(config.BaseURLAddress),
+	}
+	server = &http.Server{
+		Addr:      config.ServerAddress,
+		TLSConfig: m.TLSConfig(),
+		Handler:   router,
+	}
+	log.Fatal(
+		server.ListenAndServeTLS("", ""),
 	)
 }
 
