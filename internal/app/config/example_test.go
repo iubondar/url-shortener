@@ -20,11 +20,13 @@ func ExampleNewConfig_withFlags() {
 	fmt.Printf("Base URL: %s\n", config.BaseURLAddress)
 	fmt.Printf("Storage Path: %s\n", config.FileStoragePath)
 	fmt.Printf("Database DSN: %s\n", config.DatabaseDSN)
+	fmt.Printf("Enable HTTPS: %v\n", config.EnableHTTPS)
 	// Output:
 	// Server Address: localhost:8888
 	// Base URL: localhost:8000
 	// Storage Path: custom/path.txt
 	// Database DSN: host=local user=u password=p dbname=db
+	// Enable HTTPS: false
 }
 
 // ExampleNewConfig_withEnvVars демонстрирует создание конфигурации с использованием переменных окружения.
@@ -73,9 +75,11 @@ func ExampleNewConfig_withEnvVars() {
 	fmt.Printf("Base URL: %s\n", config.BaseURLAddress)
 	fmt.Printf("Storage Path: %s\n", config.FileStoragePath)
 	fmt.Printf("Database DSN: %s\n", config.DatabaseDSN)
+	fmt.Printf("Enable HTTPS: %v\n", config.EnableHTTPS)
 	// Output:
 	// Server Address: localhost:9999
 	// Base URL: localhost:9998
 	// Storage Path: env/path.txt
 	// Database DSN: host=env user=env password=env dbname=env
+	// Enable HTTPS: false
 }
