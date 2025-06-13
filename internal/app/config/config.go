@@ -6,6 +6,7 @@ package config
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -40,31 +41,32 @@ func NewConfig(progname string, args []string) (Config, error) {
 	// Парсим флаг конфигурационного файла
 	сFlags := flag.NewFlagSet(progname, flag.ContinueOnError)
 
-	var configPath string
-	сFlags.StringVar(&configPath, "c", "", "path to config file (short)")
-	сFlags.StringVar(&configPath, "config", "", "path to config file (long)")
+	var configPath, shortConfig, longConfig string
+	сFlags.StringVar(&shortConfig, "c", "", "path to config file (short)")
+	сFlags.StringVar(&longConfig, "config", "", "path to config file (long)")
 
 	err := сFlags.Parse(args)
 	if err != nil {
 		return Config{}, err
 	}
-	if len(configPath) > 0 {
-		file, err := os.Open(configPath)
-		if err != nil {
-			return Config{}, err
-		}
-		defer func() {
-			if err := file.Close(); err != nil {
-				log.Printf("Error closing file: %v", err)
-			}
-		}()
 
-		fileBytes, err := io.ReadAll(file)
-		if err != nil {
-			return Config{}, err
-		}
+	// Проверяем, что не заданы оба флага одновременно
+	if shortConfig != "" && longConfig != "" {
+		return Config{}, fmt.Errorf("cannot use both -c and -config flags")
+	}
 
-		err = json.Unmarshal(fileBytes, &c)
+	// Определяем путь к конфигурационному файлу
+	if shortConfig != "" {
+		configPath = shortConfig
+	} else if longConfig != "" {
+		configPath = longConfig
+	} else if envConfig := os.Getenv("CONFIG"); envConfig != "" {
+		configPath = envConfig
+	}
+
+	// Если путь к конфигурационному файлу определен, загружаем из него
+	if configPath != "" {
+		c, err = loadConfigFromFile(configPath)
 		if err != nil {
 			return Config{}, err
 		}
@@ -85,6 +87,33 @@ func NewConfig(progname string, args []string) (Config, error) {
 
 	// Переписываем значения из переменных окружения
 	err = env.Parse(&c)
+	if err != nil {
+		return Config{}, err
+	}
+
+	return c, nil
+}
+
+// loadConfigFromFile загружает конфигурацию из файла.
+// Возвращает Config и ошибку, если она возникла.
+func loadConfigFromFile(path string) (Config, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return Config{}, err
+	}
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Printf("Error closing file: %v", err)
+		}
+	}()
+
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		return Config{}, err
+	}
+
+	var c Config
+	err = json.Unmarshal(fileBytes, &c)
 	if err != nil {
 		return Config{}, err
 	}
