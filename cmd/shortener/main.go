@@ -6,7 +6,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -15,6 +14,7 @@ import (
 	"github.com/iubondar/url-shortener/internal/api/handlers"
 	"github.com/iubondar/url-shortener/internal/app/config"
 	"github.com/iubondar/url-shortener/internal/app/router"
+	"github.com/iubondar/url-shortener/internal/app/server"
 
 	_ "net/http/pprof" // подключаем пакет pprof
 )
@@ -45,6 +45,7 @@ func main() {
 		"BaseURLAddress", config.BaseURLAddress,
 		"FileStoragePath", config.FileStoragePath,
 		"DatabaseDSN", config.DatabaseDSN,
+		"EnableHTTPS", config.EnableHTTPS,
 	)
 
 	factory := handlers.NewFactory(config)
@@ -59,10 +60,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	zap.L().Sugar().Debugln("Starting serving requests: ", config.ServerAddress)
-	log.Fatal(
-		http.ListenAndServe(config.ServerAddress, router),
-	)
+	srv := server.New(config, router)
+	if err := srv.Start(); err != nil {
+		zap.L().Sugar().Errorf("Error starting server: %v", err)
+	}
 }
 
 func printVersion() {
