@@ -5,7 +5,11 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	"go.uber.org/zap"
 	"golang.org/x/crypto/acme/autocert"
@@ -35,17 +39,53 @@ func New(config config.Config, router http.Handler) *Server {
 // Возвращает ошибку, если сервер завершился с ошибкой.
 func (s *Server) Start() error {
 	zap.L().Sugar().Debugln("Starting serving requests: ", s.config.ServerAddress)
-	if s.config.EnableHTTPS {
-		return s.startHTTPServerTLS()
+
+	// Канал для обработки ошибок сервера
+	serverErrors := make(chan error, 1)
+
+	// Запускаем сервер в отдельной горутине
+	go func() {
+		if s.config.EnableHTTPS {
+			serverErrors <- s.startHTTPServerTLS()
+		}
+		serverErrors <- s.startHTTPServer()
+	}()
+
+	// Канал для обработки сигналов завершения от ОС
+	shutdown := make(chan os.Signal, 1)
+	// Регистрируем обработчики сигналов
+	signal.Notify(shutdown, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+
+	// Ожидаем либо ошибку сервера, либо сигнал завершения
+	select {
+	case err := <-serverErrors:
+		zap.L().Error("server error", zap.Error(err))
+		return err
+
+	case sig := <-shutdown:
+		zap.L().Info("start shutdown", zap.String("signal", sig.String()))
+		return s.Shutdown()
 	}
-	return s.startHTTPServer()
+
 }
 
-// Shutdown корректно завершает работу сервера.
-func (s *Server) Shutdown(ctx context.Context) error {
-	if s.server != nil {
-		return s.server.Shutdown(ctx)
+// Shutdown выполняет graceful shutdown сервера
+func (s *Server) Shutdown() error {
+	// Устанавливаем таймаут 5 секунд для завершения текущих запросов
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Пытаемся корректно завершить работу сервера
+	if err := s.server.Shutdown(ctx); err != nil {
+		zap.L().Error("graceful shutdown did not complete", zap.Error(err))
+		// Если плавное завершение не удалось, принудительно закрываем сервер
+		if err := s.server.Close(); err != nil {
+			zap.L().Error("could not stop server", zap.Error(err))
+			return err
+		}
+		return err
 	}
+
 	return nil
 }
 
