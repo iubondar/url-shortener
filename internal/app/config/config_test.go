@@ -24,11 +24,12 @@ func TestConfig_Load(t *testing.T) {
 				FileStoragePath: defaultStoragePath,
 				DatabaseDSN:     defaultDatabaseDSN(),
 				EnableHTTPS:     false,
+				TrustedSubnet:   defaultTrustedSubnet,
 			},
 		},
 		{
 			name:    "Override with flags",
-			args:    []string{"-a", "localhost:8888", "-b", "localhost:8000", "-f", "st/base.txt", "-d", "host=local user=u password=p dbname=db", "-s"},
+			args:    []string{"-a", "localhost:8888", "-b", "localhost:8000", "-f", "st/base.txt", "-d", "host=local user=u password=p dbname=db", "-s", "-t", "192.168.1.0/24"},
 			envVars: nil,
 			want: Config{
 				ServerAddress:   "localhost:8888",
@@ -36,17 +37,19 @@ func TestConfig_Load(t *testing.T) {
 				FileStoragePath: "st/base.txt",
 				DatabaseDSN:     "host=local user=u password=p dbname=db",
 				EnableHTTPS:     true,
+				TrustedSubnet:   "192.168.1.0/24",
 			},
 		},
 		{
 			name: "Override with envs",
-			args: []string{"-a", "localhost:8888", "-b", "localhost:8000", "-f", "st/base.txt", "-d", "host=local user=u password=p dbname=db", "-s"},
+			args: []string{"-a", "localhost:8888", "-b", "localhost:8000", "-f", "st/base.txt", "-d", "host=local user=u password=p dbname=db", "-s", "-t", "192.168.1.0/24"},
 			envVars: map[string]string{
 				"SERVER_ADDRESS":    "localhost:8800",
 				"BASE_URL":          "localhost:8808",
 				"FILE_STORAGE_PATH": "./ddd/ttt.txt",
 				"DATABASE_DSN":      "dsn",
 				"ENABLE_HTTPS":      "false",
+				"TRUSTED_SUBNET":    "10.0.0.0/8",
 			},
 			want: Config{
 				ServerAddress:   "localhost:8800",
@@ -54,6 +57,7 @@ func TestConfig_Load(t *testing.T) {
 				FileStoragePath: "./ddd/ttt.txt",
 				DatabaseDSN:     "dsn",
 				EnableHTTPS:     false,
+				TrustedSubnet:   "10.0.0.0/8",
 			},
 		},
 	}
@@ -65,6 +69,7 @@ func TestConfig_Load(t *testing.T) {
 			os.Unsetenv("FILE_STORAGE_PATH")
 			os.Unsetenv("DATABASE_DSN")
 			os.Unsetenv("ENABLE_HTTPS")
+			os.Unsetenv("TRUSTED_SUBNET")
 
 			// Устанавливаем переменные окружения только если они заданы в тесте
 			if tt.envVars != nil {
@@ -148,6 +153,68 @@ func TestConfig_EnableHTTPS(t *testing.T) {
 			c, err := NewConfig("Test", tt.args)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.want, c.EnableHTTPS)
+		})
+	}
+}
+
+func TestConfig_TrustedSubnet(t *testing.T) {
+	tests := []struct {
+		name    string
+		args    []string
+		envVars map[string]string
+		want    string
+	}{
+		{
+			name:    "Default value",
+			args:    nil,
+			envVars: nil,
+			want:    defaultTrustedSubnet,
+		},
+		{
+			name:    "Flag set",
+			args:    []string{"-t", "192.168.1.0/24"},
+			envVars: nil,
+			want:    "192.168.1.0/24",
+		},
+		{
+			name: "Env set",
+			args: nil,
+			envVars: map[string]string{
+				"TRUSTED_SUBNET": "10.0.0.0/8",
+			},
+			want: "10.0.0.0/8",
+		},
+		{
+			name: "Flag and env set (env has priority)",
+			args: []string{"-t", "192.168.1.0/24"},
+			envVars: map[string]string{
+				"TRUSTED_SUBNET": "10.0.0.0/8",
+			},
+			want: "10.0.0.0/8",
+		},
+		{
+			name:    "Empty string flag",
+			args:    []string{"-t", ""},
+			envVars: nil,
+			want:    "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Очищаем переменную окружения перед каждым тестом
+			os.Unsetenv("TRUSTED_SUBNET")
+
+			// Устанавливаем переменную окружения только если она задана в тесте
+			if tt.envVars != nil {
+				for key, value := range tt.envVars {
+					t.Setenv(key, value)
+				}
+			}
+
+			c, err := NewConfig("Test", tt.args)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, c.TrustedSubnet)
 		})
 	}
 }
@@ -247,6 +314,7 @@ func TestConfig_LoadFromFile(t *testing.T) {
 				FileStoragePath: "/path/to/file.db",
 				DatabaseDSN:     defaultDatabaseDSN(),
 				EnableHTTPS:     true,
+				TrustedSubnet:   "192.168.1.0/24",
 			},
 		},
 		{
@@ -258,6 +326,7 @@ func TestConfig_LoadFromFile(t *testing.T) {
 				"-f", "custom/path.json",
 				"-d", "custom_dsn",
 				"-s",
+				"-t", "10.0.0.0/8",
 			},
 			envVars: nil,
 			want: Config{
@@ -266,6 +335,7 @@ func TestConfig_LoadFromFile(t *testing.T) {
 				FileStoragePath: "custom/path.json",
 				DatabaseDSN:     "custom_dsn",
 				EnableHTTPS:     true,
+				TrustedSubnet:   "10.0.0.0/8",
 			},
 		},
 		{
@@ -277,6 +347,7 @@ func TestConfig_LoadFromFile(t *testing.T) {
 				"FILE_STORAGE_PATH": "env/path.json",
 				"DATABASE_DSN":      "env_dsn",
 				"ENABLE_HTTPS":      "false",
+				"TRUSTED_SUBNET":    "172.16.0.0/12",
 			},
 			want: Config{
 				ServerAddress:   "localhost:7777",
@@ -284,6 +355,7 @@ func TestConfig_LoadFromFile(t *testing.T) {
 				FileStoragePath: "env/path.json",
 				DatabaseDSN:     "env_dsn",
 				EnableHTTPS:     false,
+				TrustedSubnet:   "172.16.0.0/12",
 			},
 		},
 	}
@@ -296,6 +368,7 @@ func TestConfig_LoadFromFile(t *testing.T) {
 			os.Unsetenv("FILE_STORAGE_PATH")
 			os.Unsetenv("DATABASE_DSN")
 			os.Unsetenv("ENABLE_HTTPS")
+			os.Unsetenv("TRUSTED_SUBNET")
 
 			// Устанавливаем переменные окружения только если они заданы в тесте
 			if tt.envVars != nil {

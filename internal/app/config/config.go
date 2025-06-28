@@ -22,12 +22,14 @@ type Config struct {
 	FileStoragePath string `json:"file_storage_path" env:"FILE_STORAGE_PATH"` // путь к файлу хранилища
 	DatabaseDSN     string `json:"database_dsn" env:"DATABASE_DSN"`           // строка подключения к базе данных
 	EnableHTTPS     bool   `json:"enable_https" env:"ENABLE_HTTPS"`           // флаг для включения HTTPS
+	TrustedSubnet   string `json:"trusted_subnet" env:"TRUSTED_SUBNET"`       // подсеть, с которой разрешены запросы
 }
 
 const (
-	defaultAddress     = "localhost:8080"
-	defaultStoragePath = "./storage/storage.txt"
-	localDatabaseDSN   = "host=localhost user=newuser password=password dbname=url_shortener sslmode=disable" // для локальной разработки
+	defaultAddress       = "localhost:8080"
+	defaultStoragePath   = "./storage/storage.txt"
+	defaultTrustedSubnet = ""
+	localDatabaseDSN     = "host=localhost user=newuser password=password dbname=url_shortener sslmode=disable" // для локальной разработки
 )
 
 // NewConfig создает новую конфигурацию приложения.
@@ -48,6 +50,7 @@ func NewConfig(progname string, args []string) (Config, error) {
 	flags.StringVar(&flagValues.FileStoragePath, "f", "", "path to storage file")
 	flags.StringVar(&flagValues.DatabaseDSN, "d", "", "database DSN")
 	flags.BoolVar(&flagValues.EnableHTTPS, "s", false, "enable HTTPS")
+	flags.StringVar(&flagValues.TrustedSubnet, "t", defaultTrustedSubnet, "trusted subnet")
 	flags.StringVar(&shortConfig, "c", "", "config path (short)")
 	flags.StringVar(&longConfig, "config", "", "config path (long)")
 
@@ -70,6 +73,7 @@ func NewConfig(progname string, args []string) (Config, error) {
 		FileStoragePath: defaultStoragePath,
 		DatabaseDSN:     defaultDatabaseDSN(),
 		EnableHTTPS:     false,
+		TrustedSubnet:   defaultTrustedSubnet,
 	}
 	if configPath != "" {
 		// Пытаемся загрузить из файла
@@ -105,6 +109,9 @@ func NewConfig(progname string, args []string) (Config, error) {
 	}
 	if _, ok := os.LookupEnv("ENABLE_HTTPS"); ok {
 		c.EnableHTTPS = envValues.EnableHTTPS
+	}
+	if _, ok := os.LookupEnv("TRUSTED_SUBNET"); ok {
+		c.TrustedSubnet = envValues.TrustedSubnet
 	}
 
 	return c, nil
@@ -176,6 +183,9 @@ func (c *Config) overrideWith(o Config, updateEnableHTTPS bool) {
 	// Обновляем EnableHTTPS только если updateEnableHTTPS == true
 	if updateEnableHTTPS {
 		c.EnableHTTPS = o.EnableHTTPS
+	}
+	if o.TrustedSubnet != "" {
+		c.TrustedSubnet = o.TrustedSubnet
 	}
 }
 
