@@ -538,6 +538,143 @@ func TestSimpleRepository_RetrieveUserURLs(t *testing.T) {
 	}
 }
 
+func TestSimpleRepository_GetStats(t *testing.T) {
+	userID1 := uuid.New()
+	userID2 := uuid.New()
+
+	tests := []struct {
+		name      string
+		records   []models.Record
+		wantStats models.Stats
+		wantErr   bool
+	}{
+		{
+			name:    "Empty repository",
+			records: []models.Record{},
+			wantStats: models.Stats{
+				URLsCount:  0,
+				UsersCount: 0,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Single user, single URL",
+			records: []models.Record{
+				{
+					ShortURL:    "123",
+					OriginalURL: "http://example.com",
+					UserID:      userID1,
+				},
+			},
+			wantStats: models.Stats{
+				URLsCount:  1,
+				UsersCount: 1,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Single user, multiple URLs",
+			records: []models.Record{
+				{
+					ShortURL:    "123",
+					OriginalURL: "http://example.com",
+					UserID:      userID1,
+				},
+				{
+					ShortURL:    "456",
+					OriginalURL: "http://ya.ru",
+					UserID:      userID1,
+				},
+				{
+					ShortURL:    "789",
+					OriginalURL: "http://avito.ru",
+					UserID:      userID1,
+				},
+			},
+			wantStats: models.Stats{
+				URLsCount:  3,
+				UsersCount: 1,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Multiple users, multiple URLs",
+			records: []models.Record{
+				{
+					ShortURL:    "123",
+					OriginalURL: "http://example.com",
+					UserID:      userID1,
+				},
+				{
+					ShortURL:    "456",
+					OriginalURL: "http://ya.ru",
+					UserID:      userID1,
+				},
+				{
+					ShortURL:    "789",
+					OriginalURL: "http://avito.ru",
+					UserID:      userID2,
+				},
+				{
+					ShortURL:    "abc",
+					OriginalURL: "http://google.com",
+					UserID:      userID2,
+				},
+			},
+			wantStats: models.Stats{
+				URLsCount:  4,
+				UsersCount: 2,
+			},
+			wantErr: false,
+		},
+		{
+			name: "With deleted URLs",
+			records: []models.Record{
+				{
+					ShortURL:    "123",
+					OriginalURL: "http://example.com",
+					UserID:      userID1,
+					IsDeleted:   true,
+				},
+				{
+					ShortURL:    "456",
+					OriginalURL: "http://ya.ru",
+					UserID:      userID1,
+					IsDeleted:   false,
+				},
+			},
+			wantStats: models.Stats{
+				URLsCount:  2,
+				UsersCount: 1,
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := SimpleRepository{
+				Records: tt.records,
+			}
+
+			gotStats, err := repo.GetStats()
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("SimpleRepository.GetStats() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if gotStats.URLsCount != tt.wantStats.URLsCount {
+				t.Errorf("SimpleRepository.GetStats() URLsCount = %v, want %v", gotStats.URLsCount, tt.wantStats.URLsCount)
+			}
+
+			if gotStats.UsersCount != tt.wantStats.UsersCount {
+				t.Errorf("SimpleRepository.GetStats() UsersCount = %v, want %v", gotStats.UsersCount, tt.wantStats.UsersCount)
+			}
+		})
+	}
+}
+
 // BenchmarkSimpleRepository_SaveURL измеряет производительность сохранения URL
 func BenchmarkSimpleRepository_SaveURL(b *testing.B) {
 	repo := NewSimpleRepository()
