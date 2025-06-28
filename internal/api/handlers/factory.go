@@ -19,6 +19,7 @@ type repository interface {
 	DeleteByShortURLs(ctx context.Context, userID uuid.UUID, shortURLs []string)
 	CheckStatus(ctx context.Context) error
 	SaveURLs(ctx context.Context, urls []string) (ids []string, err error)
+	GetStats(ctx context.Context) (stats models.Stats, err error)
 }
 
 // HandlerFactory определяет интерфейс для создания обработчиков HTTP-запросов.
@@ -39,6 +40,8 @@ type HandlerFactory interface {
 	PingHandler() PingHandler
 	// DeleteUrlsHandler создает обработчик для удаления URL пользователя
 	DeleteUrlsHandler() DeleteUrlsHandler
+	// InternalStatsHandler создает обработчик для получения статистики
+	InternalStatsHandler() InternalStatsHandler
 }
 
 // Factory реализует интерфейс HandlerFactory и создает обработчики HTTP-запросов.
@@ -127,4 +130,8 @@ func (f *Factory) PingHandler() PingHandler {
 // DeleteUrlsHandler создает обработчик для удаления URL пользователя
 func (f *Factory) DeleteUrlsHandler() DeleteUrlsHandler {
 	return NewDeleteUrlsHandler(f.repo)
+}
+
+func (f *Factory) InternalStatsHandler() InternalStatsHandler {
+	return NewInternalStatsHandler(f.repo)
 }

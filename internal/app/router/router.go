@@ -33,6 +33,7 @@ func NewRouter(factory handlers.HandlerFactory) (chi.Router, error) {
 	r.Post("/api/shorten", factory.ShortenHandler().Shorten)
 	r.Post("/api/shorten/batch", factory.ShortenBatchHandler().ShortenBatch)
 	r.Get("/api/user/urls", factory.UserUrlsHandler().RetrieveUserURLs)
+	r.Get("/api/internal/stats", factory.InternalStatsHandler().GetStats)
 	r.Get("/{id}", factory.RetrieveURLHandler().RetrieveURL)
 	r.Get("/ping", factory.PingHandler().Ping)
 	r.Delete("/api/user/urls", factory.DeleteUrlsHandler().DeleteUserURLs)
