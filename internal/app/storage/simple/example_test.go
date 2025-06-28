@@ -105,7 +105,7 @@ func ExampleSimpleRepository_GetStats() {
 	}
 
 	// Получаем статистику
-	stats, err := repo.GetStats()
+	stats, err := repo.GetStats(context.Background())
 	if err != nil {
 		fmt.Println("Error:", err)
 		return

@@ -149,6 +149,42 @@ func ExamplePGRepository_RetrieveUserURLs() {
 	// Output: Found 2 URLs
 }
 
+// ExamplePGRepository_GetStats демонстрирует получение статистики хранилища.
+func ExamplePGRepository_GetStats() {
+	cleanup()
+
+	// Сохраняем несколько URL от разных пользователей
+	userID1 := uuid.New()
+	userID2 := uuid.New()
+
+	_, _, err := repo.SaveURL(context.Background(), userID1, "http://example.com")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	_, _, err = repo.SaveURL(context.Background(), userID1, "http://example.org")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	_, _, err = repo.SaveURL(context.Background(), userID2, "http://example.net")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	// Получаем статистику
+	stats, err := repo.GetStats(context.Background())
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	// Выводим статистику
+	fmt.Printf("URLs: %d, Users: %d\n", stats.URLsCount, stats.UsersCount)
+	// Output: URLs: 3, Users: 2
+}
+
 func setupSeparateTest(t *testing.T, execStatement string) {
 	cleanup()
 
@@ -456,6 +492,98 @@ func TestRetrieveUserURLs(t *testing.T) {
 
 			require.NoError(t, err)
 			assert.ElementsMatch(t, tt.wantRecords, records)
+		})
+	}
+}
+
+func TestGetStats(t *testing.T) {
+	type args struct {
+		execStatement string
+	}
+	tests := []struct {
+		name      string
+		args      args
+		wantStats models.Stats
+		wantErr   bool
+	}{
+		{
+			name: "Empty database",
+			args: args{
+				execStatement: "",
+			},
+			wantStats: models.Stats{
+				URLsCount:  0,
+				UsersCount: 0,
+			},
+			wantErr: false,
+		},
+		{
+			name: "One URL, one user",
+			args: args{
+				execStatement: "INSERT INTO urls (short_url, original_url, user_id) " +
+					"VALUES ('4rSPg8ap', 'http://yandex.ru', '" + uuid.New().String() + "');",
+			},
+			wantStats: models.Stats{
+				URLsCount:  1,
+				UsersCount: 1,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Multiple URLs, one user",
+			args: args{
+				execStatement: "INSERT INTO urls (short_url, original_url, user_id) " +
+					"VALUES ('4rSPg8ap', 'http://yandex.ru', '" + uuid.New().String() + "'), " +
+					"('edVPg3ks', 'http://ya.ru', '" + uuid.New().String() + "'), " +
+					"('dG56Hqxm', 'http://practicum.yandex.ru', '" + uuid.New().String() + "');",
+			},
+			wantStats: models.Stats{
+				URLsCount:  3,
+				UsersCount: 3,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Multiple URLs, multiple users",
+			args: args{
+				execStatement: "INSERT INTO urls (short_url, original_url, user_id) " +
+					"VALUES ('4rSPg8ap', 'http://yandex.ru', '" + uuid.New().String() + "'), " +
+					"('edVPg3ks', 'http://ya.ru', '" + uuid.New().String() + "'), " +
+					"('dG56Hqxm', 'http://practicum.yandex.ru', '" + uuid.New().String() + "');",
+			},
+			wantStats: models.Stats{
+				URLsCount:  3,
+				UsersCount: 3,
+			},
+			wantErr: false,
+		},
+		{
+			name: "With deleted URLs",
+			args: args{
+				execStatement: "INSERT INTO urls (short_url, original_url, user_id, is_deleted) " +
+					"VALUES ('4rSPg8ap', 'http://yandex.ru', '" + uuid.New().String() + "', false), " +
+					"('edVPg3ks', 'http://ya.ru', '" + uuid.New().String() + "', true), " +
+					"('dG56Hqxm', 'http://practicum.yandex.ru', '" + uuid.New().String() + "', false);",
+			},
+			wantStats: models.Stats{
+				URLsCount:  3,
+				UsersCount: 3,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			setupSeparateTest(t, tt.args.execStatement)
+
+			gotStats, err := repo.GetStats(context.Background())
+			if (err != nil) != tt.wantErr {
+				t.Errorf("PGRepository.GetStats() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !assert.Equal(t, tt.wantStats, gotStats) {
+				t.Errorf("PGRepository.GetStats() = %v, want %v", gotStats, tt.wantStats)
+			}
 		})
 	}
 }

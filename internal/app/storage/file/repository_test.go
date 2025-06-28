@@ -715,7 +715,7 @@ func TestFileRepository_GetStats(t *testing.T) {
 				records: tt.records,
 			}
 
-			gotStats, err := frepo.GetStats()
+			gotStats, err := frepo.GetStats(context.Background())
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("FileRepository.GetStats() error = %v, wantErr %v", err, tt.wantErr)

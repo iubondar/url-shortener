@@ -657,7 +657,7 @@ func TestSimpleRepository_GetStats(t *testing.T) {
 				Records: tt.records,
 			}
 
-			gotStats, err := repo.GetStats()
+			gotStats, err := repo.GetStats(context.Background())
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SimpleRepository.GetStats() error = %v, wantErr %v", err, tt.wantErr)

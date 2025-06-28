@@ -287,3 +287,9 @@ func (repo *PGRepository) markAsDeleted(ctx context.Context, deletions ...delete
 
 	return tx.Commit()
 }
+
+func (repo *PGRepository) GetStats(ctx context.Context) (stats models.Stats, err error) {
+	row := repo.db.SQLDB.QueryRowContext(ctx, queries.GetStats)
+	err = row.Scan(&stats.URLsCount, &stats.UsersCount)
+	return stats, err
+}

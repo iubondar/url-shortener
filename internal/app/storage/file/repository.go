@@ -241,7 +241,7 @@ func (frepo FileRepository) DeleteByShortURLs(ctx context.Context, userID uuid.U
 	}
 }
 
-func (frepo FileRepository) GetStats() (stats models.Stats, err error) {
+func (frepo FileRepository) GetStats(ctx context.Context) (stats models.Stats, err error) {
 	stats.URLsCount = len(frepo.records)
 	uniqueUsers := make(map[uuid.UUID]bool)
 	for _, r := range frepo.records {

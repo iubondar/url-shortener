@@ -117,7 +117,7 @@ func (repo *SimpleRepository) DeleteByShortURLs(ctx context.Context, userID uuid
 	}
 }
 
-func (repo *SimpleRepository) GetStats() (stats models.Stats, err error) {
+func (repo *SimpleRepository) GetStats(ctx context.Context) (stats models.Stats, err error) {
 	stats.URLsCount = len(repo.Records)
 	uniqueUsers := make(map[uuid.UUID]bool)
 	for _, r := range repo.Records {
