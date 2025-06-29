@@ -29,6 +29,7 @@ func (m *MockStatsRetriever) GetStats(ctx context.Context) (models.Stats, error)
 func ExampleInternalStatsHandler_GetStats() {
 	// Создаем тестовый HTTP запрос
 	request := httptest.NewRequest(http.MethodGet, "/api/internal/stats", nil)
+	request.Header.Set("X-Real-IP", "192.168.1.1")
 
 	// Создаем мок с тестовыми данными
 	mockRetriever := &MockStatsRetriever{
@@ -39,7 +40,7 @@ func ExampleInternalStatsHandler_GetStats() {
 	}
 
 	// Инициализируем обработчик
-	handler := NewInternalStatsHandler(mockRetriever)
+	handler := NewInternalStatsHandler(mockRetriever, "192.168.1.0/24")
 
 	// Вызываем обработчик
 	w := httptest.NewRecorder()
@@ -60,17 +61,21 @@ func ExampleInternalStatsHandler_GetStats() {
 
 func TestInternalStatsHandler_GetStats(t *testing.T) {
 	tests := []struct {
-		name         string
-		method       string
-		mockStats    models.Stats
-		mockError    error
-		wantCode     int
-		wantStats    models.Stats
-		wantErrorMsg string
+		name          string
+		method        string
+		trustedSubnet string
+		realIP        string
+		mockStats     models.Stats
+		mockError     error
+		wantCode      int
+		wantStats     models.Stats
+		wantErrorMsg  string
 	}{
 		{
-			name:   "Positive test - successful stats retrieval",
-			method: http.MethodGet,
+			name:          "Positive test - successful stats retrieval",
+			method:        http.MethodGet,
+			trustedSubnet: "192.168.1.0/24",
+			realIP:        "192.168.1.100",
 			mockStats: models.Stats{
 				URLsCount:  150,
 				UsersCount: 30,
@@ -83,8 +88,10 @@ func TestInternalStatsHandler_GetStats(t *testing.T) {
 			},
 		},
 		{
-			name:   "Zero stats test",
-			method: http.MethodGet,
+			name:          "Zero stats test",
+			method:        http.MethodGet,
+			trustedSubnet: "10.0.0.0/8",
+			realIP:        "10.0.0.1",
 			mockStats: models.Stats{
 				URLsCount:  0,
 				UsersCount: 0,
@@ -97,36 +104,84 @@ func TestInternalStatsHandler_GetStats(t *testing.T) {
 			},
 		},
 		{
-			name:         "POST method not allowed",
-			method:       http.MethodPost,
-			mockStats:    models.Stats{},
-			mockError:    nil,
-			wantCode:     http.StatusMethodNotAllowed,
-			wantErrorMsg: "Only GET requests are allowed!\n",
+			name:          "POST method not allowed",
+			method:        http.MethodPost,
+			trustedSubnet: "192.168.1.0/24",
+			realIP:        "192.168.1.100",
+			mockStats:     models.Stats{},
+			mockError:     nil,
+			wantCode:      http.StatusMethodNotAllowed,
+			wantErrorMsg:  "Only GET requests are allowed!\n",
 		},
 		{
-			name:         "PUT method not allowed",
-			method:       http.MethodPut,
-			mockStats:    models.Stats{},
-			mockError:    nil,
-			wantCode:     http.StatusMethodNotAllowed,
-			wantErrorMsg: "Only GET requests are allowed!\n",
+			name:          "PUT method not allowed",
+			method:        http.MethodPut,
+			trustedSubnet: "192.168.1.0/24",
+			realIP:        "192.168.1.100",
+			mockStats:     models.Stats{},
+			mockError:     nil,
+			wantCode:      http.StatusMethodNotAllowed,
+			wantErrorMsg:  "Only GET requests are allowed!\n",
 		},
 		{
-			name:         "DELETE method not allowed",
-			method:       http.MethodDelete,
-			mockStats:    models.Stats{},
-			mockError:    nil,
-			wantCode:     http.StatusMethodNotAllowed,
-			wantErrorMsg: "Only GET requests are allowed!\n",
+			name:          "DELETE method not allowed",
+			method:        http.MethodDelete,
+			trustedSubnet: "192.168.1.0/24",
+			realIP:        "192.168.1.100",
+			mockStats:     models.Stats{},
+			mockError:     nil,
+			wantCode:      http.StatusMethodNotAllowed,
+			wantErrorMsg:  "Only GET requests are allowed!\n",
 		},
 		{
-			name:         "StatsRetriever error",
-			method:       http.MethodGet,
-			mockStats:    models.Stats{},
-			mockError:    fmt.Errorf("database connection failed"),
-			wantCode:     http.StatusInternalServerError,
-			wantErrorMsg: "database connection failed\n",
+			name:          "StatsRetriever error",
+			method:        http.MethodGet,
+			trustedSubnet: "192.168.1.0/24",
+			realIP:        "192.168.1.100",
+			mockStats:     models.Stats{},
+			mockError:     fmt.Errorf("database connection failed"),
+			wantCode:      http.StatusInternalServerError,
+			wantErrorMsg:  "database connection failed\n",
+		},
+		{
+			name:          "Empty trusted subnet - access denied",
+			method:        http.MethodGet,
+			trustedSubnet: "",
+			realIP:        "192.168.1.100",
+			mockStats:     models.Stats{},
+			mockError:     nil,
+			wantCode:      http.StatusForbidden,
+			wantErrorMsg:  "Trusted subnet is not set - access denied\n",
+		},
+		{
+			name:          "Missing X-Real-IP header",
+			method:        http.MethodGet,
+			trustedSubnet: "192.168.1.0/24",
+			realIP:        "",
+			mockStats:     models.Stats{},
+			mockError:     nil,
+			wantCode:      http.StatusForbidden,
+			wantErrorMsg:  "X-Real-IP header is required\n",
+		},
+		{
+			name:          "Invalid X-Real-IP header",
+			method:        http.MethodGet,
+			trustedSubnet: "192.168.1.0/24",
+			realIP:        "invalid-ip",
+			mockStats:     models.Stats{},
+			mockError:     nil,
+			wantCode:      http.StatusForbidden,
+			wantErrorMsg:  "Invalid X-Real-IP header\n",
+		},
+		{
+			name:          "IP not in trusted subnet",
+			method:        http.MethodGet,
+			trustedSubnet: "192.168.1.0/24",
+			realIP:        "10.0.0.1",
+			mockStats:     models.Stats{},
+			mockError:     nil,
+			wantCode:      http.StatusForbidden,
+			wantErrorMsg:  "Access denied - IP not in trusted subnet\n",
 		},
 	}
 
@@ -134,6 +189,9 @@ func TestInternalStatsHandler_GetStats(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			// Создаем тестовый запрос
 			request := httptest.NewRequest(test.method, "/api/internal/stats", nil)
+			if test.realIP != "" {
+				request.Header.Set("X-Real-IP", test.realIP)
+			}
 			w := httptest.NewRecorder()
 
 			// Создаем мок с тестовыми данными
@@ -143,7 +201,7 @@ func TestInternalStatsHandler_GetStats(t *testing.T) {
 			}
 
 			// Инициализируем обработчик
-			handler := NewInternalStatsHandler(mockRetriever)
+			handler := NewInternalStatsHandler(mockRetriever, test.trustedSubnet)
 
 			// Вызываем обработчик
 			handler.GetStats(w, request)
@@ -189,9 +247,10 @@ func TestNewInternalStatsHandler(t *testing.T) {
 	mockRetriever := &MockStatsRetriever{}
 
 	// Создаем обработчик
-	handler := NewInternalStatsHandler(mockRetriever)
+	handler := NewInternalStatsHandler(mockRetriever, "192.168.1.0/24")
 
 	// Проверяем, что обработчик создан корректно
 	assert.NotNil(t, handler)
 	assert.Equal(t, mockRetriever, handler.statsRetriever)
+	assert.Equal(t, "192.168.1.0/24", handler.trustedSubnet)
 }

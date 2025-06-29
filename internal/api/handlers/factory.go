@@ -48,9 +48,10 @@ type HandlerFactory interface {
 // Фабрика использует репозиторий для работы с хранилищем данных и базовый URL
 // для формирования коротких ссылок.
 type Factory struct {
-	repo    repository
-	baseURL string
-	db      *pg.DB
+	repo          repository
+	baseURL       string
+	trustedSubnet string
+	db            *pg.DB
 }
 
 // NewFactory создает новую фабрику обработчиков на основе конфигурации приложения.
@@ -85,7 +86,12 @@ func NewFactory(config config.Config) *Factory {
 	} else {
 		repo = simple_storage.NewSimpleRepository()
 	}
-	return &Factory{repo: repo, baseURL: config.BaseURLAddress, db: db}
+	return &Factory{
+		repo:          repo,
+		baseURL:       config.BaseURLAddress,
+		db:            db,
+		trustedSubnet: config.TrustedSubnet,
+	}
 }
 
 // Close освобождает ресурсы, используемые фабрикой.
@@ -133,5 +139,5 @@ func (f *Factory) DeleteUrlsHandler() DeleteUrlsHandler {
 }
 
 func (f *Factory) InternalStatsHandler() InternalStatsHandler {
-	return NewInternalStatsHandler(f.repo)
+	return NewInternalStatsHandler(f.repo, f.trustedSubnet)
 }
