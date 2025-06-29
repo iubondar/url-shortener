@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/google/uuid"
+	grpc "github.com/iubondar/url-shortener/internal/api/handlers/gRPC"
 	"github.com/iubondar/url-shortener/internal/app/config"
 	"github.com/iubondar/url-shortener/internal/app/models"
 	"github.com/iubondar/url-shortener/internal/app/storage/file"
@@ -20,28 +21,6 @@ type repository interface {
 	CheckStatus(ctx context.Context) error
 	SaveURLs(ctx context.Context, urls []string) (ids []string, err error)
 	GetStats(ctx context.Context) (stats models.Stats, err error)
-}
-
-// HandlerFactory определяет интерфейс для создания обработчиков HTTP-запросов.
-// Фабрика инкапсулирует логику создания всех необходимых обработчиков,
-// обеспечивая единую точку создания обработчиков в приложении.
-type HandlerFactory interface {
-	// CreateIDHandler создает обработчик для генерации короткого идентификатора URL
-	CreateIDHandler() CreateIDHandler
-	// ShortenHandler создает обработчик для сокращения URL
-	ShortenHandler() ShortenHandler
-	// ShortenBatchHandler создает обработчик для пакетного сокращения URL
-	ShortenBatchHandler() ShortenBatchHandler
-	// UserUrlsHandler создает обработчик для получения списка URL пользователя
-	UserUrlsHandler() UserUrlsHandler
-	// RetrieveURLHandler создает обработчик для получения оригинального URL по короткому идентификатору
-	RetrieveURLHandler() RetrieveURLHandler
-	// PingHandler создает обработчик для проверки доступности хранилища
-	PingHandler() PingHandler
-	// DeleteUrlsHandler создает обработчик для удаления URL пользователя
-	DeleteUrlsHandler() DeleteUrlsHandler
-	// InternalStatsHandler создает обработчик для получения статистики
-	InternalStatsHandler() InternalStatsHandler
 }
 
 // Factory реализует интерфейс HandlerFactory и создает обработчики HTTP-запросов.
@@ -103,6 +82,30 @@ func (f *Factory) Close() error {
 	return nil
 }
 
+// HandlerFactory определяет интерфейс для создания обработчиков HTTP-запросов.
+// Фабрика инкапсулирует логику создания всех необходимых обработчиков,
+// обеспечивая единую точку создания обработчиков в приложении.
+type HandlerFactory interface {
+	// CreateIDHandler создает обработчик для генерации короткого идентификатора URL
+	CreateIDHandler() CreateIDHandler
+	// ShortenHandler создает обработчик для сокращения URL
+	ShortenHandler() ShortenHandler
+	// ShortenBatchHandler создает обработчик для пакетного сокращения URL
+	ShortenBatchHandler() ShortenBatchHandler
+	// UserUrlsHandler создает обработчик для получения списка URL пользователя
+	UserUrlsHandler() UserUrlsHandler
+	// RetrieveURLHandler создает обработчик для получения оригинального URL по короткому идентификатору
+	RetrieveURLHandler() RetrieveURLHandler
+	// PingHandler создает обработчик для проверки доступности хранилища
+	PingHandler() PingHandler
+	// DeleteUrlsHandler создает обработчик для удаления URL пользователя
+	DeleteUrlsHandler() DeleteUrlsHandler
+	// InternalStatsHandler создает обработчик для получения статистики
+	InternalStatsHandler() InternalStatsHandler
+	// CreateIDGRPCHandler создает gRPC обработчик для генерации короткого идентификатора URL
+	CreateIDGRPCHandler() *grpc.CreateIDHandler
+}
+
 // CreateIDHandler создает обработчик для генерации короткого идентификатора URL
 func (f *Factory) CreateIDHandler() CreateIDHandler {
 	return NewCreateIDHandler(f.repo, f.baseURL)
@@ -140,4 +143,13 @@ func (f *Factory) DeleteUrlsHandler() DeleteUrlsHandler {
 
 func (f *Factory) InternalStatsHandler() InternalStatsHandler {
 	return NewInternalStatsHandler(f.repo, f.trustedSubnet)
+}
+
+type GRPCHandlerFactory interface {
+	CreateIDGRPCHandler() *grpc.CreateIDHandler
+}
+
+// CreateIDGRPCHandler создает gRPC обработчик для генерации короткого идентификатора URL
+func (f *Factory) CreateIDGRPCHandler() *grpc.CreateIDHandler {
+	return grpc.NewCreateIDGRPCHandler(f.repo, f.baseURL)
 }

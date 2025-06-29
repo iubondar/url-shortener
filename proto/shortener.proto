@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package shortener;
+
+option go_package = "shortener/proto";
+
+message CreateIDRequest {
+  string url = 1;
+}
+
+message CreateIDResponse {
+  string result = 1; // короткий URL 
+  string error = 2; // ошибка
+}
+
+service CreateIDHandler {
+  rpc CreateID(CreateIDRequest) returns (CreateIDResponse);
+}
