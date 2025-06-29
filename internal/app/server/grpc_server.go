@@ -35,7 +35,7 @@ func NewGRPCServer(config config.Config, factory handlers.HandlerFactory) (*GRPC
 	)
 
 	// Регистрируем gRPC сервисы
-	proto.RegisterCreateIDHandlerServer(grpcServer, factory.CreateIDGRPCHandler())
+	proto.RegisterShortenerServer(grpcServer, factory.ShortenerService())
 
 	return &GRPCServer{
 		config: config,

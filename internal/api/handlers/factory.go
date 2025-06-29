@@ -102,8 +102,8 @@ type HandlerFactory interface {
 	DeleteUrlsHandler() DeleteUrlsHandler
 	// InternalStatsHandler создает обработчик для получения статистики
 	InternalStatsHandler() InternalStatsHandler
-	// CreateIDGRPCHandler создает gRPC обработчик для генерации короткого идентификатора URL
-	CreateIDGRPCHandler() *grpc.CreateIDHandler
+	// ShortenerService создает gRPC сервис для сокращения URL
+	ShortenerService() *grpc.ShortenerService
 }
 
 // CreateIDHandler создает обработчик для генерации короткого идентификатора URL
@@ -146,10 +146,10 @@ func (f *Factory) InternalStatsHandler() InternalStatsHandler {
 }
 
 type GRPCHandlerFactory interface {
-	CreateIDGRPCHandler() *grpc.CreateIDHandler
+	ShortenerService() *grpc.ShortenerService
 }
 
-// CreateIDGRPCHandler создает gRPC обработчик для генерации короткого идентификатора URL
-func (f *Factory) CreateIDGRPCHandler() *grpc.CreateIDHandler {
-	return grpc.NewCreateIDGRPCHandler(f.repo, f.baseURL)
+// ShortenerService создает gRPC сервис для сокращения URL
+func (f *Factory) ShortenerService() *grpc.ShortenerService {
+	return grpc.NewShortenerService(f.repo, f.baseURL)
 }
