@@ -64,6 +64,14 @@ func main() {
 	if err := srv.Start(); err != nil {
 		zap.L().Sugar().Errorf("Error starting server: %v", err)
 	}
+
+	grpcServer, err := server.NewGRPCServer(config, factory.ShortenerService())
+	if err != nil {
+		zap.L().Sugar().Errorf("Error starting gRPC server: %v", err)
+	}
+	if err := grpcServer.Start(); err != nil {
+		zap.L().Sugar().Errorf("Error starting gRPC server: %v", err)
+	}
 }
 
 func printVersion() {
