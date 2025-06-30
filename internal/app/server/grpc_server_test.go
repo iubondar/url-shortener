@@ -109,7 +109,8 @@ func TestGRPCServerHandler(t *testing.T) {
 
 	// Создаем клиентское соединение
 	ctx := context.Background()
-	conn, err := grpc.Dial("bufnet",
+	//nolint:staticcheck // grpc.DialContext is required for bufconn test setup
+	conn, err := grpc.DialContext(ctx, "bufnet",
 		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
 			return lis.Dial()
 		}),
