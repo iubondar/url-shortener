@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	serverAddress = "localhost:50051" // Адрес gRPC сервера
+	serverAddress = "localhost:3200" // Адрес gRPC сервера
 )
 
 func main() {
