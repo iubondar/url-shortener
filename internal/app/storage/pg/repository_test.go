@@ -25,26 +25,6 @@ var (
 	pgContainer *testhelpers.PostgresContainer
 )
 
-func cleanupResources(db *DB, container *testhelpers.PostgresContainer, ctx context.Context) {
-	if db != nil {
-		if err := db.SQLDB.Close(); err != nil {
-			log.Printf("Failed to close database connection: %v", err)
-		}
-	}
-	if container != nil {
-		if err := container.Terminate(ctx); err != nil {
-			log.Printf("Failed to terminate postgres container: %v", err)
-		}
-	}
-}
-
-func handleError(err error, db *DB, container *testhelpers.PostgresContainer, ctx context.Context, message string) {
-	if err != nil {
-		cleanupResources(db, container, ctx)
-		log.Fatalf("%s: %v", message, err)
-	}
-}
-
 func TestMain(m *testing.M) {
 	ctx := context.Background()
 	var err error
