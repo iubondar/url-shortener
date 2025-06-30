@@ -50,7 +50,10 @@ func main() {
 		"EnableHTTPS", config.EnableHTTPS,
 	)
 
-	factory := handlers.NewFactory(config)
+	factory, err := handlers.NewFactory(config)
+	if err != nil {
+		log.Fatal(err)
+	}
 	defer func() {
 		if err := factory.Close(); err != nil {
 			zap.L().Sugar().Errorf("Error closing factory: %v", err)

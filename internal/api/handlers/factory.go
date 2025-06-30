@@ -38,7 +38,7 @@ type Factory struct {
 // - PostgreSQL, если указан DatabaseDSN
 // - Файловое хранилище, если указан FileStoragePath
 // - Простое хранилище в памяти в остальных случаях
-func NewFactory(config config.Config) *Factory {
+func NewFactory(config config.Config) (*Factory, error) {
 	var repo repository
 	var db *pg.DB
 
@@ -46,21 +46,21 @@ func NewFactory(config config.Config) *Factory {
 		var err error
 		db, err = pg.NewDB(config.DatabaseDSN)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 
 		repo, err = pg.NewPGRepository(db, 0)
 		if err != nil {
-			if err := db.SQLDB.Close(); err != nil {
-				log.Printf("Error closing database connection: %v", err)
+			if closeErr := db.SQLDB.Close(); closeErr != nil {
+				log.Printf("Error closing database connection: %v", closeErr)
 			}
-			log.Fatal(err)
+			return nil, err
 		}
 	} else if len(config.FileStoragePath) > 0 {
 		var err error
 		repo, err = file.NewFileRepository(config.FileStoragePath)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 	} else {
 		repo = simple_storage.NewSimpleRepository()
@@ -70,7 +70,7 @@ func NewFactory(config config.Config) *Factory {
 		baseURL:       config.BaseURLAddress,
 		db:            db,
 		trustedSubnet: config.TrustedSubnet,
-	}
+	}, nil
 }
 
 // Close освобождает ресурсы, используемые фабрикой.
