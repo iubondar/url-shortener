@@ -18,6 +18,7 @@ import (
 // Все поля могут быть установлены через переменные окружения или флаги командной строки.
 type Config struct {
 	ServerAddress   string `json:"server_address" env:"SERVER_ADDRESS"`       // адрес, на котором будет запущен сервер
+	GRPCAddress     string `json:"grpc_address" env:"GRPC_ADDRESS"`           // адрес для gRPC сервера
 	BaseURLAddress  string `json:"base_url" env:"BASE_URL"`                   // базовый URL для формирования коротких ссылок
 	FileStoragePath string `json:"file_storage_path" env:"FILE_STORAGE_PATH"` // путь к файлу хранилища
 	DatabaseDSN     string `json:"database_dsn" env:"DATABASE_DSN"`           // строка подключения к базе данных
@@ -27,6 +28,7 @@ type Config struct {
 
 const (
 	defaultAddress       = "localhost:8080"
+	defaultGRPCAddress   = ":3200"
 	defaultStoragePath   = "./storage/storage.txt"
 	defaultTrustedSubnet = ""
 	localDatabaseDSN     = "host=localhost user=newuser password=password dbname=url_shortener sslmode=disable" // для локальной разработки
@@ -46,6 +48,7 @@ func NewConfig(progname string, args []string) (Config, error) {
 
 	// Регистрируем все флаги
 	flags.StringVar(&flagValues.ServerAddress, "a", "", "address to run server")
+	flags.StringVar(&flagValues.GRPCAddress, "g", "", "address to run gRPC server")
 	flags.StringVar(&flagValues.BaseURLAddress, "b", "", "base address to construct short URL")
 	flags.StringVar(&flagValues.FileStoragePath, "f", "", "path to storage file")
 	flags.StringVar(&flagValues.DatabaseDSN, "d", "", "database DSN")
@@ -69,6 +72,7 @@ func NewConfig(progname string, args []string) (Config, error) {
 	// Создаем конфиг из дефолтных значений
 	c := Config{
 		ServerAddress:   defaultAddress,
+		GRPCAddress:     defaultGRPCAddress,
 		BaseURLAddress:  defaultAddress,
 		FileStoragePath: defaultStoragePath,
 		DatabaseDSN:     defaultDatabaseDSN(),
@@ -97,6 +101,9 @@ func NewConfig(progname string, args []string) (Config, error) {
 	}
 	if _, ok := os.LookupEnv("SERVER_ADDRESS"); ok {
 		c.ServerAddress = envValues.ServerAddress
+	}
+	if _, ok := os.LookupEnv("GRPC_ADDRESS"); ok {
+		c.GRPCAddress = envValues.GRPCAddress
 	}
 	if _, ok := os.LookupEnv("BASE_URL"); ok {
 		c.BaseURLAddress = envValues.BaseURLAddress
@@ -170,6 +177,9 @@ func loadConfigFromFile(path string) (Config, error) {
 func (c *Config) overrideWith(o Config, updateEnableHTTPS bool) {
 	if o.ServerAddress != "" {
 		c.ServerAddress = o.ServerAddress
+	}
+	if o.GRPCAddress != "" {
+		c.GRPCAddress = o.GRPCAddress
 	}
 	if o.BaseURLAddress != "" {
 		c.BaseURLAddress = o.BaseURLAddress

@@ -17,8 +17,6 @@ import (
 	"github.com/iubondar/url-shortener/proto"
 )
 
-const gRPCPort = ":3200"
-
 // GRPCServer представляет gRPC сервер приложения.
 type GRPCServer struct {
 	config   config.Config
@@ -47,7 +45,7 @@ func NewGRPCServer(config config.Config, service *gRPC.ShortenerService) (*GRPCS
 // Возвращает ошибку, если сервер завершился с ошибкой.
 func (s *GRPCServer) Start() error {
 	// Создаем listener
-	lis, err := net.Listen("tcp", s.config.ServerAddress+gRPCPort)
+	lis, err := net.Listen("tcp", s.config.GRPCAddress)
 	if err != nil {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
