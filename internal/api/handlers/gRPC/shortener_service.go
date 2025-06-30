@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/url"
 	"strings"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/iubondar/url-shortener/internal/app/auth"
 	"github.com/iubondar/url-shortener/internal/app/models"
 	"github.com/iubondar/url-shortener/proto"
+	"google.golang.org/grpc/peer"
 )
 
 // Repository определяет интерфейс для работы с хранилищем.
@@ -29,15 +31,17 @@ type Repository interface {
 type ShortenerService struct {
 	proto.UnimplementedShortenerServer
 
-	repo    Repository // репозиторий для работы с хранилищем
-	baseURL string     // базовый URL для формирования сокращенных ссылок
+	repo          Repository // репозиторий для работы с хранилищем
+	baseURL       string     // базовый URL для формирования сокращенных ссылок
+	trustedSubnet string     // подсеть, с которой разрешен доступ к статистике
 }
 
 // NewShortenerService создает новый экземпляр ShortenerService.
-func NewShortenerService(repo Repository, baseURL string) *ShortenerService {
+func NewShortenerService(repo Repository, baseURL string, trustedSubnet string) *ShortenerService {
 	return &ShortenerService{
-		repo:    repo,
-		baseURL: baseURL,
+		repo:          repo,
+		baseURL:       baseURL,
+		trustedSubnet: trustedSubnet,
 	}
 }
 
@@ -180,6 +184,45 @@ func (s *ShortenerService) Ping(ctx context.Context, req *proto.PingRequest) (*p
 // GetStats возвращает статистику сервиса.
 func (s *ShortenerService) GetStats(ctx context.Context, req *proto.GetStatsRequest) (*proto.GetStatsResponse, error) {
 	var response proto.GetStatsResponse
+
+	// Проверяем, установлена ли доверенная подсеть
+	if s.trustedSubnet == "" {
+		response.Error = "Trusted subnet is not set - access denied"
+		return &response, nil
+	}
+
+	// Получаем информацию о клиенте из контекста
+	p, ok := peer.FromContext(ctx)
+	if !ok {
+		response.Error = "Unable to get peer information"
+		return &response, nil
+	}
+
+	// Извлекаем IP адрес из peer
+	addr, ok := p.Addr.(*net.TCPAddr)
+	if !ok {
+		response.Error = "Unable to get client IP address"
+		return &response, nil
+	}
+
+	ip := addr.IP
+	if ip == nil {
+		response.Error = "Invalid client IP address"
+		return &response, nil
+	}
+
+	// Парсим доверенную подсеть в CIDR-нотации
+	_, subnet, err := net.ParseCIDR(s.trustedSubnet)
+	if err != nil {
+		response.Error = "Invalid trusted subnet"
+		return &response, nil
+	}
+
+	// Проверяем, находится ли IP в доверенной подсети
+	if !subnet.Contains(ip) {
+		response.Error = "Access denied - IP not in trusted subnet"
+		return &response, nil
+	}
 
 	// Получаем статистику
 	stats, err := s.repo.GetStats(ctx)

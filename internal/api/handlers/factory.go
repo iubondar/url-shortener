@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/google/uuid"
-	grpc "github.com/iubondar/url-shortener/internal/api/handlers/gRPC"
 	"github.com/iubondar/url-shortener/internal/app/config"
 	"github.com/iubondar/url-shortener/internal/app/models"
 	"github.com/iubondar/url-shortener/internal/app/storage/file"
@@ -102,8 +101,6 @@ type HandlerFactory interface {
 	DeleteUrlsHandler() DeleteUrlsHandler
 	// InternalStatsHandler создает обработчик для получения статистики
 	InternalStatsHandler() InternalStatsHandler
-	// ShortenerService создает gRPC сервис для сокращения URL
-	ShortenerService() *grpc.ShortenerService
 }
 
 // CreateIDHandler создает обработчик для генерации короткого идентификатора URL
@@ -143,13 +140,4 @@ func (f *Factory) DeleteUrlsHandler() DeleteUrlsHandler {
 
 func (f *Factory) InternalStatsHandler() InternalStatsHandler {
 	return NewInternalStatsHandler(f.repo, f.trustedSubnet)
-}
-
-type GRPCHandlerFactory interface {
-	ShortenerService() *grpc.ShortenerService
-}
-
-// ShortenerService создает gRPC сервис для сокращения URL
-func (f *Factory) ShortenerService() *grpc.ShortenerService {
-	return grpc.NewShortenerService(f.repo, f.baseURL)
 }

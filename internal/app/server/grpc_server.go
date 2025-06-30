@@ -8,10 +8,10 @@ import (
 	"os/signal"
 	"syscall"
 
+	gRPC "github.com/iubondar/url-shortener/internal/api/handlers/gRPC"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
-	"github.com/iubondar/url-shortener/internal/api/handlers"
 	"github.com/iubondar/url-shortener/internal/app/auth"
 	"github.com/iubondar/url-shortener/internal/app/config"
 	"github.com/iubondar/url-shortener/proto"
@@ -28,14 +28,14 @@ type GRPCServer struct {
 
 // NewGRPCServer создает новый экземпляр GRPCServer.
 // Принимает конфигурацию и фабрику обработчиков.
-func NewGRPCServer(config config.Config, factory handlers.HandlerFactory) (*GRPCServer, error) {
+func NewGRPCServer(config config.Config, service *gRPC.ShortenerService) (*GRPCServer, error) {
 	// Создаем gRPC сервер с аутентификационным interceptor
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(auth.GRPCAuthInterceptor()),
 	)
 
 	// Регистрируем gRPC сервисы
-	proto.RegisterShortenerServer(grpcServer, factory.ShortenerService())
+	proto.RegisterShortenerServer(grpcServer, service)
 
 	return &GRPCServer{
 		config: config,
