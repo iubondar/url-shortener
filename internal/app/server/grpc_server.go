@@ -4,9 +4,7 @@ package server
 import (
 	"fmt"
 	"net"
-	"os"
-	"os/signal"
-	"syscall"
+	"strings"
 
 	gRPC "github.com/iubondar/url-shortener/internal/api/handlers/gRPC"
 	"go.uber.org/zap"
@@ -41,7 +39,7 @@ func NewGRPCServer(config config.Config, service *gRPC.ShortenerService) (*GRPCS
 	}, nil
 }
 
-// Start запускает gRPC сервер в отдельной горутине.
+// Start запускает gRPC сервер.
 // Возвращает ошибку, если сервер завершился с ошибкой.
 func (s *GRPCServer) Start() error {
 	// Создаем listener
@@ -51,31 +49,9 @@ func (s *GRPCServer) Start() error {
 	}
 	s.listener = lis
 
-	// Канал для обработки ошибок сервера
-	serverErrors := make(chan error, 1)
+	zap.L().Debug("gRPC server started", zap.String("address", s.config.GRPCAddress))
 
-	// Запускаем сервер в отдельной горутине
-	go func() {
-		if err := s.server.Serve(lis); err != nil {
-			serverErrors <- err
-		}
-	}()
-
-	// Канал для обработки сигналов завершения от ОС
-	shutdown := make(chan os.Signal, 1)
-	// Регистрируем обработчики сигналов
-	signal.Notify(shutdown, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
-
-	// Ожидаем либо ошибку сервера, либо сигнал завершения
-	select {
-	case err := <-serverErrors:
-		zap.L().Error("gRPC server error", zap.Error(err))
-		return err
-
-	case sig := <-shutdown:
-		zap.L().Info("start gRPC shutdown", zap.String("signal", sig.String()))
-		return s.Shutdown()
-	}
+	return s.server.Serve(lis)
 }
 
 // Shutdown выполняет graceful shutdown gRPC сервера
@@ -83,11 +59,14 @@ func (s *GRPCServer) Shutdown() error {
 	// Graceful shutdown gRPC сервера
 	s.server.GracefulStop()
 
-	// Закрываем listener
+	// Закрываем listener только если он еще не закрыт
 	if s.listener != nil {
 		if err := s.listener.Close(); err != nil {
-			zap.L().Error("could not close listener", zap.Error(err))
-			return err
+			// Игнорируем ошибку "use of closed network connection"
+			if !strings.Contains(err.Error(), "use of closed network connection") {
+				zap.L().Error("could not close listener", zap.Error(err))
+				return err
+			}
 		}
 	}
 

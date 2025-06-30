@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
@@ -61,16 +63,60 @@ func main() {
 	}
 
 	srv := server.New(config, router)
-	if err := srv.Start(); err != nil {
-		zap.L().Sugar().Errorf("Error starting server: %v", err)
-	}
-
 	grpcServer, err := server.NewGRPCServer(config, factory.ShortenerService())
 	if err != nil {
-		zap.L().Sugar().Errorf("Error starting gRPC server: %v", err)
+		log.Fatal(err)
 	}
-	if err := grpcServer.Start(); err != nil {
-		zap.L().Sugar().Errorf("Error starting gRPC server: %v", err)
+
+	// Каналы для обработки ошибок серверов
+	httpErrors := make(chan error, 1)
+	grpcErrors := make(chan error, 1)
+
+	// Запускаем HTTP сервер в отдельной горутине
+	go func() {
+		if err := srv.Start(); err != nil {
+			httpErrors <- err
+		}
+	}()
+
+	// Запускаем gRPC сервер в отдельной горутине
+	go func() {
+		if err := grpcServer.Start(); err != nil {
+			grpcErrors <- err
+		}
+	}()
+
+	// Канал для обработки сигналов завершения от ОС
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+
+	// Ожидаем либо ошибку одного из серверов, либо сигнал завершения
+	select {
+	case err := <-httpErrors:
+		zap.L().Sugar().Errorf("HTTP server error: %v", err)
+		// При ошибке HTTP сервера завершаем gRPC сервер
+		if err := grpcServer.Shutdown(); err != nil {
+			zap.L().Sugar().Errorf("Error shutting down gRPC server: %v", err)
+		}
+		log.Fatal(err)
+
+	case err := <-grpcErrors:
+		zap.L().Sugar().Errorf("gRPC server error: %v", err)
+		// При ошибке gRPC сервера завершаем HTTP сервер
+		if err := srv.Shutdown(); err != nil {
+			zap.L().Sugar().Errorf("Error shutting down HTTP server: %v", err)
+		}
+		log.Fatal(err)
+
+	case sig := <-shutdown:
+		zap.L().Sugar().Infof("Received shutdown signal: %v", sig)
+		// Graceful shutdown обоих серверов
+		if err := srv.Shutdown(); err != nil {
+			zap.L().Sugar().Errorf("Error shutting down HTTP server: %v", err)
+		}
+		if err := grpcServer.Shutdown(); err != nil {
+			zap.L().Sugar().Errorf("Error shutting down gRPC server: %v", err)
+		}
 	}
 }
 
