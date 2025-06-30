@@ -85,17 +85,10 @@ func TestGRPCServerHandler(t *testing.T) {
 	logger, _ := zap.NewDevelopment()
 	zap.ReplaceGlobals(logger)
 
-	cfg := config.Config{
-		ServerAddress:  ":8080",
-		GRPCAddress:    ":3202",
-		BaseURLAddress: "http://localhost:8080",
-		EnableHTTPS:    false,
-	}
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockRepo := mocks.NewMockRepository(ctrl)
-	service := gRPC.NewShortenerService(mockRepo, cfg.BaseURLAddress, "")
+	service := gRPC.NewShortenerService(mockRepo, "http://localhost:8080", "")
 
 	// Создаем gRPC сервер с interceptor
 	grpcServer := grpc.NewServer(
@@ -116,7 +109,7 @@ func TestGRPCServerHandler(t *testing.T) {
 
 	// Создаем клиентское соединение
 	ctx := context.Background()
-	conn, err := grpc.DialContext(ctx, "bufnet",
+	conn, err := grpc.Dial("bufnet",
 		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
 			return lis.Dial()
 		}),
