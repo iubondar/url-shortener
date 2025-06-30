@@ -198,22 +198,55 @@ func TestRetrieveURLHandler_WithNoIdParameter(t *testing.T) {
 	require.Equal(t, http.StatusBadRequest, res.StatusCode)
 }
 
-func TestRetrieveURLHandler_WithNoURL(t *testing.T) {
-	handler := NewRetrieveURLHandler(simple_storage.NewSimpleRepository())
+// TestRetrieveURLHandler_RetrieveURL_NotFound тестирует обработку случая, когда URL не найден
+func TestRetrieveURLHandler_RetrieveURL_NotFound(t *testing.T) {
+	repo := simple_storage.SimpleRepository{
+		Records: []models.Record{
+			{
+				ShortURL:    "123",
+				OriginalURL: testURL,
+				UserID:      uuid.New(),
+			},
+		},
+	}
+	handler := NewRetrieveURLHandler(&repo)
 	request := httptest.NewRequest(http.MethodGet, "/", nil)
-	request.SetPathValue("id", "123")
 
-	// создаём новый Recorder
 	w := httptest.NewRecorder()
 
-	handler.RetrieveURL(w, request)
+	handler.RetrieveURL(w, withURLParam(request, "id", "nonexistent"))
 
 	res := w.Result()
-	defer func() {
-		if err := res.Body.Close(); err != nil {
-			t.Errorf("Error closing response body: %v", err)
-		}
-	}()
+	defer res.Body.Close()
 
-	require.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+// TestRetrieveURLHandler_RetrieveURL_RepositoryError тестирует обработку ошибки репозитория
+func TestRetrieveURLHandler_RetrieveURL_RepositoryError(t *testing.T) {
+	// Создаем мок репозитория, который возвращает ошибку
+	mockRepo := &mockURLRetriever{
+		retrieveError: fmt.Errorf("database error"),
+	}
+
+	handler := NewRetrieveURLHandler(mockRepo)
+	request := httptest.NewRequest(http.MethodGet, "/", nil)
+
+	w := httptest.NewRecorder()
+
+	handler.RetrieveURL(w, withURLParam(request, "id", "123"))
+
+	res := w.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+// mockURLRetriever - мок для тестирования URLRetriever
+type mockURLRetriever struct {
+	retrieveError error
+}
+
+func (m *mockURLRetriever) RetrieveByShortURL(ctx context.Context, shortURL string) (models.Record, error) {
+	return models.Record{}, m.retrieveError
 }

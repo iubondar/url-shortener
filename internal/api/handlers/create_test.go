@@ -164,3 +164,52 @@ func TestCreateIDHandler_CreateID(t *testing.T) {
 		})
 	}
 }
+
+// TestCreateIDHandler_CreateID_ReadBodyError тестирует обработку ошибки чтения тела запроса
+func TestCreateIDHandler_CreateID_ReadBodyError(t *testing.T) {
+	// Создаем запрос с телом, которое нельзя прочитать
+	request := httptest.NewRequest(http.MethodPost, "/", &errorReader{})
+	w := httptest.NewRecorder()
+
+	repo := simple_storage.SimpleRepository{}
+	handler := NewCreateIDHandler(&repo, "127.0.0.1")
+
+	handler.CreateID(w, request)
+
+	res := w.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+}
+
+// errorReader - io.Reader, который всегда возвращает ошибку
+type errorReader struct{}
+
+func (e *errorReader) Read(p []byte) (n int, err error) {
+	return 0, fmt.Errorf("read error")
+}
+
+// TestCreateIDHandler_CreateID_WriteResponseError тестирует обработку ошибки записи ответа
+func TestCreateIDHandler_CreateID_WriteResponseError(t *testing.T) {
+	request := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader([]byte("https://example.com")))
+	w := &errorResponseWriter{ResponseWriter: httptest.NewRecorder()}
+
+	repo := simple_storage.SimpleRepository{}
+	handler := NewCreateIDHandler(&repo, "127.0.0.1")
+
+	handler.CreateID(w, request)
+
+	// Проверяем, что обработчик корректно обработал ошибку записи
+	assert.True(t, w.writeCalled)
+}
+
+// errorResponseWriter - http.ResponseWriter, который возвращает ошибку при записи
+type errorResponseWriter struct {
+	http.ResponseWriter
+	writeCalled bool
+}
+
+func (e *errorResponseWriter) Write(data []byte) (int, error) {
+	e.writeCalled = true
+	return 0, fmt.Errorf("write error")
+}

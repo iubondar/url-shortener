@@ -1,10 +1,10 @@
 package handlers
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -214,43 +214,79 @@ func TestInternalStatsHandler_GetStats(t *testing.T) {
 				}
 			}()
 
-			// Проверяем статус код
-			require.Equal(t, test.wantCode, res.StatusCode)
+			// Проверяем код ответа
+			assert.Equal(t, test.wantCode, res.StatusCode)
 
-			// Читаем тело ответа
-			var buf bytes.Buffer
-			_, err := buf.ReadFrom(res.Body)
-			require.NoError(t, err)
+			// Если ожидаем ошибку, проверяем сообщение
+			if test.wantErrorMsg != "" {
+				body, err := io.ReadAll(res.Body)
+				require.NoError(t, err)
+				assert.Equal(t, test.wantErrorMsg, string(body))
+				return
+			}
 
-			// Проверяем ответ в зависимости от ожидаемого статуса
-			if test.wantCode == http.StatusOK {
-				// Проверяем Content-Type для успешных ответов
+			// Если успешный ответ, проверяем статистику
+			if res.StatusCode == http.StatusOK {
 				assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 
-				// Декодируем JSON ответ
-				var responseStats models.Stats
-				err = json.Unmarshal(buf.Bytes(), &responseStats)
+				var stats models.Stats
+				err := json.NewDecoder(res.Body).Decode(&stats)
 				require.NoError(t, err)
 
-				// Проверяем, что статистика соответствует ожидаемой
-				assert.Equal(t, test.wantStats, responseStats)
-			} else {
-				// Проверяем сообщение об ошибке для неуспешных ответов
-				assert.Equal(t, test.wantErrorMsg, buf.String())
+				assert.Equal(t, test.wantStats.URLsCount, stats.URLsCount)
+				assert.Equal(t, test.wantStats.UsersCount, stats.UsersCount)
 			}
 		})
 	}
 }
 
 func TestNewInternalStatsHandler(t *testing.T) {
-	// Создаем мок
 	mockRetriever := &MockStatsRetriever{}
+	trustedSubnet := "192.168.1.0/24"
 
-	// Создаем обработчик
+	handler := NewInternalStatsHandler(mockRetriever, trustedSubnet)
+
+	assert.Equal(t, mockRetriever, handler.statsRetriever)
+	assert.Equal(t, trustedSubnet, handler.trustedSubnet)
+}
+
+// TestInternalStatsHandler_GetStats_WriteResponseError тестирует обработку ошибки записи ответа
+func TestInternalStatsHandler_GetStats_WriteResponseError(t *testing.T) {
+	request := httptest.NewRequest(http.MethodGet, "/api/internal/stats", nil)
+	request.Header.Set("X-Real-IP", "192.168.1.100")
+
+	w := &errorResponseWriter{ResponseWriter: httptest.NewRecorder()}
+
+	mockRetriever := &MockStatsRetriever{
+		stats: models.Stats{
+			URLsCount:  100,
+			UsersCount: 25,
+		},
+	}
+
 	handler := NewInternalStatsHandler(mockRetriever, "192.168.1.0/24")
 
-	// Проверяем, что обработчик создан корректно
-	assert.NotNil(t, handler)
-	assert.Equal(t, mockRetriever, handler.statsRetriever)
-	assert.Equal(t, "192.168.1.0/24", handler.trustedSubnet)
+	handler.GetStats(w, request)
+
+	// Проверяем, что обработчик корректно обработал ошибку записи
+	assert.True(t, w.writeCalled)
+}
+
+// TestInternalStatsHandler_GetStats_InvalidTrustedSubnet тестирует обработку невалидной подсети
+func TestInternalStatsHandler_GetStats_InvalidTrustedSubnet(t *testing.T) {
+	request := httptest.NewRequest(http.MethodGet, "/api/internal/stats", nil)
+	request.Header.Set("X-Real-IP", "192.168.1.100")
+
+	w := httptest.NewRecorder()
+
+	mockRetriever := &MockStatsRetriever{}
+
+	handler := NewInternalStatsHandler(mockRetriever, "invalid-subnet")
+
+	handler.GetStats(w, request)
+
+	res := w.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
 }

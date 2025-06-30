@@ -671,11 +671,17 @@ func BenchmarkPGRepository_SaveURLs(b *testing.B) {
 
 // BenchmarkPGRepository_CheckStatus измеряет производительность проверки состояния хранилища
 func BenchmarkPGRepository_CheckStatus(b *testing.B) {
-	cleanup()
 	ctx := context.Background()
-
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = repo.CheckStatus(ctx)
 	}
+}
+
+// TestNewPGRepository_InvalidDB тестирует создание репозитория с невалидной базой данных
+func TestNewPGRepository_InvalidDB(t *testing.T) {
+	// Создаем невалидное соединение с БД, используя невалидный DSN
+	invalidDB, err := NewDB("invalid-dsn")
+	assert.Error(t, err, "should return error for invalid DSN")
+	assert.Nil(t, invalidDB)
 }

@@ -45,6 +45,11 @@ func (s *Server) Start() error {
 
 // Shutdown выполняет graceful shutdown сервера
 func (s *Server) Shutdown() error {
+	// Проверяем, что сервер был запущен
+	if s.server == nil {
+		return nil
+	}
+
 	// Устанавливаем таймаут 5 секунд для завершения текущих запросов
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

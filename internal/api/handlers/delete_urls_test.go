@@ -144,3 +144,43 @@ func TestDeleteUrlsHandler_DeleteUserURLs(t *testing.T) {
 		})
 	}
 }
+
+// TestDeleteUrlsHandler_DeleteUserURLs_ReadBodyError тестирует обработку ошибки чтения тела запроса
+func TestDeleteUrlsHandler_DeleteUserURLs_ReadBodyError(t *testing.T) {
+	userID := uuid.New()
+	request := httptest.NewRequest(http.MethodDelete, "/api/user/urls", &errorReader{})
+	authCookie, err := auth.NewAuthCookie(userID)
+	require.NoError(t, err)
+	request.AddCookie(authCookie)
+
+	w := httptest.NewRecorder()
+	repo := simple_storage.SimpleRepository{}
+	handler := NewDeleteUrlsHandler(&repo)
+
+	handler.DeleteUserURLs(w, request)
+
+	res := w.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+// TestDeleteUrlsHandler_DeleteUserURLs_EmptyBody тестирует обработку пустого тела запроса
+func TestDeleteUrlsHandler_DeleteUserURLs_EmptyBody(t *testing.T) {
+	userID := uuid.New()
+	request := httptest.NewRequest(http.MethodDelete, "/api/user/urls", bytes.NewReader([]byte("")))
+	authCookie, err := auth.NewAuthCookie(userID)
+	require.NoError(t, err)
+	request.AddCookie(authCookie)
+
+	w := httptest.NewRecorder()
+	repo := simple_storage.SimpleRepository{}
+	handler := NewDeleteUrlsHandler(&repo)
+
+	handler.DeleteUserURLs(w, request)
+
+	res := w.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}

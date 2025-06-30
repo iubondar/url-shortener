@@ -153,3 +153,94 @@ func TestServerHandler(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "test response", w.Body.String())
 }
+
+// TestServerShutdownWithoutStart тестирует shutdown сервера без предварительного запуска
+func TestServerShutdownWithoutStart(t *testing.T) {
+	// Инициализируем логгер для тестов
+	logger, _ := zap.NewDevelopment()
+	zap.ReplaceGlobals(logger)
+
+	cfg := config.Config{
+		ServerAddress:  ":0",
+		BaseURLAddress: "http://localhost",
+		EnableHTTPS:    false,
+	}
+
+	router := http.NewServeMux()
+	server := New(cfg, router)
+
+	// Пытаемся выполнить shutdown без запуска сервера
+	err := server.Shutdown()
+	assert.NoError(t, err, "shutdown should not return error when server is not started")
+}
+
+// TestServerShutdownTimeout тестирует shutdown с таймаутом
+func TestServerShutdownTimeout(t *testing.T) {
+	// Инициализируем логгер для тестов
+	logger, _ := zap.NewDevelopment()
+	zap.ReplaceGlobals(logger)
+
+	cfg := config.Config{
+		ServerAddress:  ":0",
+		BaseURLAddress: "http://localhost",
+		EnableHTTPS:    false,
+	}
+
+	router := http.NewServeMux()
+	server := New(cfg, router)
+
+	// Запускаем сервер
+	go func() {
+		server.Start()
+	}()
+
+	// Даем серверу время на запуск
+	time.Sleep(100 * time.Millisecond)
+
+	// Выполняем shutdown
+	err := server.Shutdown()
+	assert.NoError(t, err, "shutdown should complete successfully")
+}
+
+// TestServerHTTPSWithPublicDomain тестирует HTTPS сервер с публичным доменом
+func TestServerHTTPSWithPublicDomain(t *testing.T) {
+	// Инициализируем логгер для тестов
+	logger, _ := zap.NewDevelopment()
+	zap.ReplaceGlobals(logger)
+
+	cfg := config.Config{
+		ServerAddress:  ":0",
+		BaseURLAddress: "https://example.com",
+		EnableHTTPS:    true,
+	}
+
+	router := http.NewServeMux()
+	router.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	server := New(cfg, router)
+
+	// Запускаем сервер в отдельной горутине
+	errChan := make(chan error, 1)
+	go func() {
+		err := server.Start()
+		errChan <- err
+	}()
+
+	// Даем серверу время на запуск
+	time.Sleep(100 * time.Millisecond)
+
+	// Выполняем shutdown
+	err := server.Shutdown()
+	assert.NoError(t, err, "shutdown should not return error")
+
+	// Проверяем ошибку запуска сервера
+	select {
+	case err := <-errChan:
+		// Ожидаем ошибку, так как нет реального домена
+		assert.Error(t, err, "HTTPS server should return error for non-existent domain")
+	case <-time.After(time.Second):
+		t.Error("server did not return error in time")
+	}
+}

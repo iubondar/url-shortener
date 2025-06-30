@@ -191,3 +191,52 @@ func TestUserUrlsHandler_RetrieveUserURLs(t *testing.T) {
 		})
 	}
 }
+
+// TestUserUrlsHandler_RetrieveUserURLs_WriteResponseError тестирует обработку ошибки записи ответа
+func TestUserUrlsHandler_RetrieveUserURLs_WriteResponseError(t *testing.T) {
+	userID := uuid.New()
+	request := httptest.NewRequest(http.MethodGet, "/api/user/urls", nil)
+	authCookie, err := auth.NewAuthCookie(userID)
+	require.NoError(t, err)
+	request.AddCookie(authCookie)
+
+	w := &errorResponseWriter{ResponseWriter: httptest.NewRecorder()}
+	repo := simple_storage.SimpleRepository{
+		Records: []models.Record{
+			{
+				ShortURL:    "123",
+				OriginalURL: "http://example.com",
+				UserID:      userID,
+			},
+		},
+	}
+	handler := NewUserUrlsHandler(&repo, "http://127.0.0.1")
+
+	handler.RetrieveUserURLs(w, request)
+
+	// Проверяем, что обработчик корректно обработал ошибку записи
+	assert.True(t, w.writeCalled)
+}
+
+// TestUserUrlsHandler_RetrieveUserURLs_EmptyRecords тестирует обработку пустого списка записей
+func TestUserUrlsHandler_RetrieveUserURLs_EmptyRecords(t *testing.T) {
+	userID := uuid.New()
+	request := httptest.NewRequest(http.MethodGet, "/api/user/urls", nil)
+	authCookie, err := auth.NewAuthCookie(userID)
+	require.NoError(t, err)
+	request.AddCookie(authCookie)
+
+	w := httptest.NewRecorder()
+	repo := simple_storage.SimpleRepository{
+		Records: []models.Record{},
+	}
+	handler := NewUserUrlsHandler(&repo, "http://127.0.0.1")
+
+	handler.RetrieveUserURLs(w, request)
+
+	res := w.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusNoContent, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+}
