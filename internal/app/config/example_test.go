@@ -8,7 +8,7 @@ import (
 // ExampleNewConfig_withFlags демонстрирует создание конфигурации с использованием флагов командной строки.
 func ExampleNewConfig_withFlags() {
 	// Создаем конфигурацию с флагами командной строки
-	args := []string{"-a", "localhost:8888", "-b", "localhost:8000", "-f", "custom/path.txt", "-d", "host=local user=u password=p dbname=db"}
+	args := []string{"-a", "localhost:8888", "-b", "localhost:8000", "-f", "custom/path.txt", "-d", "host=local user=u password=p dbname=db", "-t", "192.168.1.0/24"}
 	config, err := NewConfig("Example", args)
 	if err != nil {
 		fmt.Println("Error:", err)
@@ -21,12 +21,14 @@ func ExampleNewConfig_withFlags() {
 	fmt.Printf("Storage Path: %s\n", config.FileStoragePath)
 	fmt.Printf("Database DSN: %s\n", config.DatabaseDSN)
 	fmt.Printf("Enable HTTPS: %v\n", config.EnableHTTPS)
+	fmt.Printf("Trusted Subnet: %s\n", config.TrustedSubnet)
 	// Output:
 	// Server Address: localhost:8888
 	// Base URL: localhost:8000
 	// Storage Path: custom/path.txt
 	// Database DSN: host=local user=u password=p dbname=db
 	// Enable HTTPS: false
+	// Trusted Subnet: 192.168.1.0/24
 }
 
 // ExampleNewConfig_withEnvVars демонстрирует создание конфигурации с использованием переменных окружения.
@@ -48,6 +50,10 @@ func ExampleNewConfig_withEnvVars() {
 		fmt.Printf("Error setting DATABASE_DSN: %v\n", err)
 		return
 	}
+	if err := os.Setenv("TRUSTED_SUBNET", "10.0.0.0/8"); err != nil {
+		fmt.Printf("Error setting TRUSTED_SUBNET: %v\n", err)
+		return
+	}
 	defer func() {
 		if err := os.Unsetenv("SERVER_ADDRESS"); err != nil {
 			fmt.Printf("Error unsetting SERVER_ADDRESS: %v\n", err)
@@ -60,6 +66,9 @@ func ExampleNewConfig_withEnvVars() {
 		}
 		if err := os.Unsetenv("DATABASE_DSN"); err != nil {
 			fmt.Printf("Error unsetting DATABASE_DSN: %v\n", err)
+		}
+		if err := os.Unsetenv("TRUSTED_SUBNET"); err != nil {
+			fmt.Printf("Error unsetting TRUSTED_SUBNET: %v\n", err)
 		}
 	}()
 
@@ -76,10 +85,12 @@ func ExampleNewConfig_withEnvVars() {
 	fmt.Printf("Storage Path: %s\n", config.FileStoragePath)
 	fmt.Printf("Database DSN: %s\n", config.DatabaseDSN)
 	fmt.Printf("Enable HTTPS: %v\n", config.EnableHTTPS)
+	fmt.Printf("Trusted Subnet: %s\n", config.TrustedSubnet)
 	// Output:
 	// Server Address: localhost:9999
 	// Base URL: localhost:9998
 	// Storage Path: env/path.txt
 	// Database DSN: host=env user=env password=env dbname=env
 	// Enable HTTPS: false
+	// Trusted Subnet: 10.0.0.0/8
 }

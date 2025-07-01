@@ -162,3 +162,201 @@ func BenchmarkGzipCompression(b *testing.B) {
 		})
 	}
 }
+
+// TestShouldCompress тестирует функцию shouldCompress
+func TestShouldCompress(t *testing.T) {
+	tests := []struct {
+		name        string
+		contentType string
+		should      bool
+	}{
+		{
+			name:        "JSON content type",
+			contentType: "application/json",
+			should:      true,
+		},
+		{
+			name:        "HTML content type",
+			contentType: "text/html",
+			should:      true,
+		},
+		{
+			name:        "JSON with charset",
+			contentType: "application/json; charset=utf-8",
+			should:      true,
+		},
+		{
+			name:        "HTML with charset",
+			contentType: "text/html; charset=utf-8",
+			should:      true,
+		},
+		{
+			name:        "Plain text",
+			contentType: "text/plain",
+			should:      false,
+		},
+		{
+			name:        "Empty content type",
+			contentType: "",
+			should:      false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := shouldCompress(tt.contentType)
+			assert.Equal(t, tt.should, result)
+		})
+	}
+}
+
+// TestGzipWriter_WriteHeader тестирует WriteHeader метод gzipWriter
+func TestGzipWriter_WriteHeader(t *testing.T) {
+	w := httptest.NewRecorder()
+	gw := newGzipWriter(w)
+
+	// Устанавливаем content type, который должен сжиматься
+	gw.Header().Set(contentType, "application/json")
+	gw.WriteHeader(http.StatusOK)
+
+	assert.Equal(t, "gzip", w.Header().Get(contentEncoding))
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+// TestGzipWriter_WriteHeader_NonCompressible тестирует WriteHeader для несжимаемого контента
+func TestGzipWriter_WriteHeader_NonCompressible(t *testing.T) {
+	w := httptest.NewRecorder()
+	gw := newGzipWriter(w)
+
+	// Устанавливаем content type, который не должен сжиматься
+	gw.Header().Set(contentType, "text/plain")
+	gw.WriteHeader(http.StatusOK)
+
+	assert.Equal(t, "", w.Header().Get(contentEncoding))
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+// TestGzipWriter_WriteHeader_ErrorStatus тестирует WriteHeader для статусов ошибок
+func TestGzipWriter_WriteHeader_ErrorStatus(t *testing.T) {
+	w := httptest.NewRecorder()
+	gw := newGzipWriter(w)
+
+	// Устанавливаем content type, который должен сжиматься
+	gw.Header().Set(contentType, "application/json")
+	gw.WriteHeader(http.StatusInternalServerError)
+
+	// Для статусов ошибок сжатие не применяется
+	assert.Equal(t, "", w.Header().Get(contentEncoding))
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+// TestGzipWriter_WriteHeader_ConflictStatus тестирует WriteHeader для статуса конфликта
+func TestGzipWriter_WriteHeader_ConflictStatus(t *testing.T) {
+	w := httptest.NewRecorder()
+	gw := newGzipWriter(w)
+
+	// Устанавливаем content type, который должен сжиматься
+	gw.Header().Set(contentType, "application/json")
+	gw.WriteHeader(http.StatusConflict)
+
+	// Для статуса конфликта сжатие применяется
+	assert.Equal(t, "gzip", w.Header().Get(contentEncoding))
+	assert.Equal(t, http.StatusConflict, w.Code)
+}
+
+// TestGzipWriter_Close тестирует Close метод gzipWriter
+func TestGzipWriter_Close(t *testing.T) {
+	w := httptest.NewRecorder()
+	gw := newGzipWriter(w)
+
+	// Устанавливаем content type, который должен сжиматься
+	gw.Header().Set(contentType, "application/json")
+
+	err := gw.Close()
+	assert.NoError(t, err)
+}
+
+// TestGzipWriter_Close_NonCompressible тестирует Close для несжимаемого контента
+func TestGzipWriter_Close_NonCompressible(t *testing.T) {
+	w := httptest.NewRecorder()
+	gw := newGzipWriter(w)
+
+	// Устанавливаем content type, который не должен сжиматься
+	gw.Header().Set(contentType, "text/plain")
+
+	err := gw.Close()
+	assert.NoError(t, err)
+}
+
+// TestGzipReader_Close_Error тестирует Close метод gzipReader с ошибкой
+func TestGzipReader_Close_Error(t *testing.T) {
+	// Создаем gzipReader с невалидным reader
+	gr := &gzipReader{
+		r:  &errorReadCloser{},
+		zr: nil, // nil reader вызовет ошибку при закрытии
+	}
+
+	err := gr.Close()
+	assert.Error(t, err)
+}
+
+// errorReadCloser - io.ReadCloser, который возвращает ошибку при закрытии
+type errorReadCloser struct{}
+
+func (e *errorReadCloser) Read(p []byte) (n int, err error) {
+	return 0, io.EOF
+}
+
+func (e *errorReadCloser) Close() error {
+	return assert.AnError
+}
+
+// TestWithGzipCompression_InvalidGzipRequest тестирует обработку невалидного gzip запроса
+func TestWithGzipCompression_InvalidGzipRequest(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	compressedHandler := WithGzipCompression(handler)
+	srv := httptest.NewServer(compressedHandler)
+	defer srv.Close()
+
+	// Создаем запрос с невалидным gzip контентом
+	req, err := http.NewRequest("POST", srv.URL, strings.NewReader("invalid gzip content"))
+	require.NoError(t, err)
+	req.Header.Set(contentEncoding, "gzip")
+
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+// TestWithGzipCompression_NoCompression тестирует обработку запроса без сжатия
+func TestWithGzipCompression_NoCompression(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set(contentType, "text/plain")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("test response"))
+	})
+
+	compressedHandler := WithGzipCompression(handler)
+	srv := httptest.NewServer(compressedHandler)
+	defer srv.Close()
+
+	req, err := http.NewRequest("GET", srv.URL, nil)
+	require.NoError(t, err)
+	req.Header.Set(acceptEncoding, "")
+
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "", resp.Header.Get(contentEncoding))
+
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	assert.Equal(t, "test response", string(body))
+}

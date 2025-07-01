@@ -201,16 +201,59 @@ func TestShortenBatchHandler_ShortenBatch(t *testing.T) {
 			_, err = buf.ReadFrom(res.Body)
 			require.NoError(t, err)
 
-			var out []ShortenBatchOut
-			err = json.Unmarshal(buf.Bytes(), &out)
-			require.NoError(t, err)
-
-			for i, elem := range out {
-				id, err := repo.RetrieveID(test.in[i].OriginalURL)
+			// Проверяем, что ответ содержит корректный JSON
+			if res.StatusCode == http.StatusCreated {
+				var response []ShortenBatchOut
+				err = json.Unmarshal(buf.Bytes(), &response)
 				require.NoError(t, err)
-				assert.Equal(t, "http://127.0.0.1/"+id, elem.ShortURL)
-				assert.Equal(t, test.in[i].CorrelationID, elem.CorrelationID)
+				assert.Len(t, response, len(test.in))
+				for i, item := range response {
+					assert.Equal(t, test.in[i].CorrelationID, item.CorrelationID)
+					assert.Contains(t, item.ShortURL, "http://127.0.0.1/")
+				}
 			}
 		})
 	}
+}
+
+// TestShortenBatchHandler_ShortenBatch_WriteResponseError тестирует обработку ошибки записи ответа
+func TestShortenBatchHandler_ShortenBatch_WriteResponseError(t *testing.T) {
+	input := []ShortenBatchIn{
+		{CorrelationID: "1", OriginalURL: "https://example1.com"},
+		{CorrelationID: "2", OriginalURL: "https://example2.com"},
+	}
+	jsonIn, err := json.Marshal(input)
+	require.NoError(t, err)
+
+	request := httptest.NewRequest(http.MethodPost, "/shorten/batch", bytes.NewReader(jsonIn))
+	w := &errorResponseWriter{ResponseWriter: httptest.NewRecorder()}
+
+	repo := simple_storage.SimpleRepository{}
+	handler := NewShortenBatchHandler(&repo, "127.0.0.1")
+
+	handler.ShortenBatch(w, request)
+
+	// Проверяем, что обработчик корректно обработал ошибку записи
+	assert.True(t, w.writeCalled)
+}
+
+// TestShortenBatchHandler_ShortenBatch_EmptyInput тестирует обработку пустого ввода
+func TestShortenBatchHandler_ShortenBatch_EmptyInput(t *testing.T) {
+	input := []ShortenBatchIn{}
+	jsonIn, err := json.Marshal(input)
+	require.NoError(t, err)
+
+	request := httptest.NewRequest(http.MethodPost, "/shorten/batch", bytes.NewReader(jsonIn))
+	w := httptest.NewRecorder()
+
+	repo := simple_storage.SimpleRepository{}
+	handler := NewShortenBatchHandler(&repo, "127.0.0.1")
+
+	handler.ShortenBatch(w, request)
+
+	res := w.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusCreated, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 }

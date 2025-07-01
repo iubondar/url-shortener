@@ -5,10 +5,7 @@ import (
 	"context"
 	"net"
 	"net/http"
-	"os"
-	"os/signal"
 	"strings"
-	"syscall"
 	"time"
 
 	"go.uber.org/zap"
@@ -33,44 +30,26 @@ func New(config config.Config, router http.Handler) *Server {
 	}
 }
 
-// Start запускает HTTP или HTTPS сервер в отдельной горутине.
+// Start запускает HTTP или HTTPS сервер.
 // Если EnableHTTPS=true, запускается HTTPS сервер с автоматическим получением сертификатов
 // или использованием локальных сертификатов для localhost/IP.
 // Возвращает ошибку, если сервер завершился с ошибкой.
 func (s *Server) Start() error {
 	zap.L().Sugar().Debugln("Starting serving requests: ", s.config.ServerAddress)
 
-	// Канал для обработки ошибок сервера
-	serverErrors := make(chan error, 1)
-
-	// Запускаем сервер в отдельной горутине
-	go func() {
-		if s.config.EnableHTTPS {
-			serverErrors <- s.startHTTPServerTLS()
-		}
-		serverErrors <- s.startHTTPServer()
-	}()
-
-	// Канал для обработки сигналов завершения от ОС
-	shutdown := make(chan os.Signal, 1)
-	// Регистрируем обработчики сигналов
-	signal.Notify(shutdown, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
-
-	// Ожидаем либо ошибку сервера, либо сигнал завершения
-	select {
-	case err := <-serverErrors:
-		zap.L().Error("server error", zap.Error(err))
-		return err
-
-	case sig := <-shutdown:
-		zap.L().Info("start shutdown", zap.String("signal", sig.String()))
-		return s.Shutdown()
+	if s.config.EnableHTTPS {
+		return s.startHTTPServerTLS()
 	}
-
+	return s.startHTTPServer()
 }
 
 // Shutdown выполняет graceful shutdown сервера
 func (s *Server) Shutdown() error {
+	// Проверяем, что сервер был запущен
+	if s.server == nil {
+		return nil
+	}
+
 	// Устанавливаем таймаут 5 секунд для завершения текущих запросов
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

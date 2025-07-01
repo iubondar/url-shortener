@@ -76,3 +76,42 @@ func ExampleSimpleRepository_RetrieveUserURLs() {
 	fmt.Printf("Found %d URLs\n", len(records))
 	// Output: Found 2 URLs
 }
+
+// ExampleSimpleRepository_GetStats демонстрирует получение статистики хранилища.
+func ExampleSimpleRepository_GetStats() {
+	// Создаем новое хранилище
+	repo := NewSimpleRepository()
+
+	// Сохраняем несколько URL от разных пользователей
+	_, _, err := repo.SaveURL(context.Background(), testhelpers.TestUUID, "http://example.com")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	_, _, err = repo.SaveURL(context.Background(), testhelpers.TestUUID, "http://example.org")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	// Создаем второго пользователя
+	userID2 := testhelpers.TestUUID
+	userID2[0] = 0xFF // Изменяем UUID для создания другого пользователя
+
+	_, _, err = repo.SaveURL(context.Background(), userID2, "http://google.com")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	// Получаем статистику
+	stats, err := repo.GetStats(context.Background())
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	// Выводим статистику
+	fmt.Printf("Total URLs: %d, Unique users: %d\n", stats.URLsCount, stats.UsersCount)
+	// Output: Total URLs: 3, Unique users: 2
+}

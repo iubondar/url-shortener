@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/google/uuid"
+	gRPC "github.com/iubondar/url-shortener/internal/api/handlers/gRPC"
 	"github.com/iubondar/url-shortener/internal/app/config"
 	"github.com/iubondar/url-shortener/internal/app/models"
 	"github.com/iubondar/url-shortener/internal/app/storage/file"
@@ -19,6 +20,66 @@ type repository interface {
 	DeleteByShortURLs(ctx context.Context, userID uuid.UUID, shortURLs []string)
 	CheckStatus(ctx context.Context) error
 	SaveURLs(ctx context.Context, urls []string) (ids []string, err error)
+	GetStats(ctx context.Context) (stats models.Stats, err error)
+}
+
+// Factory реализует интерфейс HandlerFactory и создает обработчики HTTP-запросов.
+// Фабрика использует репозиторий для работы с хранилищем данных и базовый URL
+// для формирования коротких ссылок.
+type Factory struct {
+	repo          repository
+	baseURL       string
+	trustedSubnet string
+	db            *pg.DB
+}
+
+// NewFactory создает новую фабрику обработчиков на основе конфигурации приложения.
+// Фабрика автоматически выбирает подходящий репозиторий в зависимости от конфигурации:
+// - PostgreSQL, если указан DatabaseDSN
+// - Файловое хранилище, если указан FileStoragePath
+// - Простое хранилище в памяти в остальных случаях
+func NewFactory(config config.Config) (*Factory, error) {
+	var repo repository
+	var db *pg.DB
+
+	if len(config.DatabaseDSN) > 0 {
+		var err error
+		db, err = pg.NewDB(config.DatabaseDSN)
+		if err != nil {
+			return nil, err
+		}
+
+		repo, err = pg.NewPGRepository(db, 0)
+		if err != nil {
+			if closeErr := db.SQLDB.Close(); closeErr != nil {
+				log.Printf("Error closing database connection: %v", closeErr)
+			}
+			return nil, err
+		}
+	} else if len(config.FileStoragePath) > 0 {
+		var err error
+		repo, err = file.NewFileRepository(config.FileStoragePath)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		repo = simple_storage.NewSimpleRepository()
+	}
+	return &Factory{
+		repo:          repo,
+		baseURL:       config.BaseURLAddress,
+		db:            db,
+		trustedSubnet: config.TrustedSubnet,
+	}, nil
+}
+
+// Close освобождает ресурсы, используемые фабрикой.
+// Должен быть вызван при завершении работы приложения.
+func (f *Factory) Close() error {
+	if f.db != nil {
+		return f.db.SQLDB.Close()
+	}
+	return nil
 }
 
 // HandlerFactory определяет интерфейс для создания обработчиков HTTP-запросов.
@@ -39,59 +100,10 @@ type HandlerFactory interface {
 	PingHandler() PingHandler
 	// DeleteUrlsHandler создает обработчик для удаления URL пользователя
 	DeleteUrlsHandler() DeleteUrlsHandler
-}
-
-// Factory реализует интерфейс HandlerFactory и создает обработчики HTTP-запросов.
-// Фабрика использует репозиторий для работы с хранилищем данных и базовый URL
-// для формирования коротких ссылок.
-type Factory struct {
-	repo    repository
-	baseURL string
-	db      *pg.DB
-}
-
-// NewFactory создает новую фабрику обработчиков на основе конфигурации приложения.
-// Фабрика автоматически выбирает подходящий репозиторий в зависимости от конфигурации:
-// - PostgreSQL, если указан DatabaseDSN
-// - Файловое хранилище, если указан FileStoragePath
-// - Простое хранилище в памяти в остальных случаях
-func NewFactory(config config.Config) *Factory {
-	var repo repository
-	var db *pg.DB
-
-	if len(config.DatabaseDSN) > 0 {
-		var err error
-		db, err = pg.NewDB(config.DatabaseDSN)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		repo, err = pg.NewPGRepository(db, 0)
-		if err != nil {
-			if err := db.SQLDB.Close(); err != nil {
-				log.Printf("Error closing database connection: %v", err)
-			}
-			log.Fatal(err)
-		}
-	} else if len(config.FileStoragePath) > 0 {
-		var err error
-		repo, err = file.NewFileRepository(config.FileStoragePath)
-		if err != nil {
-			log.Fatal(err)
-		}
-	} else {
-		repo = simple_storage.NewSimpleRepository()
-	}
-	return &Factory{repo: repo, baseURL: config.BaseURLAddress, db: db}
-}
-
-// Close освобождает ресурсы, используемые фабрикой.
-// Должен быть вызван при завершении работы приложения.
-func (f *Factory) Close() error {
-	if f.db != nil {
-		return f.db.SQLDB.Close()
-	}
-	return nil
+	// InternalStatsHandler создает обработчик для получения статистики
+	InternalStatsHandler() InternalStatsHandler
+	// ShortenerService создает gRPC сервис для сокращения URL
+	ShortenerService() *gRPC.ShortenerService
 }
 
 // CreateIDHandler создает обработчик для генерации короткого идентификатора URL
@@ -127,4 +139,12 @@ func (f *Factory) PingHandler() PingHandler {
 // DeleteUrlsHandler создает обработчик для удаления URL пользователя
 func (f *Factory) DeleteUrlsHandler() DeleteUrlsHandler {
 	return NewDeleteUrlsHandler(f.repo)
+}
+
+func (f *Factory) InternalStatsHandler() InternalStatsHandler {
+	return NewInternalStatsHandler(f.repo, f.trustedSubnet)
+}
+
+func (f *Factory) ShortenerService() *gRPC.ShortenerService {
+	return gRPC.NewShortenerService(f.repo, f.baseURL, f.trustedSubnet)
 }

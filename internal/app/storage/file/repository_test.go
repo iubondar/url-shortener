@@ -564,6 +564,175 @@ func TestFileRepository_RetrieveUserURLs(t *testing.T) {
 	}
 }
 
+func TestFileRepository_GetStats(t *testing.T) {
+	userID1 := uuid.New()
+	userID2 := uuid.New()
+
+	tests := []struct {
+		name      string
+		records   []URLRecord
+		wantStats models.Stats
+		wantErr   bool
+	}{
+		{
+			name:    "Empty repository",
+			records: []URLRecord{},
+			wantStats: models.Stats{
+				URLsCount:  0,
+				UsersCount: 0,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Single user, single URL",
+			records: []URLRecord{
+				{
+					UUID: "1",
+					Record: models.Record{
+						ShortURL:    "123",
+						OriginalURL: "http://example.com",
+						UserID:      userID1,
+					},
+				},
+			},
+			wantStats: models.Stats{
+				URLsCount:  1,
+				UsersCount: 1,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Single user, multiple URLs",
+			records: []URLRecord{
+				{
+					UUID: "1",
+					Record: models.Record{
+						ShortURL:    "123",
+						OriginalURL: "http://example.com",
+						UserID:      userID1,
+					},
+				},
+				{
+					UUID: "2",
+					Record: models.Record{
+						ShortURL:    "456",
+						OriginalURL: "http://ya.ru",
+						UserID:      userID1,
+					},
+				},
+				{
+					UUID: "3",
+					Record: models.Record{
+						ShortURL:    "789",
+						OriginalURL: "http://avito.ru",
+						UserID:      userID1,
+					},
+				},
+			},
+			wantStats: models.Stats{
+				URLsCount:  3,
+				UsersCount: 1,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Multiple users, multiple URLs",
+			records: []URLRecord{
+				{
+					UUID: "1",
+					Record: models.Record{
+						ShortURL:    "123",
+						OriginalURL: "http://example.com",
+						UserID:      userID1,
+					},
+				},
+				{
+					UUID: "2",
+					Record: models.Record{
+						ShortURL:    "456",
+						OriginalURL: "http://ya.ru",
+						UserID:      userID1,
+					},
+				},
+				{
+					UUID: "3",
+					Record: models.Record{
+						ShortURL:    "789",
+						OriginalURL: "http://avito.ru",
+						UserID:      userID2,
+					},
+				},
+				{
+					UUID: "4",
+					Record: models.Record{
+						ShortURL:    "abc",
+						OriginalURL: "http://google.com",
+						UserID:      userID2,
+					},
+				},
+			},
+			wantStats: models.Stats{
+				URLsCount:  4,
+				UsersCount: 2,
+			},
+			wantErr: false,
+		},
+		{
+			name: "With deleted URLs",
+			records: []URLRecord{
+				{
+					UUID: "1",
+					Record: models.Record{
+						ShortURL:    "123",
+						OriginalURL: "http://example.com",
+						UserID:      userID1,
+						IsDeleted:   true,
+					},
+				},
+				{
+					UUID: "2",
+					Record: models.Record{
+						ShortURL:    "456",
+						OriginalURL: "http://ya.ru",
+						UserID:      userID1,
+						IsDeleted:   false,
+					},
+				},
+			},
+			wantStats: models.Stats{
+				URLsCount:  2,
+				UsersCount: 1,
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fpath := setupTestFile(t)
+			frepo := FileRepository{
+				fPath:   fpath,
+				records: tt.records,
+			}
+
+			gotStats, err := frepo.GetStats(context.Background())
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("FileRepository.GetStats() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if gotStats.URLsCount != tt.wantStats.URLsCount {
+				t.Errorf("FileRepository.GetStats() URLsCount = %v, want %v", gotStats.URLsCount, tt.wantStats.URLsCount)
+			}
+
+			if gotStats.UsersCount != tt.wantStats.UsersCount {
+				t.Errorf("FileRepository.GetStats() UsersCount = %v, want %v", gotStats.UsersCount, tt.wantStats.UsersCount)
+			}
+		})
+	}
+}
+
 // BenchmarkFileRepository_SaveURL измеряет производительность сохранения URL
 func BenchmarkFileRepository_SaveURL(b *testing.B) {
 	tempFile := setupTestFile(b)
@@ -670,16 +839,161 @@ func BenchmarkFileRepository_SaveURLs(b *testing.B) {
 
 // BenchmarkFileRepository_CheckStatus измеряет производительность проверки состояния хранилища
 func BenchmarkFileRepository_CheckStatus(b *testing.B) {
-	tempFile := setupTestFile(b)
-	repo, err := NewFileRepository(tempFile)
-	if err != nil {
-		b.Fatal(err)
+	fpath := setupTestFile(b)
+	frepo := FileRepository{
+		fPath:   fpath,
+		records: []URLRecord{},
 	}
-
-	ctx := context.Background()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = repo.CheckStatus(ctx)
+		_ = frepo.CheckStatus(context.Background())
 	}
+}
+
+// TestFileRepository_NewFileRepository_InvalidPath тестирует создание репозитория с невалидным путем
+func TestFileRepository_NewFileRepository_InvalidPath(t *testing.T) {
+	// Создаем путь, который нельзя создать (например, в корне системы)
+	invalidPath := "/root/invalid/path/test.txt"
+
+	_, err := NewFileRepository(invalidPath)
+	assert.Error(t, err, "should return error for invalid path")
+	assert.Contains(t, err.Error(), "failed to create directory")
+}
+
+// TestFileRepository_NewFileRepository_InvalidJSON тестирует создание репозитория с невалидным JSON в файле
+func TestFileRepository_NewFileRepository_InvalidJSON(t *testing.T) {
+	// Создаем временный файл с невалидным JSON
+	tempFile := filepath.Join(os.TempDir(), "invalid_json_test.txt")
+
+	file, err := os.Create(tempFile)
+	require.NoError(t, err)
+
+	// Записываем невалидный JSON
+	_, err = file.WriteString("invalid json content\n")
+	require.NoError(t, err)
+	file.Close()
+
+	defer os.Remove(tempFile)
+
+	_, err = NewFileRepository(tempFile)
+	assert.Error(t, err, "should return error for invalid JSON")
+}
+
+// TestFileRepository_CheckStatus_FileError тестирует проверку статуса с ошибкой файла
+func TestFileRepository_CheckStatus_FileError(t *testing.T) {
+	// Создаем репозиторий с несуществующим файлом
+	frepo := FileRepository{
+		fPath:   "/nonexistent/path/file.txt",
+		records: []URLRecord{},
+	}
+
+	err := frepo.CheckStatus(context.Background())
+	assert.Error(t, err, "should return error for non-existent file")
+}
+
+// TestFileRepository_SaveURL_WriteError тестирует сохранение URL с ошибкой записи
+func TestFileRepository_SaveURL_WriteError(t *testing.T) {
+	// Создаем временный файл
+	tempFile := filepath.Join(os.TempDir(), "write_error_test.txt")
+
+	// Создаем файл и делаем его только для чтения
+	file, err := os.Create(tempFile)
+	require.NoError(t, err)
+	file.Close()
+
+	// Делаем файл только для чтения
+	err = os.Chmod(tempFile, 0444)
+	require.NoError(t, err)
+
+	defer func() {
+		os.Chmod(tempFile, 0644)
+		os.Remove(tempFile)
+	}()
+
+	frepo := FileRepository{
+		fPath:   tempFile,
+		records: []URLRecord{},
+	}
+
+	userID := uuid.New()
+	_, _, err = frepo.SaveURL(context.Background(), userID, "http://example.com")
+	assert.Error(t, err, "should return error when cannot write to file")
+	assert.Contains(t, err.Error(), "failed to save URL to file")
+}
+
+// TestFileRepository_SaveURLs_WriteError тестирует пакетное сохранение URL с ошибкой записи
+func TestFileRepository_SaveURLs_WriteError(t *testing.T) {
+	// Создаем временный файл
+	tempFile := filepath.Join(os.TempDir(), "write_error_batch_test.txt")
+
+	// Создаем файл и делаем его только для чтения
+	file, err := os.Create(tempFile)
+	require.NoError(t, err)
+	file.Close()
+
+	// Делаем файл только для чтения
+	err = os.Chmod(tempFile, 0444)
+	require.NoError(t, err)
+
+	defer func() {
+		os.Chmod(tempFile, 0644)
+		os.Remove(tempFile)
+	}()
+
+	frepo := FileRepository{
+		fPath:   tempFile,
+		records: []URLRecord{},
+	}
+
+	urls := []string{"http://example1.com", "http://example2.com"}
+	_, err = frepo.SaveURLs(context.Background(), urls)
+	assert.Error(t, err, "should return error when cannot write to file")
+	assert.Contains(t, err.Error(), "failed to save URLs to file")
+}
+
+// TestFileRepository_nextID_InvalidUUID тестирует генерацию следующего ID с невалидным UUID
+func TestFileRepository_nextID_InvalidUUID(t *testing.T) {
+	frepo := FileRepository{
+		fPath: setupTestFile(t),
+		records: []URLRecord{
+			{UUID: "invalid", Record: models.Record{ShortURL: "123", OriginalURL: "http://example.com"}},
+		},
+	}
+
+	// Должен вернуть 1 при ошибке парсинга UUID
+	nextID := frepo.nextID()
+	assert.Equal(t, 1, nextID)
+}
+
+// TestFileRepository_appendToFile_WriteError тестирует запись в файл с ошибкой
+func TestFileRepository_appendToFile_WriteError(t *testing.T) {
+	// Создаем временный файл
+	tempFile := filepath.Join(os.TempDir(), "append_error_test.txt")
+
+	// Создаем файл и делаем его только для чтения
+	file, err := os.Create(tempFile)
+	require.NoError(t, err)
+	file.Close()
+
+	// Делаем файл только для чтения
+	err = os.Chmod(tempFile, 0444)
+	require.NoError(t, err)
+
+	defer func() {
+		os.Chmod(tempFile, 0644)
+		os.Remove(tempFile)
+	}()
+
+	frepo := FileRepository{
+		fPath:   tempFile,
+		records: []URLRecord{},
+	}
+
+	records := []URLRecord{
+		{UUID: "1", Record: models.Record{ShortURL: "123", OriginalURL: "http://example.com"}},
+	}
+
+	err = frepo.appendToFile(records)
+	assert.Error(t, err, "should return error when cannot write to file")
 }

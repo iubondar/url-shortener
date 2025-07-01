@@ -36,4 +36,7 @@ const (
 	// $1 - ID пользователя
 	// $2 - короткий URL
 	DeleteUserURL string = "UPDATE urls SET is_deleted = true WHERE user_id = $1 AND short_url = $2;"
+
+	// GetStats возвращает статистику по количеству сокращенных URL и пользователей.
+	GetStats string = "SELECT COUNT(*) as urls_count, COUNT(DISTINCT user_id) as users_count FROM urls;"
 )

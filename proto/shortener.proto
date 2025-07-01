@@ -1,0 +1,108 @@
+syntax = "proto3";
+
+package shortener;
+
+option go_package = "github.com/iubondar/url-shortener/proto";
+
+// Enum для статусов операций
+enum Status {
+  STATUS_UNSPECIFIED = 0; // Неопределенный статус
+  STATUS_OK = 1;          // Успешная операция
+  STATUS_ERROR = 2;       // Ошибка
+}
+
+// Сервис для сокращения URL
+service Shortener {
+  // Создание короткого ID для URL
+  rpc CreateID(CreateIDRequest) returns (CreateIDResponse);
+  
+  // Пакетное сокращение URL
+  rpc ShortenBatch(ShortenBatchRequest) returns (ShortenBatchResponse);
+  
+  // Получение URL пользователя
+  rpc GetUserURLs(GetUserURLsRequest) returns (GetUserURLsResponse);
+  
+  // Удаление URL пользователя
+  rpc DeleteURLs(DeleteURLsRequest) returns (DeleteURLsResponse);
+  
+  // Проверка доступности сервиса
+  rpc Ping(PingRequest) returns (PingResponse);
+  
+  // Получение статистики
+  rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
+}
+
+// Запросы и ответы для CreateID
+message CreateIDRequest {
+  string url = 1;
+}
+
+message CreateIDResponse {
+  string result = 1; // короткий URL 
+  string error = 2;  // ошибка
+}
+
+// Запросы и ответы для ShortenBatch
+message ShortenBatchRequest {
+  repeated BatchItem items = 1;
+}
+
+message BatchItem {
+  string correlation_id = 1;
+  string original_url = 2;
+}
+
+message ShortenBatchResponse {
+  repeated BatchItemResponse items = 1;
+  string error = 2;
+}
+
+message BatchItemResponse {
+  string correlation_id = 1;
+  string short_url = 2;
+}
+
+// Запросы и ответы для GetUserURLs
+message GetUserURLsRequest {
+  // Пустой запрос, userID извлекается из токена
+}
+
+message GetUserURLsResponse {
+  repeated UserURL items = 1;
+  string error = 2;
+}
+
+message UserURL {
+  string short_url = 1;
+  string original_url = 2;
+}
+
+// Запросы и ответы для DeleteURLs
+message DeleteURLsRequest {
+  repeated string urls = 1; // список коротких URL для удаления
+}
+
+message DeleteURLsResponse {
+  string error = 1;
+}
+
+// Запросы и ответы для Ping
+message PingRequest {
+  // Пустой запрос
+}
+
+message PingResponse {
+  Status status = 1;  // статус операции
+  string error = 2;   // описание ошибки (если есть)
+}
+
+// Запросы и ответы для GetStats
+message GetStatsRequest {
+  // Пустой запрос
+}
+
+message GetStatsResponse {
+  int32 urls = 1;
+  int32 users = 2;
+  string error = 3;
+}

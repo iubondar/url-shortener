@@ -76,6 +76,9 @@ func NewPGRepository(db *DB, deletionInterval time.Duration) (*PGRepository, err
 // Если URL уже существует, возвращает его короткий идентификатор.
 // Возвращает короткий идентификатор, флаг существования и ошибку.
 func (repo *PGRepository) SaveURL(ctx context.Context, userID uuid.UUID, url string) (id string, exists bool, err error) {
+	if repo.insertStmt == nil {
+		return "", false, errors.New("insertStmt is nil")
+	}
 	// создаём идентификатор и добавляем запись
 	id = strings.RandString(8)
 	_, err = repo.insertStmt.ExecContext(ctx, id, url, userID)
@@ -105,6 +108,9 @@ func (repo *PGRepository) SaveURL(ctx context.Context, userID uuid.UUID, url str
 // getShortURLByOriginalURL получает короткий идентификатор по оригинальному URL.
 // Возвращает короткий идентификатор и ошибку. Если URL не найден, возвращает пустую строку и nil.
 func (repo *PGRepository) getShortURLByOriginalURL(ctx context.Context, url string) (shortURL string, err error) {
+	if repo.getURLStmt == nil {
+		return "", errors.New("getURLStmt is nil")
+	}
 	err = repo.getURLStmt.QueryRowContext(ctx, url).Scan(&shortURL)
 
 	if errors.Is(err, sql.ErrNoRows) {
@@ -117,6 +123,9 @@ func (repo *PGRepository) getShortURLByOriginalURL(ctx context.Context, url stri
 // RetrieveByShortURL получает запись по короткому идентификатору.
 // Возвращает запись и ошибку. Если запись не найдена, возвращает ошибку ErrorNotFound.
 func (repo *PGRepository) RetrieveByShortURL(ctx context.Context, shortURL string) (record models.Record, err error) {
+	if repo.db == nil || repo.db.SQLDB == nil {
+		return models.Record{}, errors.New("db or db.SQLDB is nil")
+	}
 	row := repo.db.SQLDB.QueryRowContext(ctx, queries.GetByShortURL, shortURL)
 
 	err = row.Scan(&record.UserID, &record.ShortURL, &record.OriginalURL, &record.IsDeleted)
@@ -138,6 +147,15 @@ func (repo *PGRepository) CheckStatus(ctx context.Context) error {
 // Если хотя бы один URL невалиден, откатывает транзакцию.
 // Возвращает массив коротких идентификаторов и ошибку.
 func (repo *PGRepository) SaveURLs(ctx context.Context, urls []string) (ids []string, err error) {
+	if repo.db == nil || repo.db.SQLDB == nil {
+		return nil, errors.New("db or db.SQLDB is nil")
+	}
+	if repo.insertStmt == nil {
+		return nil, errors.New("insertStmt is nil")
+	}
+	if repo.getURLStmt == nil {
+		return nil, errors.New("getURLStmt is nil")
+	}
 	tx, err := repo.db.SQLDB.Begin()
 	if err != nil {
 		return nil, err
@@ -188,6 +206,9 @@ func (repo *PGRepository) SaveURLs(ctx context.Context, urls []string) (ids []st
 // RetrieveUserURLs получает все URL пользователя.
 // Возвращает массив записей и ошибку.
 func (repo *PGRepository) RetrieveUserURLs(ctx context.Context, userID uuid.UUID) (records []models.Record, err error) {
+	if repo.db == nil || repo.db.SQLDB == nil {
+		return nil, errors.New("db or db.SQLDB is nil")
+	}
 	rows, err := repo.db.SQLDB.QueryContext(ctx, queries.GetUserUrls, userID.String())
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -258,6 +279,12 @@ func (repo *PGRepository) flushDeletions(deletionInterval time.Duration) {
 // markAsDeleted помечает URL как удаленные в базе данных.
 // Выполняется в рамках транзакции.
 func (repo *PGRepository) markAsDeleted(ctx context.Context, deletions ...deleteIn) error {
+	if repo.db == nil || repo.db.SQLDB == nil {
+		return errors.New("db or db.SQLDB is nil")
+	}
+	if repo.deleteStmt == nil {
+		return errors.New("deleteStmt is nil")
+	}
 	tx, err := repo.db.SQLDB.Begin()
 	if err != nil {
 		return err
@@ -286,4 +313,13 @@ func (repo *PGRepository) markAsDeleted(ctx context.Context, deletions ...delete
 	}
 
 	return tx.Commit()
+}
+
+func (repo *PGRepository) GetStats(ctx context.Context) (stats models.Stats, err error) {
+	if repo.db == nil || repo.db.SQLDB == nil {
+		return models.Stats{}, errors.New("db or db.SQLDB is nil")
+	}
+	row := repo.db.SQLDB.QueryRowContext(ctx, queries.GetStats)
+	err = row.Scan(&stats.URLsCount, &stats.UsersCount)
+	return stats, err
 }
